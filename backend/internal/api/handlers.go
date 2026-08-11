@@ -134,12 +134,12 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type archetypeStat struct {
-		ID          int64   `json:"id"`
-		Name        string  `json:"name"`
-		Slug        string  `json:"slug"`
-		DeckCount   int     `json:"deck_count"`
-		AvgStanding float64 `json:"avg_standing"`
-		DropCount   int     `json:"drop_count"`
+		ID          int64    `json:"id"`
+		Name        string   `json:"name"`
+		Slug        string   `json:"slug"`
+		DeckCount   int      `json:"deck_count"`
+		AvgStanding *float64 `json:"avg_standing"`
+		DropCount   int      `json:"drop_count"`
 	}
 
 	stats := []archetypeStat{}
@@ -224,11 +224,11 @@ func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type variant struct {
-		CoreHash         string  `json:"core_hash"`
-		DeckCount        int     `json:"deck_count"`
-		AvgStanding      float64 `json:"avg_standing"`
-		DropCount        int     `json:"drop_count"`
-		SampleDecklistID int64   `json:"sample_decklist_id"`
+		CoreHash         string   `json:"core_hash"`
+		DeckCount        int      `json:"deck_count"`
+		AvgStanding      *float64 `json:"avg_standing"`
+		DropCount        int      `json:"drop_count"`
+		SampleDecklistID int64    `json:"sample_decklist_id"`
 	}
 
 	variants := []variant{}
