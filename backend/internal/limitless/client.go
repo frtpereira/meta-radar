@@ -67,11 +67,11 @@ type TournamentDetails struct {
 // and only partially documented, so we keep the raw bytes for storage and
 // parse what we can separately (see ParsePTCGDecklist).
 type StandingEntry struct {
-	Player   string `json:"player"`
-	Name     string `json:"name"`
-	Country  string `json:"country"`
-	Standing int    `json:"standing"`
-	Record   struct {
+	Player  string `json:"player"`
+	Name    string `json:"name"`
+	Country string `json:"country"`
+	Placing int    `json:"placing"` // 0 means the player dropped from the tournament
+	Record  struct {
 		Wins   int `json:"wins"`
 		Losses int `json:"losses"`
 		Ties   int `json:"ties"`

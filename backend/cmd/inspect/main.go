@@ -51,7 +51,7 @@ func main() {
 		}
 		found = true
 
-		fmt.Printf("player: %s (placing %d)\n", entry.Player, entry.Standing)
+		fmt.Printf("player: %s (placing %d)\n", entry.Player, entry.Placing)
 		if entry.Deck != nil {
 			fmt.Printf("auto-categorized as: %s (%s)\n", entry.Deck.Name, entry.Deck.ID)
 		}

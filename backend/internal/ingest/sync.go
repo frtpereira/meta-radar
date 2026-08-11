@@ -220,7 +220,7 @@ func (s *Syncer) upsertStandingEntry(ctx context.Context, tx pgx.Tx, tournamentI
 			losses = EXCLUDED.losses,
 			ties = EXCLUDED.ties,
 			decklist_id = EXCLUDED.decklist_id`,
-		tournamentID, entry.Player, entry.Standing, entry.Record.Wins, entry.Record.Losses, entry.Record.Ties, decklistID,
+		tournamentID, entry.Player, entry.Placing, entry.Record.Wins, entry.Record.Losses, entry.Record.Ties, decklistID,
 	)
 	if err != nil {
 		return fmt.Errorf("upserting standing row: %w", err)

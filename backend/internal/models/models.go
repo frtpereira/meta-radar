@@ -50,7 +50,7 @@ type Decklist struct {
 type Standing struct {
 	TournamentID string `json:"tournament_id"`
 	PlayerID     string `json:"player_id"`
-	Standing     int    `json:"standing"`
+	Standing     int    `json:"standing"` // final rank; 0 means the player dropped
 	Wins         int    `json:"wins"`
 	Losses       int    `json:"losses"`
 	Ties         int    `json:"ties"`
