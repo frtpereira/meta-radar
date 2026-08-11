@@ -129,6 +129,24 @@ format you're syncing — see below.)
    meta, it never creates one. Needs an admin flow or a rule eventually
    (e.g. "new meta whenever a set with X new archetype-defining cards
    releases").
+
+    To open the current Standard meta and backfill it onto anything
+    already synced:
+
+    ```bash
+    make seed-meta
+    make resync
+    ```
+
+    `seed-meta` is idempotent (safe to re-run; reuses the existing open
+    meta for that format if there is one) and backfills `tournaments.meta_id`
+    directly in SQL. `resync` is the step that's easy to miss: the ingest
+    worker only assigns `archetype_id` on a decklist when an open meta
+    exists _at sync time_ to scope the archetype to, so anything synced
+    before you ran `seed-meta` has `archetype_id = NULL` and won't show up
+    in `/api/archetypes/stats` until you force a re-sync with
+    `--refresh=1s` (which `make resync` does for you).
+
 4. **Pairings ingestion** (`/tournaments/{id}/pairings`) — not pulled yet;
    needed for real win-rate/matchup stats rather than just placing-based
    ones.

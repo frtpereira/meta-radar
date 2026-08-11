@@ -19,6 +19,7 @@ func main() {
 	maxPages := flag.Int("max-pages", 5, "how many pages of /tournaments to walk per pass (50 per page)")
 	interval := flag.Duration("interval", 0, "if set (e.g. 15m), run continuously on this interval instead of once")
 	requestDelay := flag.Duration("request-delay", 500*time.Millisecond, "pause between tournaments during a sync pass, to stay under the API's rate limit")
+	refresh := flag.Duration("refresh", 0, "re-sync tournaments already stored if they were last checked longer ago than this (0 = never re-sync a seen tournament). Use a small value like 1s to force a full re-sync -- e.g. after seeding a new meta, so already-synced tournaments get their archetype_id backfilled.")
 	flag.Parse()
 
 	cfg := config.Load()
@@ -39,6 +40,7 @@ func main() {
 		MinPlayers:   *minPlayers,
 		MaxPages:     *maxPages,
 		RequestDelay: *requestDelay,
+		Refresh:      *refresh,
 	}
 
 	runOnce := func() {
