@@ -51,7 +51,10 @@ func DefaultOptions() Options {
 // Run walks recent tournaments, skips ones that don't meet the player
 // threshold, and syncs (or re-syncs, per Refresh) the rest.
 func (s *Syncer) Run(ctx context.Context, opts Options) error {
+	var seen, synced, skipped, failed int
+
 	for page := 1; page <= max(opts.MaxPages, 1); page++ {
+		log.Printf("fetching page %d of tournaments...", page)
 		summaries, err := s.Client.ListTournaments(ctx, opts.Game, opts.Format, 50, page)
 		if err != nil {
 			return fmt.Errorf("listing tournaments (page %d): %w", page, err)
@@ -59,9 +62,12 @@ func (s *Syncer) Run(ctx context.Context, opts Options) error {
 		if len(summaries) == 0 {
 			break // no more pages
 		}
+		log.Printf("page %d: %d tournaments", page, len(summaries))
 
 		for _, t := range summaries {
+			seen++
 			if t.Players < opts.MinPlayers {
+				skipped++
 				continue
 			}
 
@@ -71,14 +77,19 @@ func (s *Syncer) Run(ctx context.Context, opts Options) error {
 				continue
 			}
 			if !shouldSync {
+				skipped++
 				continue
 			}
 
+			log.Printf("syncing %s (%s, %d players)...", t.ID, t.Name, t.Players)
 			if err := s.syncTournament(ctx, t.ID); err != nil {
-				log.Printf("syncing tournament %s (%s): %v", t.ID, t.Name, err)
+				failed++
+				log.Printf("  failed: %v", err)
 				s.logSync(ctx, t.ID, "poll", "error", err.Error())
 				continue
 			}
+			synced++
+			log.Printf("  synced (%d/%d checked so far, %d skipped, %d failed)", synced, seen, skipped, failed)
 			s.logSync(ctx, t.ID, "poll", "success", "")
 
 			if opts.RequestDelay > 0 {
@@ -90,6 +101,8 @@ func (s *Syncer) Run(ctx context.Context, opts Options) error {
 			}
 		}
 	}
+
+	log.Printf("pass complete: %d checked, %d synced, %d skipped, %d failed", seen, synced, skipped, failed)
 	return nil
 }
 

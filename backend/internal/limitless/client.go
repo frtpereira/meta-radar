@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -114,6 +115,7 @@ func (c *Client) get(ctx context.Context, path string, query url.Values, out any
 			if attempt == maxAttempts {
 				break
 			}
+			log.Printf("  rate limited (attempt %d/%d), waiting %s before retrying %s", attempt, maxAttempts, wait, u)
 			select {
 			case <-time.After(wait):
 				continue
