@@ -101,9 +101,9 @@ func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 }
 
 // ArchetypeStats returns per-archetype play counts for a given meta, the
-// basic input for the "top performing decks" view. This starts simple
-// (count + avg placing); win-rate needs the standings join added once
-// pairings data is being ingested.
+// basic input for the "top performing decks" view. avg_standing excludes
+// drops (standing = 0) via NULLIF, since a drop isn't a real finishing
+// placement and averaging it in would make dropping look like winning.
 func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	metaID := r.URL.Query().Get("meta_id")
@@ -113,7 +113,9 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `
-		SELECT a.id, a.name, a.slug, COUNT(d.id) AS deck_count, AVG(s.standing) AS avg_placing
+		SELECT a.id, a.name, a.slug, COUNT(d.id) AS deck_count,
+		       AVG(NULLIF(s.standing, 0)) AS avg_standing,
+		       COUNT(*) FILTER (WHERE s.standing = 0) AS drop_count
 		FROM archetypes a
 		JOIN decklists d ON d.archetype_id = a.id
 		LEFT JOIN standings s ON s.decklist_id = d.id
@@ -129,17 +131,18 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type archetypeStat struct {
-		ID         int64   `json:"id"`
-		Name       string  `json:"name"`
-		Slug       string  `json:"slug"`
-		DeckCount  int     `json:"deck_count"`
-		AvgPlacing float64 `json:"avg_placing"`
+		ID          int64   `json:"id"`
+		Name        string  `json:"name"`
+		Slug        string  `json:"slug"`
+		DeckCount   int     `json:"deck_count"`
+		AvgStanding float64 `json:"avg_standing"`
+		DropCount   int     `json:"drop_count"`
 	}
 
 	stats := []archetypeStat{}
 	for rows.Next() {
 		var s archetypeStat
-		if err := rows.Scan(&s.ID, &s.Name, &s.Slug, &s.DeckCount, &s.AvgPlacing); err != nil {
+		if err := rows.Scan(&s.ID, &s.Name, &s.Slug, &s.DeckCount, &s.AvgStanding, &s.DropCount); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning archetype stat: "+err.Error())
 			return
 		}
