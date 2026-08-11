@@ -6,9 +6,12 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/ingest"
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/models"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -152,7 +155,95 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, stats)
 }
 
-// LimitlessWebhook receives the tournament:ended notification and triggers
+// ArchetypeDetail returns one archetype's metadata plus its computed core
+// card list (populated by cmd/cluster; nil until that's been run).
+func (h *Handler) ArchetypeDetail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := chi.URLParam(r, "id")
+
+	var (
+		a              models.Archetype
+		coreCardsJSON  []byte
+		coreThreshold  *float64
+		coreComputedAt *time.Time
+	)
+	err := h.DB.QueryRow(ctx, `
+		SELECT id, meta_id::text, name, slug, core_cards, core_threshold, core_computed_at
+		FROM archetypes WHERE id = $1`, id,
+	).Scan(&a.ID, &a.MetaID, &a.Name, &a.Slug, &coreCardsJSON, &coreThreshold, &coreComputedAt)
+	if err == pgx.ErrNoRows {
+		writeError(w, http.StatusNotFound, "archetype not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying archetype: "+err.Error())
+		return
+	}
+
+	var coreCards []models.Card
+	if len(coreCardsJSON) > 0 {
+		_ = json.Unmarshal(coreCardsJSON, &coreCards)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"id":               a.ID,
+		"meta_id":          a.MetaID,
+		"name":             a.Name,
+		"slug":             a.Slug,
+		"core_cards":       coreCards,
+		"core_threshold":   coreThreshold,
+		"core_computed_at": coreComputedAt,
+	})
+}
+
+// ArchetypeVariants groups an archetype's decklists by core_hash -- each
+// group is one distinct build (skeleton), separate from tech-choice noise.
+// Requires cmd/cluster to have run for this archetype's meta first;
+// decklists with a NULL core_hash (not yet clustered) are excluded.
+func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := chi.URLParam(r, "id")
+
+	query := `
+		SELECT d.core_hash, COUNT(*) AS deck_count,
+		       AVG(NULLIF(s.standing, 0)) AS avg_standing,
+		       COUNT(*) FILTER (WHERE s.standing = 0) AS drop_count,
+		       -- one representative decklist per variant, for showing its tech choices
+		       (ARRAY_AGG(d.id ORDER BY d.id))[1] AS sample_decklist_id
+		FROM decklists d
+		LEFT JOIN standings s ON s.decklist_id = d.id
+		WHERE d.archetype_id = $1 AND d.core_hash IS NOT NULL
+		GROUP BY d.core_hash
+		ORDER BY deck_count DESC`
+
+	rows, err := h.DB.Query(ctx, query, id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying variants: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	type variant struct {
+		CoreHash         string  `json:"core_hash"`
+		DeckCount        int     `json:"deck_count"`
+		AvgStanding      float64 `json:"avg_standing"`
+		DropCount        int     `json:"drop_count"`
+		SampleDecklistID int64   `json:"sample_decklist_id"`
+	}
+
+	variants := []variant{}
+	for rows.Next() {
+		var v variant
+		if err := rows.Scan(&v.CoreHash, &v.DeckCount, &v.AvgStanding, &v.DropCount, &v.SampleDecklistID); err != nil {
+			writeError(w, http.StatusInternalServerError, "scanning variant: "+err.Error())
+			return
+		}
+		variants = append(variants, v)
+	}
+
+	writeJSON(w, http.StatusOK, variants)
+}
+
 // a sync for that single tournament. Limitless calls this synchronously and
 // doesn't document a retry policy, so we acknowledge immediately (202) and
 // run the actual sync in the background rather than making Limitless wait

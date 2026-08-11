@@ -66,6 +66,8 @@ separate `make migrate` target) instead of relying on container init.
     - `GET /api/tournaments?min_players=64&format=STANDARD&meta_id=...`
     - `GET /api/metas`
     - `GET /api/archetypes/stats?meta_id=...`
+    - `GET /api/archetypes/{id}` — metadata + computed core cards
+    - `GET /api/archetypes/{id}/variants` — decklists grouped by build (`core_hash`)
     - `POST /api/webhooks/limitless` — verifies the shared secret, then syncs
       that one tournament in the background
 - **Ingestion worker** (`cmd/ingest`): walks `GET /tournaments` (paged),
@@ -98,32 +100,7 @@ format you're syncing — see below.)
 
 ## Not yet implemented (next steps)
 
-1. **Verify the decklist payload shape.** `internal/limitless/decklist.go`
-   parses the per-player `decklist` field from `/standings` against a
-   _guessed_ shape (grouped `pokemon`/`trainer`/`energy` arrays) because
-   the official docs mark that field as "format differs by game" with no
-   published schema. The raw bytes are always kept in `decklists.raw_list`
-   regardless, so nothing is lost, but `cards` may come back empty until
-   this is checked against a real response and adjusted.
-
-    To check: pick a tournament id that has decklists (look for
-    `"decklists": true` via `/tournaments/{id}/details`, or just try one
-    from the `ingest` logs), then:
-
-    ```bash
-    make inspect ID=<tournament-id>
-    ```
-
-    This prints the raw `decklist` field for one real player. Compare it
-    against `ParsePTCGDecklist` in `internal/limitless/decklist.go` and
-    adjust the struct shape it unmarshals into if they don't match.
-
-2. **Variant clustering on top of Limitless's archetypes.** We now store
-   Limitless's own `deck.id`/`deck.name` per decklist, which gets you
-   archetype-level grouping for free. The `core_hash` column exists but
-   isn't populated yet — that's the next layer, for clustering _variants
-   within_ an archetype (same core, different 1-of tech).
-3. **Meta management.** `metas` is an empty table you populate by hand
+1. **Meta management.** `metas` is an empty table you populate by hand
    (one row per format with `ends_at IS NULL` for the currently active
    one) — `syncTournament` only _attaches_ tournaments to an existing open
    meta, it never creates one. Needs an admin flow or a rule eventually
@@ -147,7 +124,8 @@ format you're syncing — see below.)
     in `/api/archetypes/stats` until you force a re-sync with
     `--refresh=1s` (which `make resync` does for you).
 
-4. **Pairings ingestion** (`/tournaments/{id}/pairings`) — not pulled yet;
+2. **Pairings ingestion** (`/tournaments/{id}/pairings`) — not pulled yet;
    needed for real win-rate/matchup stats rather than just placing-based
    ones.
-5. Frontend.
+
+3. **Frontend.**

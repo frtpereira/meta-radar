@@ -1,6 +1,6 @@
-.PHONY: up down logs psql tidy ingest-once inspect seed-meta resync
-
 DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi)
+
+.PHONY: up down logs psql tidy ingest-once inspect seed-meta resync
 
 up:
 	$(DOCKER_COMPOSE) up --build
@@ -39,3 +39,19 @@ seed-meta:
 resync:
 	$(DOCKER_COMPOSE) build ingest
 	$(DOCKER_COMPOSE) run --rm ingest --interval=0 --refresh=1s
+
+# Apply any migrations after 0001 (which is handled automatically by
+# Postgres's init-on-empty-volume mechanism). Poor-man's migration runner --
+# each file must be safe to re-run (IF NOT EXISTS etc). Replace with
+# golang-migrate once this stops being enough. See README.
+migrate:
+	@for f in $$(ls db/migrations/*.sql | sort | tail -n +2); do \
+		echo "applying $$f"; \
+		$(DOCKER_COMPOSE) exec -T postgres psql -U app -d pokemontcg < $$f; \
+	done
+ 
+# Compute core cards + core_hash variant grouping for every archetype in
+# every meta. Usage: make cluster [META=<meta-id>] [THRESHOLD=0.7]
+cluster:
+	$(DOCKER_COMPOSE) build ingest
+	$(DOCKER_COMPOSE) run --rm --entrypoint cluster ingest --meta=$(META) --threshold=$(or $(THRESHOLD),0.7)
