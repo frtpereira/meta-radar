@@ -1,0 +1,135 @@
+# Pokemon TCG Deck Tracker
+
+Tracks top-performing Pokemon TCG decks from tournaments listed on
+[limitlesstcg.com](https://limitlesstcg.com), using their official API
+(`https://play.limitlesstcg.com/api` — no key required except for the
+`/games/{id}/decks` endpoint).
+
+## Stack
+
+- **Postgres 16** (Docker) — source of truth
+- **Go** (`chi` + `pgx`) — REST API + ingestion worker
+- **React** (TanStack, to be added) — frontend
+
+## Getting started
+
+```bash
+cp .env.example .env
+make up
+```
+
+This builds the Go API image, starts Postgres, and runs the migration in
+`db/migrations/0001_init.sql` automatically on first boot (via Postgres's
+`docker-entrypoint-initdb.d` mechanism — it only runs once against an empty
+data volume, so edit-and-restart won't re-apply it; see "Adding a new
+migration" below).
+
+Check it's alive:
+
+```bash
+curl http://localhost:8080/health
+curl http://localhost:8080/api/tournaments
+```
+
+## First real step: generate go.sum
+
+The `go.mod` here lists dependencies but has no `go.sum` yet (this
+environment has no network access to fetch them). Before `make up` will
+build, run:
+
+```bash
+make tidy
+```
+
+with network access available locally, which will download `chi`, `cors`,
+and `pgx`, and write `backend/go.sum`.
+
+## Adding a new migration
+
+The `docker-entrypoint-initdb.d` mechanism only runs on an empty data
+volume, so it's fine for the very first migration but won't work for
+ongoing schema changes. Once you're iterating, switch to a real migration
+tool — `golang-migrate` is a natural fit with this layout:
+
+```bash
+migrate create -ext sql -dir db/migrations -seq add_pairings_table
+```
+
+and run migrations explicitly (e.g. from `cmd/api/main.go` on startup, or a
+separate `make migrate` target) instead of relying on container init.
+
+## What's implemented so far
+
+- Schema: `metas`, `tournaments`, `players`, `archetypes`, `decklists`,
+  `standings`, `sync_log`
+- REST endpoints:
+    - `GET /api/tournaments?min_players=64&format=STANDARD&meta_id=...`
+    - `GET /api/metas`
+    - `GET /api/archetypes/stats?meta_id=...`
+    - `POST /api/webhooks/limitless` — verifies the shared secret, then syncs
+      that one tournament in the background
+- **Ingestion worker** (`cmd/ingest`): walks `GET /tournaments` (paged),
+  skips anything under `--min-players` (default 64), and for everything
+  else fetches `/details` + `/standings` and upserts tournament, player,
+  archetype, decklist and standing rows in one transaction per tournament.
+    - Dedup is a plain upsert on Limitless's own tournament id, so re-running
+      the worker is always safe.
+    - By default it **never re-syncs a tournament it's already stored**
+      (`Options.Refresh == 0`) — a completed tournament's results don't
+      change. Pass `--interval` to keep the process running and pick up
+      newly-finished tournaments on each pass.
+    - Archetype rows are seeded from Limitless's own auto-categorization
+      (the `deck.id` / `deck.name` fields on each standings entry) rather
+      than reimplementing that classification — see "Not yet implemented"
+      below for where custom variant-clustering fits in on top of that.
+    - Run it once ad hoc: `make ingest-once`. Runs continuously alongside
+      the API via the `ingest` service in `docker-compose.yml`
+      (`--interval=15m` by default).
+
+Try it after `make up`:
+
+```bash
+make ingest-once
+curl http://localhost:8080/api/tournaments?min_players=64
+```
+
+(Won't return anything meaningful until a `metas` row exists for the
+format you're syncing — see below.)
+
+## Not yet implemented (next steps)
+
+1. **Verify the decklist payload shape.** `internal/limitless/decklist.go`
+   parses the per-player `decklist` field from `/standings` against a
+   _guessed_ shape (grouped `pokemon`/`trainer`/`energy` arrays) because
+   the official docs mark that field as "format differs by game" with no
+   published schema. The raw bytes are always kept in `decklists.raw_list`
+   regardless, so nothing is lost, but `cards` may come back empty until
+   this is checked against a real response and adjusted.
+
+    To check: pick a tournament id that has decklists (look for
+    `"decklists": true` via `/tournaments/{id}/details`, or just try one
+    from the `ingest` logs), then:
+
+    ```bash
+    make inspect ID=<tournament-id>
+    ```
+
+    This prints the raw `decklist` field for one real player. Compare it
+    against `ParsePTCGDecklist` in `internal/limitless/decklist.go` and
+    adjust the struct shape it unmarshals into if they don't match.
+
+2. **Variant clustering on top of Limitless's archetypes.** We now store
+   Limitless's own `deck.id`/`deck.name` per decklist, which gets you
+   archetype-level grouping for free. The `core_hash` column exists but
+   isn't populated yet — that's the next layer, for clustering _variants
+   within_ an archetype (same core, different 1-of tech).
+3. **Meta management.** `metas` is an empty table you populate by hand
+   (one row per format with `ends_at IS NULL` for the currently active
+   one) — `syncTournament` only _attaches_ tournaments to an existing open
+   meta, it never creates one. Needs an admin flow or a rule eventually
+   (e.g. "new meta whenever a set with X new archetype-defining cards
+   releases").
+4. **Pairings ingestion** (`/tournaments/{id}/pairings`) — not pulled yet;
+   needed for real win-rate/matchup stats rather than just placing-based
+   ones.
+5. Frontend.

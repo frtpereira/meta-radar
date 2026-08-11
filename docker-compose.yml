@@ -1,0 +1,61 @@
+services:
+    postgres:
+        image: postgres:16-alpine
+        container_name: tcg_postgres
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: ${DB_NAME:-pokemontcg}
+            POSTGRES_USER: ${DB_USER:-app}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:-devpassword}
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+            - ./db/migrations:/docker-entrypoint-initdb.d:ro
+        ports:
+            - "5432:5432"
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "pg_isready -U ${DB_USER:-app} -d ${DB_NAME:-pokemontcg}",
+                ]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+
+    api:
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        container_name: tcg_api
+        restart: unless-stopped
+        depends_on:
+            postgres:
+                condition: service_healthy
+        environment:
+            DATABASE_URL: postgres://${DB_USER:-app}:${DB_PASSWORD:-devpassword}@postgres:5432/${DB_NAME:-pokemontcg}?sslmode=disable
+            PORT: 8080
+            LIMITLESS_API_BASE: https://play.limitlesstcg.com/api
+            LIMITLESS_API_KEY: ${LIMITLESS_API_KEY:-}
+            WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+        ports:
+            - "8080:8080"
+
+    ingest:
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        container_name: tcg_ingest
+        restart: unless-stopped
+        entrypoint: ["ingest"]
+        command: ["--interval=15m"]
+        depends_on:
+            postgres:
+                condition: service_healthy
+        environment:
+            DATABASE_URL: postgres://${DB_USER:-app}:${DB_PASSWORD:-devpassword}@postgres:5432/${DB_NAME:-pokemontcg}?sslmode=disable
+            LIMITLESS_API_BASE: https://play.limitlesstcg.com/api
+            LIMITLESS_API_KEY: ${LIMITLESS_API_KEY:-}
+
+volumes:
+    pgdata:
