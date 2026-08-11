@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/limitless"
@@ -143,6 +145,11 @@ func (s *Syncer) syncTournament(ctx context.Context, tournamentID string) error 
 		return fmt.Errorf("fetching standings: %w", err)
 	}
 
+	pairings, err := s.Client.GetPairings(ctx, tournamentID)
+	if err != nil {
+		return fmt.Errorf("fetching pairings: %w", err)
+	}
+
 	tx, err := s.DB.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
@@ -183,6 +190,10 @@ func (s *Syncer) syncTournament(ctx context.Context, tournamentID string) error 
 		if err := s.upsertStandingEntry(ctx, tx, details.ID, metaID, entry); err != nil {
 			return fmt.Errorf("upserting standing for player %s: %w", entry.Player, err)
 		}
+	}
+
+	if err := s.replacePairings(ctx, tx, details.ID, pairings); err != nil {
+		return fmt.Errorf("upserting pairings: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -274,6 +285,91 @@ func (s *Syncer) upsertDecklist(ctx context.Context, tx pgx.Tx, tournamentID, pl
 		tournamentID, playerID, archetypeID, cards, raw,
 	).Scan(&id)
 	return id, err
+}
+
+func (s *Syncer) replacePairings(ctx context.Context, tx pgx.Tx, tournamentID string, pairings []limitless.PairingEntry) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM pairings WHERE tournament_id = $1`, tournamentID); err != nil {
+		return fmt.Errorf("clearing previous pairings: %w", err)
+	}
+
+	for _, p := range pairings {
+		if p.Player1 == "" && p.Player2 == "" {
+			continue
+		}
+
+		winnerPlayerID := normalizeWinnerPlayerID(p.Winner, p.Player1, p.Player2)
+		result := classifyPairingResult(winnerPlayerID, p.Player1, p.Player2)
+
+		if p.Player1 != "" {
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO players (id, name) VALUES ($1, $2)
+				ON CONFLICT (id) DO NOTHING`,
+				p.Player1, p.Player1,
+			); err != nil {
+				return fmt.Errorf("ensuring player1 exists: %w", err)
+			}
+		}
+		if p.Player2 != "" {
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO players (id, name) VALUES ($1, $2)
+				ON CONFLICT (id) DO NOTHING`,
+				p.Player2, p.Player2,
+			); err != nil {
+				return fmt.Errorf("ensuring player2 exists: %w", err)
+			}
+		}
+
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO pairings (tournament_id, phase, round, table_number, player1_id, player2_id, winner_player_id, result, raw_pairing)
+			VALUES ($1, $2, $3, $4, NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), $8, $9)`,
+			tournamentID, p.Phase, p.Round, p.Table, p.Player1, p.Player2, winnerPlayerID, result, pairingJSON(p),
+		); err != nil {
+			return fmt.Errorf("inserting pairing phase=%d round=%d table=%d: %w", p.Phase, p.Round, p.Table, err)
+		}
+	}
+
+	return nil
+}
+
+func normalizeWinnerPlayerID(raw json.RawMessage, player1, player2 string) string {
+	v := strings.TrimSpace(string(raw))
+	if v == "" || v == "null" || v == "-1" {
+		return ""
+	}
+
+	if unquoted, err := strconv.Unquote(v); err == nil {
+		if unquoted == player1 || unquoted == player2 {
+			return unquoted
+		}
+		return ""
+	}
+
+	if v == player1 || v == player2 {
+		return v
+	}
+
+	return ""
+}
+
+func classifyPairingResult(winnerPlayerID, player1, player2 string) string {
+	if player2 == "" {
+		if winnerPlayerID != "" {
+			return "bye"
+		}
+		return "unknown"
+	}
+	if winnerPlayerID == player1 || winnerPlayerID == player2 {
+		return "win"
+	}
+	return "draw"
+}
+
+func pairingJSON(p limitless.PairingEntry) []byte {
+	b, err := json.Marshal(p)
+	if err != nil {
+		return nil
+	}
+	return b
 }
 
 func (s *Syncer) logSync(ctx context.Context, tournamentID, source, status, detail string) {

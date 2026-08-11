@@ -66,14 +66,16 @@ separate `make migrate` target) instead of relying on container init.
     - `GET /api/tournaments?min_players=64&format=STANDARD&meta_id=...`
     - `GET /api/metas`
     - `GET /api/archetypes/stats?meta_id=...`
-    - `GET /api/archetypes/{id}` — metadata + computed core cards
-    - `GET /api/archetypes/{id}/variants` — decklists grouped by build (`core_hash`)
-    - `POST /api/webhooks/limitless` — verifies the shared secret, then syncs
-      that one tournament in the background
+    - `GET /api/matchups/stats?meta_id=...&archetype_id=...&min_matches=5&include_mirrors=false`
+        - `GET /api/archetypes/{id}` — metadata + computed core cards
+        - `GET /api/archetypes/{id}/variants` — decklists grouped by build (`core_hash`)
+        - `POST /api/webhooks/limitless` — verifies the shared secret, then syncs
+          that one tournament in the background
 - **Ingestion worker** (`cmd/ingest`): walks `GET /tournaments` (paged),
   skips anything under `--min-players` (default 64), and for everything
-  else fetches `/details` + `/standings` and upserts tournament, player,
-  archetype, decklist and standing rows in one transaction per tournament.
+  else fetches `/details` + `/standings` + `/pairings` and upserts
+  tournament, player, archetype, decklist, standing, and pairing rows in one
+  transaction per tournament.
     - Dedup is a plain upsert on Limitless's own tournament id, so re-running
       the worker is always safe.
     - By default it **never re-syncs a tournament it's already stored**
@@ -124,8 +126,10 @@ format you're syncing — see below.)
     in `/api/archetypes/stats` until you force a re-sync with
     `--refresh=1s` (which `make resync` does for you).
 
-2. **Pairings ingestion** (`/tournaments/{id}/pairings`) — not pulled yet;
-   needed for real win-rate/matchup stats rather than just placing-based
-   ones.
+2. **Pairings-driven analytics expansion.** Pairings are now stored and
+   exposed through `/api/matchups/stats`, but you'll likely want additional
+   rollups (for example: per-round conversion, Swiss-only vs top-cut splits,
+   and confidence intervals) before using these stats as the sole ranking
+   signal.
 
 3. **Frontend.**

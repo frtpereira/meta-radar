@@ -86,6 +86,18 @@ type StandingEntry struct {
 	Drop *int `json:"drop"`
 }
 
+// PairingEntry is one element of GET /tournaments/{id}/pairings.
+// winner may be a player id string or -1 for non-decisive results, so we keep
+// the raw value and normalize it during ingestion.
+type PairingEntry struct {
+	Round   int             `json:"round"`
+	Phase   int             `json:"phase"`
+	Table   int             `json:"table"`
+	Winner  json.RawMessage `json:"winner"`
+	Player1 string          `json:"player1"`
+	Player2 string          `json:"player2"`
+}
+
 func (c *Client) get(ctx context.Context, path string, query url.Values, out any) error {
 	u := c.baseURL + path
 	if len(query) > 0 {
@@ -189,6 +201,14 @@ func (c *Client) GetTournamentDetails(ctx context.Context, id string) (*Tourname
 func (c *Client) GetStandings(ctx context.Context, id string) ([]StandingEntry, error) {
 	var out []StandingEntry
 	if err := c.get(ctx, "/tournaments/"+id+"/standings", nil, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *Client) GetPairings(ctx context.Context, id string) ([]PairingEntry, error) {
+	var out []PairingEntry
+	if err := c.get(ctx, "/tournaments/"+id+"/pairings", nil, &out); err != nil {
 		return nil, err
 	}
 	return out, nil

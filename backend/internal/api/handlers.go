@@ -244,6 +244,132 @@ func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, variants)
 }
 
+// MatchupStats returns directional archetype-vs-archetype results based on
+// actual pairings, not final placement proxies.
+func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	q := r.URL.Query()
+
+	metaID := q.Get("meta_id")
+	if metaID == "" {
+		writeError(w, http.StatusBadRequest, "meta_id is required")
+		return
+	}
+
+	minMatches := 1
+	if v := q.Get("min_matches"); v != "" {
+		parsed, err := strconv.Atoi(v)
+		if err != nil || parsed < 1 {
+			writeError(w, http.StatusBadRequest, "min_matches must be a positive integer")
+			return
+		}
+		minMatches = parsed
+	}
+
+	archetypeID := q.Get("archetype_id")
+	includeMirrors := q.Get("include_mirrors") == "true"
+
+	query := `
+		WITH base AS (
+			SELECT
+				p.player1_id,
+				p.player2_id,
+				p.winner_player_id,
+				d1.archetype_id AS archetype1_id,
+				d2.archetype_id AS archetype2_id
+			FROM pairings p
+			JOIN tournaments t ON t.id = p.tournament_id
+			JOIN decklists d1 ON d1.tournament_id = p.tournament_id AND d1.player_id = p.player1_id
+			JOIN decklists d2 ON d2.tournament_id = p.tournament_id AND d2.player_id = p.player2_id
+			WHERE t.meta_id::text = $1
+			  AND p.result IN ('win', 'draw')
+			  AND ($2 = '' OR d1.archetype_id::text = $2 OR d2.archetype_id::text = $2)
+			  AND ($3 OR d1.archetype_id <> d2.archetype_id)
+		), directed AS (
+			SELECT
+				archetype1_id AS archetype_id,
+				archetype2_id AS opponent_archetype_id,
+				CASE WHEN winner_player_id = player1_id THEN 1 ELSE 0 END AS wins,
+				CASE WHEN winner_player_id = player2_id THEN 1 ELSE 0 END AS losses,
+				CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END AS ties
+			FROM base
+
+			UNION ALL
+
+			SELECT
+				archetype2_id AS archetype_id,
+				archetype1_id AS opponent_archetype_id,
+				CASE WHEN winner_player_id = player2_id THEN 1 ELSE 0 END AS wins,
+				CASE WHEN winner_player_id = player1_id THEN 1 ELSE 0 END AS losses,
+				CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END AS ties
+			FROM base
+		)
+		SELECT
+			a.id,
+			a.name,
+			a.slug,
+			o.id,
+			o.name,
+			o.slug,
+			COUNT(*)::int AS matches,
+			SUM(d.wins)::int AS wins,
+			SUM(d.losses)::int AS losses,
+			SUM(d.ties)::int AS ties,
+			(SUM(d.wins) + 0.5 * SUM(d.ties)) / COUNT(*)::float8 AS score_rate,
+			CASE
+				WHEN (SUM(d.wins) + SUM(d.losses)) = 0 THEN NULL
+				ELSE SUM(d.wins)::float8 / (SUM(d.wins) + SUM(d.losses))::float8
+			END AS win_rate
+		FROM directed d
+		JOIN archetypes a ON a.id = d.archetype_id
+		JOIN archetypes o ON o.id = d.opponent_archetype_id
+		GROUP BY a.id, a.name, a.slug, o.id, o.name, o.slug
+		HAVING COUNT(*) >= $4
+		ORDER BY matches DESC, a.name ASC, o.name ASC`
+
+	rows, err := h.DB.Query(ctx, query, metaID, archetypeID, includeMirrors, minMatches)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying matchup stats: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	type matchupStat struct {
+		Archetype struct {
+			ID   int64  `json:"id"`
+			Name string `json:"name"`
+			Slug string `json:"slug"`
+		} `json:"archetype"`
+		Opponent struct {
+			ID   int64  `json:"id"`
+			Name string `json:"name"`
+			Slug string `json:"slug"`
+		} `json:"opponent"`
+		Matches   int      `json:"matches"`
+		Wins      int      `json:"wins"`
+		Losses    int      `json:"losses"`
+		Ties      int      `json:"ties"`
+		ScoreRate float64  `json:"score_rate"`
+		WinRate   *float64 `json:"win_rate"`
+	}
+
+	stats := []matchupStat{}
+	for rows.Next() {
+		var s matchupStat
+		if err := rows.Scan(
+			&s.Archetype.ID, &s.Archetype.Name, &s.Archetype.Slug,
+			&s.Opponent.ID, &s.Opponent.Name, &s.Opponent.Slug,
+			&s.Matches, &s.Wins, &s.Losses, &s.Ties, &s.ScoreRate, &s.WinRate,
+		); err != nil {
+			writeError(w, http.StatusInternalServerError, "scanning matchup stat: "+err.Error())
+			return
+		}
+		stats = append(stats, s)
+	}
+
+	writeJSON(w, http.StatusOK, stats)
+}
+
 // a sync for that single tournament. Limitless calls this synchronously and
 // doesn't document a retry policy, so we acknowledge immediately (202) and
 // run the actual sync in the background rather than making Limitless wait
