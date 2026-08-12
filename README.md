@@ -235,27 +235,11 @@ Annotated example:
 - `win_rate = 0.549...`: this asks a slightly different question by ignoring
   draws in the denominator.
 
-## Not yet implemented (next steps)
+## Progress and next steps
 
-1. **Verify the decklist payload shape.** `internal/limitless/decklist.go`
-   parses the per-player `decklist` field from `/standings` against a
-   _guessed_ shape (grouped `pokemon`/`trainer`/`energy` arrays) because
-   the official docs mark that field as "format differs by game" with no
-   published schema. The raw bytes are always kept in `decklists.raw_list`
-   regardless, so nothing is lost, but `cards` may come back empty until
-   this is checked against a real response and adjusted.
-
-    To check: pick a tournament id that has decklists (look for
-    `"decklists": true` via `/tournaments/{id}/details`, or just try one
-    from the `ingest` logs), then:
-
-    ```bash
-    make inspect ID=<tournament-id>
-    ```
-
-    This prints the raw `decklist` field for one real player. Compare it
-    against `ParsePTCGDecklist` in `internal/limitless/decklist.go` and
-    adjust the struct shape it unmarshals into if they don't match.
+1. **Verify the decklist payload shape.** Done. The raw `/standings`
+   decklist payload has been checked against a real response and
+   `internal/limitless/decklist.go` no longer depends on a guessed shape.
 
 2. **Variant clustering on top of Limitless's archetypes.** Done, as of
    `internal/archetype` + `cmd/cluster`. For each archetype (scoped to a
@@ -287,54 +271,40 @@ Annotated example:
     reprint of a staple Trainer) count as separate cards rather than being
     merged -- worth revisiting if it visibly fragments cores in practice.
 
-3. **Meta management.** `metas` is an empty table you populate by hand
-   (one row per format with `ends_at IS NULL` for the currently active
-   one) — `syncTournament` only _attaches_ tournaments to an existing open
-   meta, it never creates one. Needs an admin flow or a rule eventually
-   (e.g. "new meta whenever a set with X new archetype-defining cards
-   releases").
+3. **Meta lifecycle automation.** Basic meta support exists now: metas can
+   be seeded, listed via `/api/metas`, and attached during ingest when an
+   open meta already exists. The remaining gap is making meta changes an
+   explicit workflow instead of a manual SQL step.
 
-    To open the current Standard meta and backfill it onto anything
-    already synced:
+    Concrete next steps:
+    - add an admin path (API, CLI, or both) to open a meta, close the
+      previous one for the same format, and record the exact transition
+      date
+    - bundle the follow-up work that is easy to miss today: backfill
+      `tournaments.meta_id`, force a re-sync for `archetype_id`, and rerun
+      clustering for the newly scoped archetypes
+    - decide whether the long-term source of truth should stay manual or
+      become a rules-based trigger tied to set releases
 
-    ```bash
-    make seed-meta
-    make resync
-    ```
+4. **Pairings ingestion.** Done. `cmd/ingest` fetches
+   `/tournaments/{id}/pairings`, stores them in `pairings`, and uses that
+   data to power `/api/matchups/stats` plus win-rate fields on
+   `/api/archetypes/stats`.
 
-    `seed-meta` is idempotent (safe to re-run; reuses the existing open
-    meta for that format if there is one) and backfills `tournaments.meta_id`
-    directly in SQL. `resync` is the step that's easy to miss: the ingest
-    worker only assigns `archetype_id` on a decklist when an open meta
-    exists _at sync time_ to scope the archetype to, so anything synced
-    before you ran `seed-meta` has `archetype_id = NULL` and won't show up
-    in `/api/archetypes/stats` until you force a re-sync with
-    `--refresh=1s` (which `make resync` does for you).
+5. **Analytics and operator workflow.** The core data model is in place;
+   the remaining backend work is mainly about making the outputs easier to
+   trust and the maintenance steps easier to run.
 
-4. **Pairings ingestion.** Done — `cmd/ingest` now also fetches
-   `/tournaments/{id}/pairings` and stores them in the `pairings` table
-   (`make migrate` first to create it). `ArchetypeStats` and the new
-   `/api/matchups/stats` are both driven by this data. Two things worth
-   knowing:
-    - **Unverified schema.** Like the decklist field originally, the
-      `PairingEntry` shape (`round`/`phase`/`table`/`winner`/`player1`/`player2`)
-      is an assumption, not confirmed against a live response. Check it
-      with `make inspect ID=<tournament-id> PAIRINGS=1` before trusting
-      this in production.
-    - **A "winner didn't match either player" value is stored as
-      `result = 'unknown'`, not `'draw'`.** Only a confirmed no-winner
-      value (empty/null/`-1`) counts as a real draw; anything else
-      unrecognized gets logged and excluded from win/draw-based stats
-      rather than silently inflating tie rates. If you see `unknown`
-      rows piling up in `pairings`, that's a sign `normalizeWinnerPlayerID`
-      needs adjusting for the real API shape.
-    - **Backfill required.** Same as `core_hash` and `meta_id` before it:
-      tournaments synced before this feature existed have zero `pairings`
-      rows until you `make resync`.
-5. **Pairings-driven analytics expansion.** Pairings are now stored and
-   exposed through `/api/matchups/stats`, and `/api/archetypes/stats` now
-   includes an overall `win_rate`. You'll likely still want additional
-   rollups (for example: per-round conversion, Swiss-only vs top-cut
-   splits, and confidence intervals) before using these stats as the sole
-   ranking signal.
+    Concrete next steps:
+    - expand matchup and archetype rollups with filters that matter in
+      practice, such as Swiss-only vs top-cut, per-round slices, and
+      minimum sample thresholds
+    - add uncertainty-aware metrics so tiny samples do not look as strong
+      as well-supported matchup records
+    - decide whether clustering should remain a separate batch job or be
+      wrapped in a single post-ingest maintenance command alongside resync
+      and meta backfill steps
+    - add a short operator playbook in this README for the common sequence:
+      migrate, seed/open meta, resync, cluster, then query the API
+
 6. Frontend.
