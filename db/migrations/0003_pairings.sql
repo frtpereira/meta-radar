@@ -1,7 +1,7 @@
 -- db/migrations/0003_pairings.sql
 --
 -- Stores round-by-round pairings and outcomes from
--- GET /tournaments/{id}/pairings.
+-- GET /tournaments/{id}/pairings. Apply with `make migrate`.
 
 CREATE TABLE IF NOT EXISTS pairings (
     id               BIGSERIAL PRIMARY KEY,

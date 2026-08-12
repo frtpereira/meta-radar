@@ -107,6 +107,14 @@ func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 // basic input for the "top performing decks" view. avg_standing excludes
 // drops (standing = 0) via NULLIF, since a drop isn't a real finishing
 // placement and averaging it in would make dropping look like winning.
+//
+// win_rate is computed from actual pairings (see the `pairings` table),
+// not derived from standing/placement -- it only requires the archetype's
+// own side of a pairing to be known (the opponent's decklist doesn't need
+// to be public), which is a looser requirement than /api/matchups/stats
+// needs for a specific matchup. It's null until cmd/ingest has synced
+// pairings for this meta's tournaments (needs `make migrate` + a resync
+// for anything synced before pairings existed) -- see README.
 func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	metaID := r.URL.Query().Get("meta_id")
@@ -116,14 +124,43 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `
+		WITH sides AS (
+			SELECT d.archetype_id, p.player1_id AS player_id, p.winner_player_id
+			FROM pairings p
+			JOIN tournaments t ON t.id = p.tournament_id
+			JOIN decklists d ON d.tournament_id = p.tournament_id AND d.player_id = p.player1_id
+				WHERE t.meta_id = $1::uuid AND p.result IN ('win', 'draw')
+
+			UNION ALL
+
+			SELECT d.archetype_id, p.player2_id AS player_id, p.winner_player_id
+			FROM pairings p
+			JOIN tournaments t ON t.id = p.tournament_id
+			JOIN decklists d ON d.tournament_id = p.tournament_id AND d.player_id = p.player2_id
+				WHERE t.meta_id = $1::uuid AND p.result IN ('win', 'draw')
+		), match_stats AS (
+			SELECT archetype_id,
+			       COUNT(*)::int AS matches,
+			       SUM(CASE WHEN winner_player_id = player_id THEN 1 ELSE 0 END)::int AS wins,
+			       SUM(CASE WHEN winner_player_id IS NOT NULL AND winner_player_id <> player_id THEN 1 ELSE 0 END)::int AS losses,
+			       SUM(CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END)::int AS ties
+			FROM sides
+			GROUP BY archetype_id
+		)
 		SELECT a.id, a.name, a.slug, COUNT(d.id) AS deck_count,
 		       AVG(NULLIF(s.standing, 0)) AS avg_standing,
-		       COUNT(*) FILTER (WHERE s.standing = 0) AS drop_count
+		       COUNT(*) FILTER (WHERE s.standing = 0) AS drop_count,
+		       COALESCE(ms.matches, 0), COALESCE(ms.wins, 0), COALESCE(ms.losses, 0), COALESCE(ms.ties, 0),
+		       CASE WHEN COALESCE(ms.matches, 0) = 0 THEN NULL
+		            ELSE (COALESCE(ms.wins, 0) + 0.5 * COALESCE(ms.ties, 0)) / COALESCE(ms.matches, 0)::float8 END AS score_rate,
+		       CASE WHEN COALESCE(ms.wins, 0) + COALESCE(ms.losses, 0) = 0 THEN NULL
+		            ELSE COALESCE(ms.wins, 0)::float8 / (COALESCE(ms.wins, 0) + COALESCE(ms.losses, 0))::float8 END AS win_rate
 		FROM archetypes a
 		JOIN decklists d ON d.archetype_id = a.id
 		LEFT JOIN standings s ON s.decklist_id = d.id
-		WHERE a.meta_id = $1
-		GROUP BY a.id, a.name, a.slug
+		LEFT JOIN match_stats ms ON ms.archetype_id = a.id
+				WHERE a.meta_id = $1::uuid
+		GROUP BY a.id, a.name, a.slug, ms.matches, ms.wins, ms.losses, ms.ties
 		ORDER BY deck_count DESC`
 
 	rows, err := h.DB.Query(ctx, query, metaID)
@@ -140,12 +177,19 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 		DeckCount   int      `json:"deck_count"`
 		AvgStanding *float64 `json:"avg_standing"`
 		DropCount   int      `json:"drop_count"`
+		Matches     int      `json:"matches"`
+		Wins        int      `json:"wins"`
+		Losses      int      `json:"losses"`
+		Ties        int      `json:"ties"`
+		ScoreRate   *float64 `json:"score_rate"`
+		WinRate     *float64 `json:"win_rate"`
 	}
 
 	stats := []archetypeStat{}
 	for rows.Next() {
 		var s archetypeStat
-		if err := rows.Scan(&s.ID, &s.Name, &s.Slug, &s.DeckCount, &s.AvgStanding, &s.DropCount); err != nil {
+		if err := rows.Scan(&s.ID, &s.Name, &s.Slug, &s.DeckCount, &s.AvgStanding, &s.DropCount,
+			&s.Matches, &s.Wins, &s.Losses, &s.Ties, &s.ScoreRate, &s.WinRate); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning archetype stat: "+err.Error())
 			return
 		}
@@ -246,6 +290,18 @@ func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
 
 // MatchupStats returns directional archetype-vs-archetype results based on
 // actual pairings, not final placement proxies.
+//
+// Mirror matches (archetype_id == opponent_archetype_id) are a special
+// case worth understanding before trusting this endpoint for them: because
+// a mirror match's two "directed" rows (A's perspective and B's, where
+// A == B) both land in the *same* group, every mirror match contributes
+// exactly one win and one loss to that one bucket. win_rate/score_rate for
+// any mirror row are therefore mathematically guaranteed to come out at
+// 0.5, regardless of what actually happened -- they carry no information.
+// matches/wins/losses/ties are still real counts (useful for e.g. "how
+// often do mirrors even happen" or draw-rate in the mirror), so rather than
+// hide the row entirely, we null out just the two derived rate columns for
+// the mirror case so it can't be mistaken for a real 50/50 signal.
 func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query()
@@ -305,18 +361,16 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 			FROM base
 		)
 		SELECT
-			a.id,
-			a.name,
-			a.slug,
-			o.id,
-			o.name,
-			o.slug,
+			a.id, a.name, a.slug,
+			o.id, o.name, o.slug,
 			COUNT(*)::int AS matches,
 			SUM(d.wins)::int AS wins,
 			SUM(d.losses)::int AS losses,
 			SUM(d.ties)::int AS ties,
-			(SUM(d.wins) + 0.5 * SUM(d.ties)) / COUNT(*)::float8 AS score_rate,
+			CASE WHEN a.id = o.id THEN NULL
+			     ELSE (SUM(d.wins) + 0.5 * SUM(d.ties)) / COUNT(*)::float8 END AS score_rate,
 			CASE
+				WHEN a.id = o.id THEN NULL
 				WHEN (SUM(d.wins) + SUM(d.losses)) = 0 THEN NULL
 				ELSE SUM(d.wins)::float8 / (SUM(d.wins) + SUM(d.losses))::float8
 			END AS win_rate
@@ -349,7 +403,7 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 		Wins      int      `json:"wins"`
 		Losses    int      `json:"losses"`
 		Ties      int      `json:"ties"`
-		ScoreRate float64  `json:"score_rate"`
+		ScoreRate *float64 `json:"score_rate"`
 		WinRate   *float64 `json:"win_rate"`
 	}
 

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
@@ -192,6 +191,14 @@ func (s *Syncer) syncTournament(ctx context.Context, tournamentID string) error 
 		}
 	}
 
+	// Runs after the standings loop above on purpose: every player who
+	// appears in this tournament's standings (Limitless includes drops --
+	// standing 0 -- so that's effectively the full roster) already has
+	// their real display name in `players` by this point. replacePairings
+	// only falls back to using a raw player id as the name for someone who
+	// appears in pairings but was *never* in standings at all -- plausible
+	// for a disqualification or a bye-placeholder id, but not for an
+	// ordinary drop, since those are already covered above.
 	if err := s.replacePairings(ctx, tx, details.ID, pairings); err != nil {
 		return fmt.Errorf("upserting pairings: %w", err)
 	}
@@ -287,6 +294,11 @@ func (s *Syncer) upsertDecklist(ctx context.Context, tx pgx.Tx, tournamentID, pl
 	return id, err
 }
 
+// replacePairings replaces a tournament's pairings wholesale (delete then
+// reinsert) rather than upserting -- there's no natural per-row identity to
+// conflict on that's cheaper than just recomputing, and a tournament's
+// pairings never partially change in practice (they're either not final
+// yet, in which case we won't have synced it, or they are).
 func (s *Syncer) replacePairings(ctx context.Context, tx pgx.Tx, tournamentID string, pairings []limitless.PairingEntry) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM pairings WHERE tournament_id = $1`, tournamentID); err != nil {
 		return fmt.Errorf("clearing previous pairings: %w", err)
@@ -297,9 +309,9 @@ func (s *Syncer) replacePairings(ctx context.Context, tx pgx.Tx, tournamentID st
 			continue
 		}
 
-		winnerPlayerID := normalizeWinnerPlayerID(p.Winner, p.Player1, p.Player2)
-		result := classifyPairingResult(winnerPlayerID, p.Player1, p.Player2)
-
+		// Only a fallback: if this player was already seen in standings
+		// (the normal case -- see the comment at the call site), this
+		// ON CONFLICT DO NOTHING leaves their real name untouched.
 		if p.Player1 != "" {
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO players (id, name) VALUES ($1, $2)
@@ -319,6 +331,22 @@ func (s *Syncer) replacePairings(ctx context.Context, tx pgx.Tx, tournamentID st
 			}
 		}
 
+		winnerPlayerID, recognized := normalizeWinnerPlayerID(p.Winner, p.Player1, p.Player2)
+		result := classifyPairingResult(winnerPlayerID, recognized, p.Player1, p.Player2)
+
+		if !recognized && p.Player2 != "" {
+			// The raw `winner` value was non-empty and not a recognized
+			// "no winner" sentinel, but didn't match either player id --
+			// that's a sign of a parsing assumption being wrong (id format
+			// mismatch, unexpected API shape) rather than a genuine draw.
+			// Stored as "unknown" and excluded from win/draw-based stats
+			// (see ArchetypeStats/MatchupStats, which filter on
+			// result IN ('win','draw')) instead of silently counting as a
+			// tie, so bad data can't quietly inflate tie rates.
+			log.Printf("pairing tournament=%s phase=%d round=%d table=%d: winner value %q didn't match player1=%q or player2=%q -- storing as unknown",
+				tournamentID, p.Phase, p.Round, p.Table, string(p.Winner), p.Player1, p.Player2)
+		}
+
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO pairings (tournament_id, phase, round, table_number, player1_id, player2_id, winner_player_id, result, raw_pairing)
 			VALUES ($1, $2, $3, $4, NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), $8, $9)`,
@@ -331,31 +359,45 @@ func (s *Syncer) replacePairings(ctx context.Context, tx pgx.Tx, tournamentID st
 	return nil
 }
 
-func normalizeWinnerPlayerID(raw json.RawMessage, player1, player2 string) string {
+// normalizeWinnerPlayerID parses the raw `winner` field from a pairing.
+//
+// Returns ("", true) for a confirmed no-winner case (empty, JSON null, or
+// the -1 sentinel observed elsewhere in this API for non-decisive results)
+// -- that's a real draw. Returns (id, true) when the value is a JSON string
+// matching player1 or player2 -- a confirmed win. Returns ("", false) for
+// anything else: a non-empty value that doesn't fit either recognized
+// shape. That last case is NOT a draw -- it's ambiguous/unparseable data,
+// and the caller (classifyPairingResult) must not treat it as one.
+func normalizeWinnerPlayerID(raw json.RawMessage, player1, player2 string) (winnerID string, recognized bool) {
 	v := strings.TrimSpace(string(raw))
 	if v == "" || v == "null" || v == "-1" {
-		return ""
+		return "", true
 	}
 
-	if unquoted, err := strconv.Unquote(v); err == nil {
-		if unquoted == player1 || unquoted == player2 {
-			return unquoted
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		if s == player1 || s == player2 {
+			return s, true
 		}
-		return ""
+		return "", false // present, valid JSON string, but matches neither player
 	}
 
-	if v == player1 || v == player2 {
-		return v
-	}
-
-	return ""
+	return "", false // not a shape we recognize at all
 }
 
-func classifyPairingResult(winnerPlayerID, player1, player2 string) string {
+// classifyPairingResult turns a normalized winner id into a result label.
+// "unknown" (rather than "draw") is used whenever the winner value
+// couldn't be confidently classified, so downstream win/draw-based stats
+// (which filter on result IN ('win','draw')) don't silently absorb
+// unparseable data as if it were a real tie.
+func classifyPairingResult(winnerPlayerID string, recognized bool, player1, player2 string) string {
 	if player2 == "" {
 		if winnerPlayerID != "" {
 			return "bye"
 		}
+		return "unknown"
+	}
+	if !recognized {
 		return "unknown"
 	}
 	if winnerPlayerID == player1 || winnerPlayerID == player2 {

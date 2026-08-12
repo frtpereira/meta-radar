@@ -87,8 +87,18 @@ type StandingEntry struct {
 }
 
 // PairingEntry is one element of GET /tournaments/{id}/pairings.
-// winner may be a player id string or -1 for non-decisive results, so we keep
-// the raw value and normalize it during ingestion.
+//
+// NOT YET VERIFIED against a live response -- like the decklist field was
+// before, these field names (round/phase/table/winner/player1/player2) are
+// an assumption based on general docs, not a confirmed schema. Run
+// `make inspect ID=<tournament-id> --pairings` (see cmd/inspect) against a
+// real tournament before trusting this in production; adjust the struct if
+// the real shape differs.
+//
+// `winner` may be a player id string, or a non-decisive sentinel (observed
+// elsewhere in this API as -1) -- kept as json.RawMessage and normalized
+// during ingestion (see ingest.normalizeWinnerPlayerID) rather than typed
+// here, since we don't know its exact shape for every case yet.
 type PairingEntry struct {
 	Round   int             `json:"round"`
 	Phase   int             `json:"phase"`
