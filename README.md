@@ -9,7 +9,7 @@ Tracks top-performing Pokemon TCG decks from tournaments listed on
 
 - **Postgres 16** (Docker) — source of truth
 - **Go** (`chi` + `pgx`) — REST API + ingestion worker
-- **React** (TanStack, to be added) — frontend
+- **Next.js** (React + TypeScript) — frontend
 
 ## Getting started
 
@@ -30,6 +30,18 @@ Check it's alive:
 curl http://localhost:8080/health
 curl http://localhost:8080/api/tournaments
 ```
+
+## Frontend
+
+The frontend now lives in `frontend/` and uses Next.js App Router.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+By default it talks to the API at `http://localhost:8080/api`. If you need a different base URL, set `NEXT_PUBLIC_API_BASE_URL` in `frontend/.env.local`.
 
 ## First real step: generate go.sum
 

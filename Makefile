@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi)
 
-.PHONY: up down logs psql tidy ingest-once inspect seed-meta resync migrate cluster
+.PHONY: up down logs psql tidy ingest-once inspect seed-meta resync migrate cluster frontend-install frontend-dev frontend-build
 
 up:
 	$(DOCKER_COMPOSE) up --build
@@ -58,3 +58,12 @@ migrate:
 cluster:
 	$(DOCKER_COMPOSE) build ingest
 	$(DOCKER_COMPOSE) run --rm --entrypoint cluster ingest --meta=$(META) --threshold=$(or $(THRESHOLD),0.7)
+
+frontend-install:
+	cd frontend && npm install
+
+frontend-dev:
+	cd frontend && npm run dev
+
+frontend-build:
+	cd frontend && npm run build
