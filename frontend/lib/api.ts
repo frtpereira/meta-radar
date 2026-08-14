@@ -10,26 +10,30 @@ async function fetchJson<T>(path: string): Promise<T> {
 
     // Read response as text first so we can include server error bodies in thrown errors
     const text = await response.text();
-    let parsed: any = null;
+    let parsed: unknown = null;
     try {
         parsed = text ? JSON.parse(text) : null;
-    } catch (err) {
+    } catch {
         // If parsing fails, keep the raw text in `parsed` so we can surface it
         parsed = text;
     }
 
     if (!response.ok) {
-        const serverMessage =
-            parsed && typeof parsed === "object" && "message" in parsed
-                ? String((parsed as any).message)
-                : typeof parsed === "string"
-                ? parsed
-                : undefined;
+        let serverMessage: string | undefined;
+        if (parsed && typeof parsed === "object") {
+            const obj = parsed as Record<string, unknown>;
+            if ("message" in obj) {
+                const m = obj["message"];
+                serverMessage = typeof m === "string" ? m : JSON.stringify(m);
+            }
+        } else if (typeof parsed === "string") {
+            serverMessage = parsed;
+        }
 
         throw new Error(
             `Request failed: ${response.status} ${response.statusText}${
                 serverMessage ? ` - ${serverMessage}` : ""
-            }",
+            }`
         );
     }
 

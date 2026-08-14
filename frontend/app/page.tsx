@@ -92,9 +92,9 @@ function MetaSelector({
 export default async function Home({
     searchParams,
 }: {
-    searchParams: SearchParams;
+    searchParams: Promise<SearchParams>;
 }) {
-    const params = searchParams;
+    const params = await searchParams;
     const metas = await getMetas().catch(() => [] as Meta[]);
     const activeMeta =
         metas.find((meta) => meta.id === params.meta_id) ??
