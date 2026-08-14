@@ -18,48 +18,42 @@ WITH base AS (
     JOIN decklists d1 ON d1.tournament_id = p.tournament_id AND d1.player_id = p.player1_id
     JOIN decklists d2 ON d2.tournament_id = p.tournament_id AND d2.player_id = p.player2_id
     WHERE p.result IN ('win', 'draw')
-), directed AS (
+),
+pairs AS (
     SELECT
         meta_id,
-        archetype1_id AS archetype_id,
-        archetype2_id AS opponent_archetype_id,
-        CASE WHEN winner_player_id = player1_id THEN 1 ELSE 0 END AS wins,
-        CASE WHEN winner_player_id = player2_id THEN 1 ELSE 0 END AS losses,
-        CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END AS ties
-    FROM base
-
-    UNION ALL
-
-    SELECT
-        meta_id,
-        archetype2_id AS archetype_id,
-        archetype1_id AS opponent_archetype_id,
-        CASE WHEN winner_player_id = player2_id THEN 1 ELSE 0 END AS wins,
-        CASE WHEN winner_player_id = player1_id THEN 1 ELSE 0 END AS losses,
+        LEAST(archetype1_id, archetype2_id) AS archetype_a_id,
+        GREATEST(archetype1_id, archetype2_id) AS archetype_b_id,
+        CASE WHEN LEAST(archetype1_id, archetype2_id) = archetype1_id
+             THEN CASE WHEN winner_player_id = player1_id THEN 1 ELSE 0 END
+             ELSE CASE WHEN winner_player_id = player2_id THEN 1 ELSE 0 END END AS win_a,
+        CASE WHEN LEAST(archetype1_id, archetype2_id) = archetype1_id
+             THEN CASE WHEN winner_player_id = player2_id THEN 1 ELSE 0 END
+             ELSE CASE WHEN winner_player_id = player1_id THEN 1 ELSE 0 END END AS win_b,
         CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END AS ties
     FROM base
 )
 SELECT
-    meta_id,
+    pairs.meta_id,
     a.id AS archetype_id,
     a.name AS archetype_name,
     a.slug AS archetype_slug,
-    o.id AS opponent_archetype_id,
-    o.name AS opponent_name,
-    o.slug AS opponent_slug,
+    b.id AS opponent_archetype_id,
+    b.name AS opponent_name,
+    b.slug AS opponent_slug,
     COUNT(*)::int AS matches,
-    SUM(d.wins)::int AS wins,
-    SUM(d.losses)::int AS losses,
-    SUM(d.ties)::int AS ties,
-    CASE WHEN a.id = o.id THEN NULL
-         ELSE (SUM(d.wins) + 0.5 * SUM(d.ties)) / COUNT(*)::float8 END AS score_rate,
-    CASE WHEN a.id = o.id THEN NULL
-         WHEN (SUM(d.wins) + SUM(d.losses)) = 0 THEN NULL
-         ELSE SUM(d.wins)::float8 / (SUM(d.wins) + SUM(d.losses))::float8 END AS win_rate
-FROM directed d
-JOIN archetypes a ON a.id = d.archetype_id
-JOIN archetypes o ON o.id = d.opponent_archetype_id
-GROUP BY meta_id, a.id, a.name, a.slug, o.id, o.name, o.slug
+    SUM(pairs.win_a)::int AS wins,
+    SUM(pairs.win_b)::int AS losses,
+    SUM(pairs.ties)::int AS ties,
+    CASE WHEN a.id = b.id THEN NULL
+         ELSE (SUM(pairs.win_a) + 0.5 * SUM(pairs.ties)) / COUNT(*)::float8 END AS score_rate,
+    CASE WHEN a.id = b.id THEN NULL
+         WHEN (SUM(pairs.win_a) + SUM(pairs.win_b)) = 0 THEN NULL
+         ELSE SUM(pairs.win_a)::float8 / (SUM(pairs.win_a) + SUM(pairs.win_b))::float8 END AS win_rate
+FROM pairs
+JOIN archetypes a ON a.id = pairs.archetype_a_id
+JOIN archetypes b ON b.id = pairs.archetype_b_id
+GROUP BY pairs.meta_id, a.id, a.name, a.slug, b.id, b.name, b.slug
 ORDER BY matches DESC;
 
 -- Unique index required to support CONCURRENTLY refreshes
