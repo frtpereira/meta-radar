@@ -1,6 +1,7 @@
 import type { ArchetypeStat, MatchupStat, Meta } from "@/lib/types";
 
 import { getArchetypeStats, getMatchupStats, getMetas } from "@/lib/api";
+import Pagination from "./Pagination";
 
 type SearchParams = {
     meta_id?: string;
@@ -167,14 +168,16 @@ export default async function MatchupsPage({
         metas.find((meta) => meta.id === params.meta_id) ?? metas[0] ?? null;
 
     const selectedArchetypeId = params.archetype_id ?? "";
-    const parsedMinMatches = Number.parseInt(params.min_matches ?? "5", 10);
+    const parsedMinMatches = Number.parseInt(params.min_matches ?? "20", 10);
     const minMatches =
         Number.isFinite(parsedMinMatches) && parsedMinMatches > 0
             ? parsedMinMatches
-            : 5;
+            : 20;
     const includeMirrors = params.include_mirrors === "true";
+    const page = Number.parseInt(params.page ?? "1", 10) || 1;
+    const pageSize = 20;
 
-    const [archetypes, matchupStats] = activeMeta
+    const [archetypes, matchupPage] = activeMeta
         ? await Promise.all([
               getArchetypeStats(activeMeta.id).catch(
                   () => [] as ArchetypeStat[],
@@ -184,9 +187,11 @@ export default async function MatchupsPage({
                   archetypeId: selectedArchetypeId || undefined,
                   minMatches,
                   includeMirrors,
-              }).catch(() => [] as MatchupStat[]),
+                  page,
+                  pageSize,
+              }).catch(() => ({ total: 0, page, page_size: pageSize, items: [] })),
           ])
-        : [[], []];
+        : [[], { total: 0, page, page_size: pageSize, items: [] }];
 
     const selectedArchetype =
         archetypes.find(
@@ -229,7 +234,7 @@ export default async function MatchupsPage({
                             <h2>Meta and matchup filters</h2>
                         </div>
                         <span className="muted">
-                            {matchupStats.length.toLocaleString()} rows
+                            {matchupPage.total.toLocaleString()} rows
                         </span>
                     </div>
 
@@ -261,8 +266,19 @@ export default async function MatchupsPage({
                         </span>
                     </div>
 
-                    {matchupStats.length > 0 ? (
-                        <MatchupTable stats={matchupStats} />
+                    {matchupPage.items.length > 0 ? (
+                        <>
+                            <MatchupTable stats={matchupPage.items} />
+                            <div className="pagination">
+                                <div style={{ display: "flex", gap: "8px", marginTop: "12px", alignItems: "center" }}>
+                                    <span className="muted">Page {matchupPage.page} of {Math.max(1, Math.ceil(matchupPage.total / matchupPage.page_size))}</span>
+                                </div>
+
+                                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                                    <Pagination page={matchupPage.page} totalPages={Math.max(1, Math.ceil(matchupPage.total / matchupPage.page_size))} />
+                                </div>
+                            </div>
+                        </>
                     ) : (
                         <EmptyState
                             title="No matchup stats found"

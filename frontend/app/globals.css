@@ -289,6 +289,33 @@ p {
     cursor: pointer;
 }
 
+/* Generic small button used for pagination and other places */
+.button {
+display: inline-flex;
+align-items: center;
+gap: 8px;
+padding: 8px 12px;
+border-radius: 10px;
+border: 1px solid var(--line);
+background: rgba(255, 255, 255, 0.02);
+color: var(--muted);
+font-weight: 600;
+cursor: pointer;
+text-decoration: none;
+}
+
+.button:hover {
+border-color: var(--line-strong);
+color: var(--text);
+}
+
+.button--active {
+background: linear-gradient(135deg, var(--accent), var(--accent-2));
+color: #111 !important;
+border-color: transparent;
+box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}
+
 .selector--stack {
     align-items: center;
 }

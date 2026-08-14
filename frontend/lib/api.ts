@@ -62,20 +62,36 @@ export async function getArchetypeStats(metaId: string) {
     return fetchJson<ArchetypeStat[]>(`/archetypes/stats?meta_id=${metaId}`);
 }
 
+export interface MatchupPage {
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+    prev_page: number;
+    next_page: number;
+    prev_url?: string;
+    next_url?: string;
+    items: MatchupStat[];
+}
+
 export async function getMatchupStats(options: {
     metaId: string;
     archetypeId?: string;
     minMatches?: number;
     includeMirrors?: boolean;
+    page?: number;
+    pageSize?: number;
 }) {
     const params = new URLSearchParams();
 
     params.set("meta_id", options.metaId);
-    params.set("min_matches", String(options.minMatches ?? 5));
+    params.set("min_matches", String(options.minMatches ?? 20));
     if (options.archetypeId) {
         params.set("archetype_id", options.archetypeId);
     }
     params.set("include_mirrors", options.includeMirrors ? "true" : "false");
+    params.set("page", String(options.page ?? 1));
+    params.set("page_size", String(options.pageSize ?? 20));
 
-    return fetchJson<MatchupStat[]>(`/matchups/stats?${params.toString()}`);
+    return fetchJson<MatchupPage>(`/matchups/stats?${params.toString()}`);
 }
