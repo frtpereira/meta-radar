@@ -9,13 +9,14 @@ import (
 	"strconv"
 	"time"
 
+	"os"
+
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/ingest"
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v11"
-	"os"
+	"github.com/redis/go-redis/v9"
 )
 
 type Handler struct {
@@ -321,8 +322,8 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	if v := q.Get("min_matches"); v != "" {
 		parsed, err := strconv.Atoi(v)
 		if err != nil || parsed < 1 {
-		writeError(w, http.StatusBadRequest, "min_matches must be a positive integer")
-		return
+			writeError(w, http.StatusBadRequest, "min_matches must be a positive integer")
+			return
 		}
 		minMatches = parsed
 	}
@@ -334,17 +335,17 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	page := 1
 	if v := q.Get("page"); v != "" {
 		if p, err := strconv.Atoi(v); err == nil && p > 0 {
-		page = p
+			page = p
 		}
 	}
 	pageSize := 20
 	// allow explicit page_size but cap it to 100
 	if v := q.Get("page_size"); v != "" {
 		if ps, err := strconv.Atoi(v); err == nil && ps > 0 {
-		if ps > 100 {
-			ps = 100
-		}
-		pageSize = ps
+			if ps > 100 {
+				ps = 100
+			}
+			pageSize = ps
 		}
 	}
 	offset := (page - 1) * pageSize
@@ -353,10 +354,10 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	cacheKey := fmt.Sprintf("matchups:%s:%s:%d:%t:%d:%d", metaID, archetypeID, minMatches, includeMirrors, page, pageSize)
 	if h.Redis != nil {
 		if data, err := h.Redis.Get(ctx, cacheKey).Bytes(); err == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(data)
-		return
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(data)
+			return
 		}
 	}
 
@@ -395,14 +396,14 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 
 	type matchupStat struct {
 		Archetype struct {
-		ID   int64  `json:"id"`
-		Name string `json:"name"`
-		Slug string `json:"slug"`
+			ID   int64  `json:"id"`
+			Name string `json:"name"`
+			Slug string `json:"slug"`
 		} `json:"archetype"`
 		Opponent struct {
-		ID   int64  `json:"id"`
-		Name string `json:"name"`
-		Slug string `json:"slug"`
+			ID   int64  `json:"id"`
+			Name string `json:"name"`
+			Slug string `json:"slug"`
 		} `json:"opponent"`
 		Matches   int      `json:"matches"`
 		Wins      int      `json:"wins"`
@@ -416,12 +417,12 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var s matchupStat
 		if err := rows.Scan(
-		&s.Archetype.ID, &s.Archetype.Name, &s.Archetype.Slug,
-		&s.Opponent.ID, &s.Opponent.Name, &s.Opponent.Slug,
-		&s.Matches, &s.Wins, &s.Losses, &s.Ties, &s.ScoreRate, &s.WinRate,
+			&s.Archetype.ID, &s.Archetype.Name, &s.Archetype.Slug,
+			&s.Opponent.ID, &s.Opponent.Name, &s.Opponent.Slug,
+			&s.Matches, &s.Wins, &s.Losses, &s.Ties, &s.ScoreRate, &s.WinRate,
 		); err != nil {
-		writeError(w, http.StatusInternalServerError, "scanning matchup stat: "+err.Error())
-		return
+			writeError(w, http.StatusInternalServerError, "scanning matchup stat: "+err.Error())
+			return
 		}
 		stats = append(stats, s)
 	}
@@ -443,7 +444,7 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 
 	// construct relative next/prev URLs
 	basePath := r.URL.Path
-	q := r.URL.Query()
+	q = r.URL.Query()
 	prevURLStr := ""
 	if prevPage > 0 {
 		q.Set("page", strconv.Itoa(prevPage))
@@ -476,9 +477,9 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	if h.Redis != nil {
 		ttl := 60 // default
 		if s := os.Getenv("MATCHUP_CACHE_TTL_SECONDS"); s != "" {
-		if v, err := strconv.Atoi(s); err == nil {
-			ttl = v
-		}
+			if v, err := strconv.Atoi(s); err == nil {
+				ttl = v
+			}
 		}
 		_ = h.Redis.Set(ctx, cacheKey, b, time.Duration(ttl)*time.Second)
 	}

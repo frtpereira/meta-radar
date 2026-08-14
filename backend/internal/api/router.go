@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v11"
+	"github.com/redis/go-redis/v9"
 )
 
 func NewRouter(pool *pgxpool.Pool, syncer *ingest.Syncer, webhookSecret string, redisClient ...*redis.Client) http.Handler {

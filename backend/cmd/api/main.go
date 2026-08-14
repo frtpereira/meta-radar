@@ -4,16 +4,13 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/api"
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/config"
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/db"
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/ingest"
 	"github.com/frtpereira/pokemon-tcg-tracker/internal/limitless"
-	"github.com/redis/go-redis/v11"
 )
-
 
 func main() {
 	cfg := config.Load()
