@@ -1,6 +1,7 @@
 import type { ArchetypeStat, MatchupStat, Meta } from "@/lib/types";
 
 import { getArchetypeStats, getMatchupStats, getMetas } from "@/lib/api";
+import Pagination from "./Pagination";
 
 type SearchParams = {
     meta_id?: string;
@@ -274,41 +275,7 @@ export default async function MatchupsPage({
                                 </div>
 
                                 <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                                    {matchupPage.page > 1 ? (
-                                        <a
-                                            className="button"
-                                            href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${matchupPage.page - 1}`}
-                                        >
-                                            Prev
-                                        </a>
-                                    ) : null}
-
-                                    {/* render numeric page links up to +/-2 pages */}
-                                    {Array.from({ length: 5 }).map((_, i) => {
-                                        const delta = i - 2
-                                        const p = matchupPage.page + delta
-                                        if (p < 1) return null
-                                        const totalPages = Math.max(1, Math.ceil(matchupPage.total / matchupPage.page_size))
-                                        if (p > totalPages) return null
-                                        return (
-                                            <a
-                                                key={p}
-                                                className={`button ${p === matchupPage.page ? 'button--active' : ''}`}
-                                                href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${p}`}
-                                            >
-                                                {p}
-                                            </a>
-                                        )
-                                    })}
-
-                                    {matchupPage.page * matchupPage.page_size < matchupPage.total ? (
-                                        <a
-                                            className="button"
-                                            href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${matchupPage.page + 1}`}
-                                        >
-                                            Next
-                                        </a>
-                                    ) : null}
+                                    <Pagination page={matchupPage.page} totalPages={Math.max(1, Math.ceil(matchupPage.total / matchupPage.page_size))} />
                                 </div>
                             </div>
                         </>

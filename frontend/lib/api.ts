@@ -66,6 +66,11 @@ export interface MatchupPage {
     total: number;
     page: number;
     page_size: number;
+    total_pages: number;
+    prev_page: number;
+    next_page: number;
+    prev_url?: string;
+    next_url?: string;
     items: MatchupStat[];
 }
 

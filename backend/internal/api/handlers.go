@@ -427,11 +427,46 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// marshal response object and set cache if available
+	// compute pagination helpers
+	totalPages := 1
+	if total > 0 {
+		totalPages = (total + pageSize - 1) / pageSize
+	}
+	prevPage := 0
+	if page > 1 {
+		prevPage = page - 1
+	}
+	nextPage := 0
+	if page < totalPages {
+		nextPage = page + 1
+	}
+
+	// construct relative next/prev URLs
+	basePath := r.URL.Path
+	q := r.URL.Query()
+	prevURLStr := ""
+	if prevPage > 0 {
+		q.Set("page", strconv.Itoa(prevPage))
+		prevURLStr = basePath + "?" + q.Encode()
+		q.Set("page", strconv.Itoa(page))
+	}
+	nextURLStr := ""
+	if nextPage > 0 {
+		q.Set("page", strconv.Itoa(nextPage))
+		nextURLStr = basePath + "?" + q.Encode()
+		q.Set("page", strconv.Itoa(page))
+	}
+
 	respObj := map[string]any{
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-		"items":     stats,
+		"total":       total,
+		"page":        page,
+		"page_size":   pageSize,
+		"total_pages": totalPages,
+		"prev_page":   prevPage,
+		"next_page":   nextPage,
+		"prev_url":    prevURLStr,
+		"next_url":    nextURLStr,
+		"items":       stats,
 	}
 	b, err := json.Marshal(respObj)
 	if err != nil {
