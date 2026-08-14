@@ -337,9 +337,9 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 			JOIN tournaments t ON t.id = p.tournament_id
 			JOIN decklists d1 ON d1.tournament_id = p.tournament_id AND d1.player_id = p.player1_id
 			JOIN decklists d2 ON d2.tournament_id = p.tournament_id AND d2.player_id = p.player2_id
-			WHERE t.meta_id::text = $1
+			WHERE t.meta_id = $1::uuid
 			  AND p.result IN ('win', 'draw')
-			  AND ($2 = '' OR d1.archetype_id::text = $2 OR d2.archetype_id::text = $2)
+			  AND ($2 = '' OR d1.archetype_id = NULLIF($2, '')::bigint OR d2.archetype_id = NULLIF($2, '')::bigint)
 			  AND ($3 OR d1.archetype_id <> d2.archetype_id)
 		), directed AS (
 			SELECT
