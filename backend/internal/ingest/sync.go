@@ -104,6 +104,14 @@ func (s *Syncer) Run(ctx context.Context, opts Options) error {
 	}
 
 	log.Printf("pass complete: %d checked, %d synced, %d skipped, %d failed", seen, synced, skipped, failed)
+
+	// Refresh materialized view for matchups after an ingestion pass so the
+	// query-backed endpoint can serve pre-aggregated data.
+	if _, err := s.DB.Exec(ctx, `REFRESH MATERIALIZED VIEW CONCURRENTLY matchups_mv`); err != nil {
+		// REFRESH CONCURRENTLY requires a unique index; if it fails, log and continue.
+		log.Printf("failed to refresh matchups_mv: %v", err)
+	}
+
 	return nil
 }
 
@@ -115,6 +123,13 @@ func (s *Syncer) SyncOne(ctx context.Context, tournamentID string) error {
 		return err
 	}
 	s.logSync(ctx, tournamentID, "webhook", "success", "")
+
+	// Refresh the materialized view so webhook-driven syncs make data
+	// available to clients promptly. Ignore refresh errors but log them.
+	if _, err := s.DB.Exec(ctx, `REFRESH MATERIALIZED VIEW CONCURRENTLY matchups_mv`); err != nil {
+		log.Printf("failed to refresh matchups_mv after webhook sync %s: %v", tournamentID, err)
+	}
+
 	return nil
 }
 

@@ -167,12 +167,14 @@ export default async function MatchupsPage({
         metas.find((meta) => meta.id === params.meta_id) ?? metas[0] ?? null;
 
     const selectedArchetypeId = params.archetype_id ?? "";
-    const parsedMinMatches = Number.parseInt(params.min_matches ?? "5", 10);
+    const parsedMinMatches = Number.parseInt(params.min_matches ?? "20", 10);
     const minMatches =
         Number.isFinite(parsedMinMatches) && parsedMinMatches > 0
             ? parsedMinMatches
-            : 5;
+            : 20;
     const includeMirrors = params.include_mirrors === "true";
+    const page = Number.parseInt(params.page ?? "1", 10) || 1;
+    const pageSize = 20;
 
     const [archetypes, matchupStats] = activeMeta
         ? await Promise.all([
@@ -184,6 +186,8 @@ export default async function MatchupsPage({
                   archetypeId: selectedArchetypeId || undefined,
                   minMatches,
                   includeMirrors,
+                  page,
+                  pageSize,
               }).catch(() => [] as MatchupStat[]),
           ])
         : [[], []];
@@ -262,7 +266,28 @@ export default async function MatchupsPage({
                     </div>
 
                     {matchupStats.length > 0 ? (
-                        <MatchupTable stats={matchupStats} />
+                        <>
+                            <MatchupTable stats={matchupStats} />
+                            <div className="pagination">
+                                {/* simple prev/next pagination (server-side) */}
+                                <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                                    {page > 1 ? (
+                                        <a
+                                            className="button"
+                                            href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${page - 1}`}
+                                        >
+                                            Prev
+                                        </a>
+                                    ) : null}
+                                    <a
+                                        className="button"
+                                        href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${page + 1}`}
+                                    >
+                                        Next
+                                    </a>
+                                </div>
+                            </div>
+                        </>
                     ) : (
                         <EmptyState
                             title="No matchup stats found"

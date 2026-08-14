@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -13,12 +14,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v11"
+	"os"
 )
 
 type Handler struct {
 	DB            *pgxpool.Pool
 	Syncer        *ingest.Syncer
 	WebhookSecret string
+	Redis         *redis.Client
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -312,12 +316,13 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	minMatches := 1
+	// default min matches is 20 now
+	minMatches := 20
 	if v := q.Get("min_matches"); v != "" {
 		parsed, err := strconv.Atoi(v)
 		if err != nil || parsed < 1 {
-			writeError(w, http.StatusBadRequest, "min_matches must be a positive integer")
-			return
+		writeError(w, http.StatusBadRequest, "min_matches must be a positive integer")
+		return
 		}
 		minMatches = parsed
 	}
@@ -325,63 +330,50 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	archetypeID := q.Get("archetype_id")
 	includeMirrors := q.Get("include_mirrors") == "true"
 
+	// pagination
+	page := 1
+	if v := q.Get("page"); v != "" {
+		if p, err := strconv.Atoi(v); err == nil && p > 0 {
+		page = p
+		}
+	}
+	pageSize := 20
+	// allow explicit page_size but cap it to 100
+	if v := q.Get("page_size"); v != "" {
+		if ps, err := strconv.Atoi(v); err == nil && ps > 0 {
+		if ps > 100 {
+			ps = 100
+		}
+		pageSize = ps
+		}
+	}
+	offset := (page - 1) * pageSize
+
+	// try cache first if redis configured
+	cacheKey := fmt.Sprintf("matchups:%s:%s:%d:%t:%d:%d", metaID, archetypeID, minMatches, includeMirrors, page, pageSize)
+	if h.Redis != nil {
+		if data, err := h.Redis.Get(ctx, cacheKey).Bytes(); err == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(data)
+		return
+		}
+	}
+
 	query := `
-		WITH base AS (
-			SELECT
-				p.player1_id,
-				p.player2_id,
-				p.winner_player_id,
-				d1.archetype_id AS archetype1_id,
-				d2.archetype_id AS archetype2_id
-			FROM pairings p
-			JOIN tournaments t ON t.id = p.tournament_id
-			JOIN decklists d1 ON d1.tournament_id = p.tournament_id AND d1.player_id = p.player1_id
-			JOIN decklists d2 ON d2.tournament_id = p.tournament_id AND d2.player_id = p.player2_id
-			WHERE t.meta_id = $1::uuid
-			  AND p.result IN ('win', 'draw')
-			  AND ($2 = '' OR d1.archetype_id = NULLIF($2, '')::bigint OR d2.archetype_id = NULLIF($2, '')::bigint)
-			  AND ($3 OR d1.archetype_id <> d2.archetype_id)
-		), directed AS (
-			SELECT
-				archetype1_id AS archetype_id,
-				archetype2_id AS opponent_archetype_id,
-				CASE WHEN winner_player_id = player1_id THEN 1 ELSE 0 END AS wins,
-				CASE WHEN winner_player_id = player2_id THEN 1 ELSE 0 END AS losses,
-				CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END AS ties
-			FROM base
+		SELECT archetype_id, archetype_name, archetype_slug,
+		       opponent_archetype_id, opponent_name, opponent_slug,
+		       matches, wins, losses, ties, score_rate, win_rate
+		FROM matchups_mv
+		WHERE meta_id = $1::uuid
+		  AND ($2 = '' OR archetype_id = NULLIF($2,'')::bigint OR opponent_archetype_id = NULLIF($2,'')::bigint)
+		  AND ($3 OR archetype_id <> opponent_archetype_id)
+		  AND matches >= $4
+		ORDER BY matches DESC, archetype_name ASC, opponent_name ASC
+		LIMIT $5 OFFSET $6
+	`
 
-			UNION ALL
-
-			SELECT
-				archetype2_id AS archetype_id,
-				archetype1_id AS opponent_archetype_id,
-				CASE WHEN winner_player_id = player2_id THEN 1 ELSE 0 END AS wins,
-				CASE WHEN winner_player_id = player1_id THEN 1 ELSE 0 END AS losses,
-				CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END AS ties
-			FROM base
-		)
-		SELECT
-			a.id, a.name, a.slug,
-			o.id, o.name, o.slug,
-			COUNT(*)::int AS matches,
-			SUM(d.wins)::int AS wins,
-			SUM(d.losses)::int AS losses,
-			SUM(d.ties)::int AS ties,
-			CASE WHEN a.id = o.id THEN NULL
-			     ELSE (SUM(d.wins) + 0.5 * SUM(d.ties)) / COUNT(*)::float8 END AS score_rate,
-			CASE
-				WHEN a.id = o.id THEN NULL
-				WHEN (SUM(d.wins) + SUM(d.losses)) = 0 THEN NULL
-				ELSE SUM(d.wins)::float8 / (SUM(d.wins) + SUM(d.losses))::float8
-			END AS win_rate
-		FROM directed d
-		JOIN archetypes a ON a.id = d.archetype_id
-		JOIN archetypes o ON o.id = d.opponent_archetype_id
-		GROUP BY a.id, a.name, a.slug, o.id, o.name, o.slug
-		HAVING COUNT(*) >= $4
-		ORDER BY matches DESC, a.name ASC, o.name ASC`
-
-	rows, err := h.DB.Query(ctx, query, metaID, archetypeID, includeMirrors, minMatches)
+	rows, err := h.DB.Query(ctx, query, metaID, archetypeID, includeMirrors, minMatches, pageSize, offset)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying matchup stats: "+err.Error())
 		return
@@ -390,14 +382,14 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 
 	type matchupStat struct {
 		Archetype struct {
-			ID   int64  `json:"id"`
-			Name string `json:"name"`
-			Slug string `json:"slug"`
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+		Slug string `json:"slug"`
 		} `json:"archetype"`
 		Opponent struct {
-			ID   int64  `json:"id"`
-			Name string `json:"name"`
-			Slug string `json:"slug"`
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+		Slug string `json:"slug"`
 		} `json:"opponent"`
 		Matches   int      `json:"matches"`
 		Wins      int      `json:"wins"`
@@ -411,17 +403,35 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var s matchupStat
 		if err := rows.Scan(
-			&s.Archetype.ID, &s.Archetype.Name, &s.Archetype.Slug,
-			&s.Opponent.ID, &s.Opponent.Name, &s.Opponent.Slug,
-			&s.Matches, &s.Wins, &s.Losses, &s.Ties, &s.ScoreRate, &s.WinRate,
+		&s.Archetype.ID, &s.Archetype.Name, &s.Archetype.Slug,
+		&s.Opponent.ID, &s.Opponent.Name, &s.Opponent.Slug,
+		&s.Matches, &s.Wins, &s.Losses, &s.Ties, &s.ScoreRate, &s.WinRate,
 		); err != nil {
-			writeError(w, http.StatusInternalServerError, "scanning matchup stat: "+err.Error())
-			return
+		writeError(w, http.StatusInternalServerError, "scanning matchup stat: "+err.Error())
+		return
 		}
 		stats = append(stats, s)
 	}
 
-	writeJSON(w, http.StatusOK, stats)
+	// marshal and set cache if available
+	b, err := json.Marshal(stats)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "marshalling response: "+err.Error())
+		return
+	}
+	if h.Redis != nil {
+		ttl := 60 // default
+		if s := os.Getenv("MATCHUP_CACHE_TTL_SECONDS"); s != "" {
+		if v, err := strconv.Atoi(s); err == nil {
+			ttl = v
+		}
+		}
+		_ = h.Redis.Set(ctx, cacheKey, b, time.Duration(ttl)*time.Second)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(b)
 }
 
 // a sync for that single tournament. Limitless calls this synchronously and
