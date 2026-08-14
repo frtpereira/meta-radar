@@ -1,4 +1,5 @@
 import type { ArchetypeStat, Meta, Tournament } from "@/lib/types";
+import Link from "next/link";
 
 import { getArchetypeStats, getMetas, getTournaments } from "@/lib/api";
 
@@ -91,11 +92,12 @@ function MetaSelector({
 export default async function Home({
     searchParams,
 }: {
-    searchParams?: SearchParams;
+    searchParams: SearchParams;
 }) {
+    const params = searchParams;
     const metas = await getMetas().catch(() => [] as Meta[]);
     const activeMeta =
-        metas.find((meta) => meta.id === searchParams?.meta_id) ??
+        metas.find((meta) => meta.id === params.meta_id) ??
         metas[0] ??
         null;
 
@@ -128,8 +130,8 @@ export default async function Home({
                         </h1>
                         <p className="lede">
                             Start with the current meta, then drill into
-                            tournaments and deck performance. Matchups and deep
-                            archetype pages can land next.
+                            tournaments and deck performance, then jump to
+                            directional matchup results for each archetype.
                         </p>
                     </div>
 
@@ -261,9 +263,16 @@ export default async function Home({
                                 <p className="eyebrow">Archetype stats</p>
                                 <h2>Performance snapshot</h2>
                             </div>
-                            <span className="muted">
-                                Deck count, standing, and win rate
-                            </span>
+                            <Link
+                                className="pill pill--soft"
+                                href={
+                                    activeMeta
+                                        ? `/matchups?meta_id=${activeMeta.id}`
+                                        : "/matchups"
+                                }
+                            >
+                                View matchups
+                            </Link>
                         </div>
 
                         {archetypes.length > 0 ? (
@@ -281,12 +290,28 @@ export default async function Home({
                                         {archetypes.slice(0, 10).map((stat) => (
                                             <tr key={stat.id}>
                                                 <td>
-                                                    <div className="table-title">
-                                                        {stat.name}
-                                                    </div>
-                                                    <div className="muted tiny">
-                                                        {stat.slug}
-                                                    </div>
+                                                    {activeMeta ? (
+                                                        <Link
+                                                            className="table-link"
+                                                            href={`/matchups?meta_id=${activeMeta.id}&archetype_id=${stat.id}`}
+                                                        >
+                                                            <div className="table-title">
+                                                                {stat.name}
+                                                            </div>
+                                                            <div className="muted tiny">
+                                                                {stat.slug}
+                                                            </div>
+                                                        </Link>
+                                                    ) : (
+                                                        <>
+                                                            <div className="table-title">
+                                                                {stat.name}
+                                                            </div>
+                                                            <div className="muted tiny">
+                                                                {stat.slug}
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </td>
                                                 <td>
                                                     {stat.deck_count.toLocaleString()}

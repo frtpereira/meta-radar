@@ -43,6 +43,51 @@ body {
     background-attachment: fixed;
 }
 
+.site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    border-bottom: 1px solid var(--line);
+    background: rgba(6, 12, 22, 0.78);
+    backdrop-filter: blur(14px);
+}
+
+.site-nav__inner {
+    width: min(1200px, calc(100% - 32px));
+    margin: 0 auto;
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.site-nav__brand {
+    font-family: Georgia, "Times New Roman", serif;
+    letter-spacing: 0.03em;
+    font-size: 1.15rem;
+}
+
+.site-nav__links {
+    display: flex;
+    gap: 8px;
+}
+
+.site-nav__links a {
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 8px 14px;
+    transition: border-color 120ms ease, color 120ms ease,
+        background-color 120ms ease;
+}
+
+.site-nav__links a:hover {
+    color: var(--text);
+    border-color: var(--line-strong);
+    background: rgba(255, 255, 255, 0.05);
+}
+
 a {
     color: inherit;
     text-decoration: none;
@@ -194,6 +239,10 @@ p {
     padding: 22px;
 }
 
+.section--spaced {
+    margin-top: 18px;
+}
+
 .section__heading {
     display: flex;
     justify-content: space-between;
@@ -211,6 +260,7 @@ p {
 }
 
 .selector select,
+.selector input,
 .selector button {
     min-height: 46px;
     border-radius: 14px;
@@ -224,12 +274,41 @@ p {
     color: var(--text);
 }
 
+.selector input {
+    min-width: 120px;
+    padding: 0 16px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+}
+
 .selector button {
     padding: 0 18px;
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     color: #111;
     font-weight: 700;
     cursor: pointer;
+}
+
+.selector--stack {
+    align-items: center;
+}
+
+.selector__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.selector__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+}
+
+.selector__toggle input {
+    width: 16px;
+    height: 16px;
 }
 
 .stat-value {
@@ -279,6 +358,16 @@ tbody tr:hover {
 
 .table-title {
     font-weight: 700;
+}
+
+.table-link {
+    display: block;
+}
+
+.table-link:hover .table-title {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 3px;
 }
 
 .badge {
@@ -340,6 +429,13 @@ tbody tr:hover {
 }
 
 @media (max-width: 720px) {
+    .site-nav__inner {
+        width: min(100% - 20px, 1200px);
+        min-height: 58px;
+        flex-wrap: wrap;
+        padding: 8px 0;
+    }
+
     .shell {
         width: min(100% - 20px, 1200px);
         padding-top: 20px;

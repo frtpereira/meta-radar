@@ -33,3 +33,20 @@ export interface ArchetypeStat {
     score_rate: number | null;
     win_rate: number | null;
 }
+
+interface MatchupDeck {
+    id: number;
+    name: string;
+    slug: string;
+}
+
+export interface MatchupStat {
+    archetype: MatchupDeck;
+    opponent: MatchupDeck;
+    matches: number;
+    wins: number;
+    losses: number;
+    ties: number;
+    score_rate: number | null;
+    win_rate: number | null;
+}
