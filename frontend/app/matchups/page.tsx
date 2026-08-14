@@ -176,7 +176,7 @@ export default async function MatchupsPage({
     const page = Number.parseInt(params.page ?? "1", 10) || 1;
     const pageSize = 20;
 
-    const [archetypes, matchupStats] = activeMeta
+    const [archetypes, matchupPage] = activeMeta
         ? await Promise.all([
               getArchetypeStats(activeMeta.id).catch(
                   () => [] as ArchetypeStat[],
@@ -188,9 +188,9 @@ export default async function MatchupsPage({
                   includeMirrors,
                   page,
                   pageSize,
-              }).catch(() => [] as MatchupStat[]),
+              }).catch(() => ({ total: 0, page, page_size: pageSize, items: [] })),
           ])
-        : [[], []];
+        : [[], { total: 0, page, page_size: pageSize, items: [] }];
 
     const selectedArchetype =
         archetypes.find(
@@ -233,7 +233,7 @@ export default async function MatchupsPage({
                             <h2>Meta and matchup filters</h2>
                         </div>
                         <span className="muted">
-                            {matchupStats.length.toLocaleString()} rows
+                            {matchupPage.total.toLocaleString()} rows
                         </span>
                     </div>
 
@@ -265,26 +265,50 @@ export default async function MatchupsPage({
                         </span>
                     </div>
 
-                    {matchupStats.length > 0 ? (
+                    {matchupPage.items.length > 0 ? (
                         <>
-                            <MatchupTable stats={matchupStats} />
+                            <MatchupTable stats={matchupPage.items} />
                             <div className="pagination">
-                                {/* simple prev/next pagination (server-side) */}
-                                <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                                    {page > 1 ? (
+                                <div style={{ display: "flex", gap: "8px", marginTop: "12px", alignItems: "center" }}>
+                                    <span className="muted">Page {matchupPage.page} of {Math.max(1, Math.ceil(matchupPage.total / matchupPage.page_size))}</span>
+                                </div>
+
+                                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                                    {matchupPage.page > 1 ? (
                                         <a
                                             className="button"
-                                            href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${page - 1}`}
+                                            href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${matchupPage.page - 1}`}
                                         >
                                             Prev
                                         </a>
                                     ) : null}
-                                    <a
-                                        className="button"
-                                        href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${page + 1}`}
-                                    >
-                                        Next
-                                    </a>
+
+                                    {/* render numeric page links up to +/-2 pages */}
+                                    {Array.from({ length: 5 }).map((_, i) => {
+                                        const delta = i - 2
+                                        const p = matchupPage.page + delta
+                                        if (p < 1) return null
+                                        const totalPages = Math.max(1, Math.ceil(matchupPage.total / matchupPage.page_size))
+                                        if (p > totalPages) return null
+                                        return (
+                                            <a
+                                                key={p}
+                                                className={`button ${p === matchupPage.page ? 'button--active' : ''}`}
+                                                href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${p}`}
+                                            >
+                                                {p}
+                                            </a>
+                                        )
+                                    })}
+
+                                    {matchupPage.page * matchupPage.page_size < matchupPage.total ? (
+                                        <a
+                                            className="button"
+                                            href={`?meta_id=${activeMeta?.id ?? ""}&archetype_id=${selectedArchetypeId}&min_matches=${minMatches}&include_mirrors=${includeMirrors}&page=${matchupPage.page + 1}`}
+                                        >
+                                            Next
+                                        </a>
+                                    ) : null}
                                 </div>
                             </div>
                         </>

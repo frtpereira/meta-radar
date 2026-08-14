@@ -62,6 +62,13 @@ export async function getArchetypeStats(metaId: string) {
     return fetchJson<ArchetypeStat[]>(`/archetypes/stats?meta_id=${metaId}`);
 }
 
+export interface MatchupPage {
+    total: number;
+    page: number;
+    page_size: number;
+    items: MatchupStat[];
+}
+
 export async function getMatchupStats(options: {
     metaId: string;
     archetypeId?: string;
@@ -81,5 +88,5 @@ export async function getMatchupStats(options: {
     params.set("page", String(options.page ?? 1));
     params.set("page_size", String(options.pageSize ?? 20));
 
-    return fetchJson<MatchupStat[]>(`/matchups/stats?${params.toString()}`);
+    return fetchJson<MatchupPage>(`/matchups/stats?${params.toString()}`);
 }

@@ -360,6 +360,19 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	countQuery := `
+		SELECT COUNT(*) FROM matchups_mv
+		WHERE meta_id = $1::uuid
+		  AND ($2 = '' OR archetype_id = NULLIF($2,'')::bigint OR opponent_archetype_id = NULLIF($2,'')::bigint)
+		  AND ($3 OR archetype_id <> opponent_archetype_id)
+		  AND matches >= $4
+	`
+	var total int
+	if err := h.DB.QueryRow(ctx, countQuery, metaID, archetypeID, includeMirrors, minMatches).Scan(&total); err != nil {
+		writeError(w, http.StatusInternalServerError, "counting matchups: "+err.Error())
+		return
+	}
+
 	query := `
 		SELECT archetype_id, archetype_name, archetype_slug,
 		       opponent_archetype_id, opponent_name, opponent_slug,
@@ -413,8 +426,14 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 		stats = append(stats, s)
 	}
 
-	// marshal and set cache if available
-	b, err := json.Marshal(stats)
+	// marshal response object and set cache if available
+	respObj := map[string]any{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"items":     stats,
+	}
+	b, err := json.Marshal(respObj)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "marshalling response: "+err.Error())
 		return
