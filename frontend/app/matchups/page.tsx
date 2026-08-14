@@ -48,7 +48,11 @@ function MatchupFilters({
                 <label className="sr-only" htmlFor="meta_id">
                     Select meta
                 </label>
-                <select id="meta_id" name="meta_id" defaultValue={activeMeta?.id ?? ""}>
+                <select
+                    id="meta_id"
+                    name="meta_id"
+                    defaultValue={activeMeta?.id ?? ""}
+                >
                     {metas.map((meta) => (
                         <option key={meta.id} value={meta.id}>
                             {meta.name}
@@ -123,12 +127,20 @@ function MatchupTable({ stats }: { stats: MatchupStat[] }) {
                     {stats.map((stat) => (
                         <tr key={`${stat.archetype.id}-${stat.opponent.id}`}>
                             <td>
-                                <div className="table-title">{stat.archetype.name}</div>
-                                <div className="muted tiny">{stat.archetype.slug}</div>
+                                <div className="table-title">
+                                    {stat.archetype.name}
+                                </div>
+                                <div className="muted tiny">
+                                    {stat.archetype.slug}
+                                </div>
                             </td>
                             <td>
-                                <div className="table-title">{stat.opponent.name}</div>
-                                <div className="muted tiny">{stat.opponent.slug}</div>
+                                <div className="table-title">
+                                    {stat.opponent.name}
+                                </div>
+                                <div className="muted tiny">
+                                    {stat.opponent.slug}
+                                </div>
                             </td>
                             <td>
                                 {stat.wins}-{stat.losses}-{stat.ties}
@@ -152,9 +164,7 @@ export default async function MatchupsPage({
     const params = await searchParams;
     const metas = await getMetas().catch(() => [] as Meta[]);
     const activeMeta =
-        metas.find((meta) => meta.id === params.meta_id) ??
-        metas[0] ??
-        null;
+        metas.find((meta) => meta.id === params.meta_id) ?? metas[0] ?? null;
 
     const selectedArchetypeId = params.archetype_id ?? "";
     const parsedMinMatches = Number.parseInt(params.min_matches ?? "5", 10);
@@ -166,7 +176,9 @@ export default async function MatchupsPage({
 
     const [archetypes, matchupStats] = activeMeta
         ? await Promise.all([
-              getArchetypeStats(activeMeta.id).catch(() => [] as ArchetypeStat[]),
+              getArchetypeStats(activeMeta.id).catch(
+                  () => [] as ArchetypeStat[],
+              ),
               getMatchupStats({
                   metaId: activeMeta.id,
                   archetypeId: selectedArchetypeId || undefined,
@@ -193,15 +205,19 @@ export default async function MatchupsPage({
                         <h1>Head-to-head archetype matchup stats.</h1>
                         <p className="lede">
                             Compare directional matchup performance by meta and
-                            archetype, including win rate and score rate from recorded
-                            pairings.
+                            archetype, including win rate and score rate from
+                            recorded pairings.
                         </p>
                     </div>
 
                     <div className="hero__meta">
-                        {activeMeta ? <span className="pill">{activeMeta.name}</span> : null}
+                        {activeMeta ? (
+                            <span className="pill">{activeMeta.name}</span>
+                        ) : null}
                         {selectedArchetype ? (
-                            <span className="pill pill--soft">{selectedArchetype.name}</span>
+                            <span className="pill pill--soft">
+                                {selectedArchetype.name}
+                            </span>
                         ) : null}
                     </div>
                 </header>
@@ -212,7 +228,9 @@ export default async function MatchupsPage({
                             <p className="eyebrow">Filters</p>
                             <h2>Meta and matchup filters</h2>
                         </div>
-                        <span className="muted">{matchupStats.length.toLocaleString()} rows</span>
+                        <span className="muted">
+                            {matchupStats.length.toLocaleString()} rows
+                        </span>
                     </div>
 
                     {metas.length > 0 ? (
@@ -238,7 +256,9 @@ export default async function MatchupsPage({
                             <p className="eyebrow">Matchups</p>
                             <h2>Archetype-vs-archetype results</h2>
                         </div>
-                        <span className="muted">Directional from pairings data</span>
+                        <span className="muted">
+                            Directional from pairings data
+                        </span>
                     </div>
 
                     {matchupStats.length > 0 ? (

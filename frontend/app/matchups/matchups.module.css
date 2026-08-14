@@ -1,0 +1,142 @@
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem;
+}
+
+.subtitle {
+  color: #6b6b6b;
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+}
+
+.controls {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #6b6b6b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.control select {
+  font-size: 0.95rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  background: white;
+  color: #1a1a1a;
+  min-width: 220px;
+}
+
+.summaryBar {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem 1.25rem;
+  background: #f7f7f8;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.summaryBar > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.summaryLabel {
+  font-size: 0.75rem;
+  color: #6b6b6b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.summaryValue {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th {
+  text-align: left;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6b6b6b;
+  border-bottom: 1px solid #e2e2e2;
+  padding: 0.5rem 0.6rem;
+}
+
+.table td {
+  padding: 0.6rem;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.opponentName {
+  font-weight: 600;
+}
+
+.record {
+  color: #6b6b6b;
+  white-space: nowrap;
+}
+
+.lowSample {
+  color: #9a9a9a;
+  font-style: italic;
+}
+
+.barCell {
+  width: 140px;
+}
+
+.barTrack {
+  width: 120px;
+  height: 8px;
+  border-radius: 4px;
+  background: #eee;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.empty {
+  text-align: center;
+  color: #9a9a9a;
+  padding: 2rem 0;
+}
+
+.error {
+  color: #b3261e;
+  font-size: 0.9rem;
+}
+
+.loading {
+  color: #6b6b6b;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+}
