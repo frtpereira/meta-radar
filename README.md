@@ -165,6 +165,35 @@ make ingest-once
 curl http://localhost:8080/api/tournaments?min_players=64
 ```
 
+## Operator playbook
+
+When you create or open a new meta you should seed it, re-sync so
+existing tournaments/decklists pick up `archetype_id`, then run the
+batch clustering job to compute `core_cards` and `core_hash`.
+
+```bash
+# one-time / schema step
+make migrate
+
+# seed the current Standard meta (idempotent)
+make seed-meta
+
+# force a full re-sync so decklists/archetypes are backfilled
+make resync
+
+# compute cores & variants; omit META to run all metas
+make cluster META=<meta-id> THRESHOLD=0.7
+```
+
+Notes:
+
+- The clustering logic is a separate batch job (see `cmd/cluster`) and
+  is not run during per-tournament ingestion. Run it after bulk or
+  one-off ingests when you need archetype cores/variants refreshed.
+- The `cluster` binary is built into the backend image by the
+  `backend/Dockerfile` and the Makefile target runs it inside the
+  `ingest` image.
+
 (Won't return anything meaningful until a `metas` row exists for the
 format you're syncing — see below.)
 
