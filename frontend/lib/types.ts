@@ -17,6 +17,7 @@ export interface Tournament {
     is_online: boolean;
     has_decklists: boolean;
     organizer_name: string | null;
+    winner_archetype: string | null;
 }
 
 export interface ArchetypeStat {

@@ -57,12 +57,21 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	metaID := q.Get("meta_id")
 
 	query := `
-		SELECT id, name, game, format_code, meta_id, date, players, is_online, has_decklists, organizer_name
-		FROM tournaments
-		WHERE players >= $1
-		  AND ($2 = '' OR format_code = $2)
-		  AND ($3 = '' OR meta_id::text = $3)
-		ORDER BY date DESC
+		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
+		       w.archetype_name
+		FROM tournaments t
+		LEFT JOIN LATERAL (
+			SELECT a.name AS archetype_name
+			FROM standings s
+			JOIN decklists d ON d.id = s.decklist_id
+			JOIN archetypes a ON a.id = d.archetype_id
+			WHERE s.tournament_id = t.id AND s.standing = 1
+			LIMIT 1
+		) w ON true
+		WHERE t.players >= $1
+		  AND ($2 = '' OR t.format_code = $2)
+		  AND ($3 = '' OR t.meta_id::text = $3)
+		ORDER BY t.date DESC
 		LIMIT 200`
 
 	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID)
@@ -75,7 +84,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	tournaments := []models.Tournament{}
 	for rows.Next() {
 		var t models.Tournament
-		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning tournament: "+err.Error())
 			return
 		}

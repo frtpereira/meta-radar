@@ -11,16 +11,17 @@ type Meta struct {
 }
 
 type Tournament struct {
-	ID            string    `json:"id"`
-	Name          string    `json:"name"`
-	Game          string    `json:"game"`
-	FormatCode    string    `json:"format_code"`
-	MetaID        *string   `json:"meta_id,omitempty"`
-	Date          time.Time `json:"date"`
-	Players       int       `json:"players"`
-	IsOnline      bool      `json:"is_online"`
-	HasDecklists  bool      `json:"has_decklists"`
-	OrganizerName *string   `json:"organizer_name,omitempty"`
+	ID              string    `json:"id"`
+	Name            string    `json:"name"`
+	Game            string    `json:"game"`
+	FormatCode      string    `json:"format_code"`
+	MetaID          *string   `json:"meta_id,omitempty"`
+	Date            time.Time `json:"date"`
+	Players         int       `json:"players"`
+	IsOnline        bool      `json:"is_online"`
+	HasDecklists    bool      `json:"has_decklists"`
+	OrganizerName   *string   `json:"organizer_name,omitempty"`
+	WinnerArchetype *string   `json:"winner_archetype,omitempty"`
 }
 
 type Archetype struct {
