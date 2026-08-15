@@ -276,6 +276,104 @@ Annotated example:
 - `win_rate = 0.549...`: this asks a slightly different question by ignoring
   draws in the denominator.
 
+## Feature gap analysis (vs. `gpt.md`)
+
+`gpt.md` is a design conversation, not a spec — it lays out a "Meta Radar"
+vision for the product (rising/falling decks, a Japan forecast engine, card
+and deck-evolution trends, a tournament simulator, alerts, and eventually a
+monetization layer). This section maps that vision against what's actually
+built today, as a working roadmap.
+
+### Already implemented
+
+- **Tournament ingestion & dedup** — polling worker + webhook, upserts on
+  Limitless's own tournament id, `min_players` filtering.
+- **Meta lifecycle (basic)** — metas can be opened/closed per format, one
+  open meta per `format_code`, tournaments/archetypes scoped to a meta.
+- **Archetype clustering** — `internal/archetype` + `cmd/cluster` computes
+  each archetype's "core" cards and a `core_hash` per decklist, so variants
+  within an archetype are distinguishable (`/api/archetypes/{id}/variants`).
+- **Popularity + raw performance in one place** — `/api/archetypes/stats`
+  returns `deck_count` (popularity), `avg_standing`, and pairings-derived
+  `win_rate`/`score_rate` (performance) side by side. This is the raw
+  material for gpt.md's "popularity vs. performance" 2x2, but nothing
+  classifies or plots it yet.
+- **Matchup matrix** — `/api/matchups/stats` gives directional
+  archetype-vs-archetype win rates from real pairings data, with
+  `min_matches` filtering and correct mirror-match handling. This is
+  gpt.md's item #8 ("matchup matrix, but actually useful"), minus the
+  meta-adjustment step.
+- **Frontend** — meta selector, tournament list/detail, an archetype
+  performance snapshot table, and a matchups page. This covers the "what
+  was played" layer gpt.md explicitly says _not_ to compete with Limitless
+  on — it's the current state, not yet the "what should I play" layer.
+
+### Missing — needs new infrastructure, not just new endpoints
+
+Almost everything gpt.md treats as the actual differentiator ("Rising",
+"Bombing", "Sleeper", Japan forecasting, card trends, deck evolution) is
+blocked on one root gap: **the schema only stores a cumulative, whole-meta
+picture, never a point-in-time one.** `archetypes.core_cards` and
+`/api/archetypes/stats` answer "what does this look like across the whole
+meta so far," not "what did this look like on August 1 vs. August 8."
+Concretely, missing:
+
+1. **Historical snapshots.** No table captures meta share / win rate /
+   card-inclusion rate _as of a given day or tournament_. Without this,
+   Rising/Falling, Meta Momentum, the Meta Timeline, and card trend charts
+   (gpt.md items #1, #2, #5, #11, #14) are all impossible — there's nothing
+   to diff against.
+2. **Region/country data.** `tournaments` has no `country`/`region` column
+   (Limitless's `/details` payload is stored in `raw_details` but never
+   parsed for location), so there is no way to isolate Japanese results at
+   all. This blocks the Japan Meta Preview and the Japan→International
+   forecast (gpt.md items #3, #4) entirely — not a ranking problem, a data
+   problem.
+3. **Card-level trend tracking.** `decklists.cards` is per-decklist JSONB;
+   there's no aggregation table tracking a given card's play-rate over time
+   or across archetypes. Needed for "what's bombing because of a tech
+   change" and deck evolution (items #5, #6).
+4. **Classification / signal labels.** Nothing computes 🟢 Rising Star,
+   🔥 Meta, ⚠️ Overhyped, 💀 Bombing, 🕵️ Sleeper, 📈 Emerging, 📉 Dying —
+   even once snapshots exist, this is a derived layer that doesn't exist
+   yet (item #1).
+5. **Tournament simulator / deck recommender.** No endpoint projects an
+   expected field or ranks decks against it (items #9, #10).
+6. **Player-level signal.** No tracking of a player's archetype history
+   across events, so "top players are testing Deck A" isn't derivable
+   (item #13).
+7. **Alerts.** No subscription/notification mechanism (item "Meta Alerts").
+8. **AI analyst layer.** No integration point for an LLM to sit on top of
+   the analytics data (the Pro-tier "AI Meta Analyst" concept).
+9. **Monetization/auth.** No user accounts, entitlements, or payment
+   integration — a prerequisite for any free/Pro split, independent of
+   which specific features end up gated.
+
+### Existing features that need to change, not just be added to
+
+- **`/api/archetypes/stats` and `/api/matchups/stats` are meta-lifetime
+  aggregates.** To power Rising/Falling or a 7/14/30-day trend, these need
+  a `since`/`window` parameter (or a parallel snapshot-based endpoint) —
+  the current cumulative shape can't answer "how has this changed
+  recently."
+- **`/api/matchups/stats` reports raw directional win rate, not
+  meta-adjusted win rate.** gpt.md's item #8 explicitly calls out that a
+  55% win rate farmed against weak/rogue decks isn't the same as 55%
+  against the real field. Computing this needs the matchup table joined
+  against current `deck_count`-derived meta share — doable with existing
+  data, just not built.
+- **CORS is hardcoded to `http://localhost:3000`** (`router.go`) — flagged
+  in code as needing to be tightened/parameterized before any real
+  frontend deployment.
+- **Migrations run once via `docker-entrypoint-initdb.d`**, which silently
+  no-ops on an existing data volume — the README already flags this as
+  needing a real migration tool (`golang-migrate`) before schema changes
+  become routine, which they will once snapshot/region/card-trend tables
+  are added.
+- **Ingestion doesn't currently populate anything from `raw_details`**
+  beyond what's already columnized — extracting country/region would be
+  an ingest-time addition, not a new pipeline.
+
 ## Progress and next steps
 
 1. **Verify the decklist payload shape.** Done. The raw `/standings`
@@ -349,3 +447,32 @@ Annotated example:
       migrate, seed/open meta, resync, cluster, then query the API
 
 6. Frontend.
+
+7. **Historical snapshots.** Not started. Add a periodic job (or an
+   ingest-time write) that records per-archetype meta share, win rate, and
+   card-inclusion rate keyed by date/meta. This is the prerequisite for
+   nearly every item below, and matches gpt.md's own #1 MVP priority
+   ("Meta Radar" — rising/falling, overhyped/bombing, sleeper detection).
+
+8. **Region capture + Japan Meta Preview.** Not started. Parse
+   country/region out of `raw_details` at ingest time into a real column,
+   then build the Japan-vs-international comparison views gpt.md calls out
+   as the biggest differentiator (#2 MVP priority).
+
+9. **Card-level trend tracking + deck evolution.** Not started. Needs a
+   card-inclusion-rate table (per archetype, per meta, over time) built
+   from `decklists.cards`; powers both "why is this deck rising" and
+   visualizing decklist changes over time (#3 MVP priority).
+
+10. **Meta-adjusted matchup stats.** Not started. Extend
+    `/api/matchups/stats` to weight each opponent archetype's win rate by
+    its current meta share, so "55% overall" and "55% against the real
+    top of the field" are distinguishable (#4 MVP priority).
+
+11. **Tournament simulator.** Not started. Given a region/format, project
+    an expected field from recent snapshots and rank archetypes against
+    it (#5 MVP priority).
+
+12. **Alerts.** Not started, and lowest priority until snapshots exist —
+    an alert is just a snapshot-diff crossing a threshold, so this is
+    naturally sequenced after items 7-9.
