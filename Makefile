@@ -1,9 +1,12 @@
 DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi)
 
-.PHONY: up down logs psql tidy ingest-once inspect seed-meta resync migrate cluster frontend-install frontend-dev frontend-build
+.PHONY: up upd down logs psql tidy ingest-once inspect seed-meta resync migrate cluster frontend-install frontend-dev frontend-build
 
 up:
 	$(DOCKER_COMPOSE) up --build
+
+upd:
+	$(DOCKER_COMPOSE) up --build -d
 
 down:
 	$(DOCKER_COMPOSE) down
