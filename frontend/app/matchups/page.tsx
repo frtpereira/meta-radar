@@ -8,6 +8,7 @@ type SearchParams = {
     archetype_id?: string;
     min_matches?: string;
     include_mirrors?: string;
+    page?: string;
 };
 
 function formatPercent(value: number | null) {
@@ -110,7 +111,13 @@ function MatchupFilters({
     );
 }
 
-function MatchupTable({ stats }: { stats: MatchupStat[] }) {
+function MatchupTable({
+    stats,
+    selectedArchetypeId,
+}: {
+    stats: MatchupStat[];
+    selectedArchetypeId: string;
+}) {
     return (
         <div className="table-wrap">
             <table>
@@ -125,32 +132,75 @@ function MatchupTable({ stats }: { stats: MatchupStat[] }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {stats.map((stat) => (
-                        <tr key={`${stat.archetype.id}-${stat.opponent.id}`}>
-                            <td>
-                                <div className="table-title">
-                                    {stat.archetype.name}
-                                </div>
-                                <div className="muted tiny">
-                                    {stat.archetype.slug}
-                                </div>
-                            </td>
-                            <td>
-                                <div className="table-title">
-                                    {stat.opponent.name}
-                                </div>
-                                <div className="muted tiny">
-                                    {stat.opponent.slug}
-                                </div>
-                            </td>
-                            <td>
-                                {stat.wins}-{stat.losses}-{stat.ties}
-                            </td>
-                            <td>{stat.matches.toLocaleString()}</td>
-                            <td>{formatPercent(stat.score_rate)}</td>
-                            <td>{formatPercent(stat.win_rate)}</td>
-                        </tr>
-                    ))}
+                    {stats.map((stat) => {
+                        const selectedIsArchetype =
+                            String(stat.archetype.id) ===
+                            String(selectedArchetypeId);
+                        const primary = selectedIsArchetype
+                            ? stat.archetype
+                            : stat.opponent;
+                        const secondary = selectedIsArchetype
+                            ? stat.opponent
+                            : stat.archetype;
+
+                        // When the selected archetype appears as the opponent in the API response,
+                        // swap the displayed wins/losses so the record is always from the
+                        // perspective of the primary (selected) archetype.
+                        const displayedWins = selectedIsArchetype
+                            ? stat.wins
+                            : stat.losses;
+                        const displayedLosses = selectedIsArchetype
+                            ? stat.losses
+                            : stat.wins;
+                        const displayedTies = stat.ties;
+                        const displayedMatches = stat.matches;
+
+                        // Recompute win rate from displayed counts to remain correct after swap.
+                        const totalForRate =
+                            displayedWins + displayedLosses + displayedTies;
+                        const displayedWinRate =
+                            totalForRate > 0
+                                ? displayedWins / totalForRate
+                                : null;
+
+                        // Score rate should flip sign when sides are swapped.
+                        const displayedScoreRate =
+                            stat.score_rate === null
+                                ? null
+                                : selectedIsArchetype
+                                  ? stat.score_rate
+                                  : -stat.score_rate;
+
+                        return (
+                            <tr
+                                key={`${stat.archetype.id}-${stat.opponent.id}`}
+                            >
+                                <td>
+                                    <div className="table-title">
+                                        {primary.name}
+                                    </div>
+                                    <div className="muted tiny">
+                                        {primary.slug}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div className="table-title">
+                                        {secondary.name}
+                                    </div>
+                                    <div className="muted tiny">
+                                        {secondary.slug}
+                                    </div>
+                                </td>
+                                <td>
+                                    {displayedWins}-{displayedLosses}-
+                                    {displayedTies}
+                                </td>
+                                <td>{displayedMatches.toLocaleString()}</td>
+                                <td>{formatPercent(displayedScoreRate)}</td>
+                                <td>{formatPercent(displayedWinRate)}</td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>
@@ -189,7 +239,12 @@ export default async function MatchupsPage({
                   includeMirrors,
                   page,
                   pageSize,
-              }).catch(() => ({ total: 0, page, page_size: pageSize, items: [] })),
+              }).catch(() => ({
+                  total: 0,
+                  page,
+                  page_size: pageSize,
+                  items: [],
+              })),
           ])
         : [[], { total: 0, page, page_size: pageSize, items: [] }];
 
@@ -268,14 +323,48 @@ export default async function MatchupsPage({
 
                     {matchupPage.items.length > 0 ? (
                         <>
-                            <MatchupTable stats={matchupPage.items} />
+                            <MatchupTable
+                                stats={matchupPage.items}
+                                selectedArchetypeId={selectedArchetypeId}
+                            />
                             <div className="pagination">
-                                <div style={{ display: "flex", gap: "8px", marginTop: "12px", alignItems: "center" }}>
-                                    <span className="muted">Page {matchupPage.page} of {Math.max(1, Math.ceil(matchupPage.total / matchupPage.page_size))}</span>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: "8px",
+                                        marginTop: "12px",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <span className="muted">
+                                        Page {matchupPage.page} of{" "}
+                                        {Math.max(
+                                            1,
+                                            Math.ceil(
+                                                matchupPage.total /
+                                                    matchupPage.page_size,
+                                            ),
+                                        )}
+                                    </span>
                                 </div>
 
-                                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                                    <Pagination page={matchupPage.page} totalPages={Math.max(1, Math.ceil(matchupPage.total / matchupPage.page_size))} />
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: "8px",
+                                        marginTop: "8px",
+                                    }}
+                                >
+                                    <Pagination
+                                        page={matchupPage.page}
+                                        totalPages={Math.max(
+                                            1,
+                                            Math.ceil(
+                                                matchupPage.total /
+                                                    matchupPage.page_size,
+                                            ),
+                                        )}
+                                    />
                                 </div>
                             </div>
                         </>
