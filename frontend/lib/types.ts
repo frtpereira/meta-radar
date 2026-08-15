@@ -34,6 +34,23 @@ export interface ArchetypeStat {
     win_rate: number | null;
 }
 
+export interface TournamentStanding {
+    standing: number;
+    wins: number;
+    losses: number;
+    ties: number;
+    player_id: string;
+    player_name: string;
+    decklist_id: number | null;
+    archetype_id: number | null;
+    archetype_name: string | null;
+    archetype_slug: string | null;
+}
+
+export interface TournamentDetail extends Tournament {
+    standings: TournamentStanding[];
+}
+
 interface MatchupDeck {
     id: number;
     name: string;

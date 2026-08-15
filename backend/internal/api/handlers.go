@@ -85,6 +85,91 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, tournaments)
 }
 
+// TournamentDetail returns one tournament's metadata plus its full
+// standings, joined with the player, decklist, and archetype behind each
+// entry -- everything a tournament page needs for a leaderboard: standing,
+// player, archetype, and match record. A standing of 0 means the player
+// dropped rather than finished in that position (see standings comment in
+// the schema), so those rows are sorted to the end instead of to the top.
+func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := chi.URLParam(r, "id")
+
+	var t models.Tournament
+	err := h.DB.QueryRow(ctx, `
+		SELECT id, name, game, format_code, meta_id, date, players, is_online, has_decklists, organizer_name
+		FROM tournaments
+		WHERE id = $1`, id,
+	).Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName)
+	if err == pgx.ErrNoRows {
+		writeError(w, http.StatusNotFound, "tournament not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying tournament: "+err.Error())
+		return
+	}
+
+	query := `
+		SELECT s.standing, s.wins, s.losses, s.ties,
+		       p.id, p.name,
+		       d.id, a.id, a.name, a.slug
+		FROM standings s
+		JOIN players p ON p.id = s.player_id
+		LEFT JOIN decklists d ON d.id = s.decklist_id
+		LEFT JOIN archetypes a ON a.id = d.archetype_id
+		WHERE s.tournament_id = $1
+		ORDER BY
+			CASE WHEN s.standing = 0 THEN 1 ELSE 0 END, -- drops sort last
+			s.standing ASC`
+
+	rows, err := h.DB.Query(ctx, query, id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying standings: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	type standingRow struct {
+		Standing     int     `json:"standing"`
+		Wins         int     `json:"wins"`
+		Losses       int     `json:"losses"`
+		Ties         int     `json:"ties"`
+		PlayerID     string  `json:"player_id"`
+		PlayerName   string  `json:"player_name"`
+		DecklistID   *int64  `json:"decklist_id,omitempty"`
+		ArchetypeID  *int64  `json:"archetype_id,omitempty"`
+		ArchetypeName *string `json:"archetype_name,omitempty"`
+		ArchetypeSlug *string `json:"archetype_slug,omitempty"`
+	}
+
+	standings := []standingRow{}
+	for rows.Next() {
+		var s standingRow
+		if err := rows.Scan(&s.Standing, &s.Wins, &s.Losses, &s.Ties,
+			&s.PlayerID, &s.PlayerName,
+			&s.DecklistID, &s.ArchetypeID, &s.ArchetypeName, &s.ArchetypeSlug); err != nil {
+			writeError(w, http.StatusInternalServerError, "scanning standing: "+err.Error())
+			return
+		}
+		standings = append(standings, s)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"id":              t.ID,
+		"name":            t.Name,
+		"game":            t.Game,
+		"format_code":     t.FormatCode,
+		"meta_id":         t.MetaID,
+		"date":            t.Date,
+		"players":         t.Players,
+		"is_online":       t.IsOnline,
+		"has_decklists":   t.HasDecklists,
+		"organizer_name":  t.OrganizerName,
+		"standings":       standings,
+	})
+}
+
 func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

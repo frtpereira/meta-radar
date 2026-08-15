@@ -220,12 +220,17 @@ export default async function Home({
                                         {liveTournaments.map((tournament) => (
                                             <tr key={tournament.id}>
                                                 <td>
-                                                    <div className="table-title">
-                                                        {tournament.name}
-                                                    </div>
-                                                    <div className="muted tiny">
-                                                        {tournament.format_code}
-                                                    </div>
+                                                    <Link
+                                                        className="table-link"
+                                                        href={`/tournaments/${tournament.id}`}
+                                                    >
+                                                        <div className="table-title">
+                                                            {tournament.name}
+                                                        </div>
+                                                        <div className="muted tiny">
+                                                            {tournament.format_code}
+                                                        </div>
+                                                    </Link>
                                                 </td>
                                                 <td>
                                                     {formatDate(

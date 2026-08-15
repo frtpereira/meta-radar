@@ -1,4 +1,10 @@
-import type { ArchetypeStat, MatchupStat, Meta, Tournament } from "@/lib/types";
+import type {
+    ArchetypeStat,
+    MatchupStat,
+    Meta,
+    Tournament,
+    TournamentDetail,
+} from "@/lib/types";
 
 const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
@@ -56,6 +62,10 @@ export async function getTournaments(options: {
     }
 
     return fetchJson<Tournament[]>(`/tournaments?${params.toString()}`);
+}
+
+export async function getTournament(id: string) {
+    return fetchJson<TournamentDetail>(`/tournaments/${id}`);
 }
 
 export async function getArchetypeStats(metaId: string) {

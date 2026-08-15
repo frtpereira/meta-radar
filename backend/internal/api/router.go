@@ -35,6 +35,7 @@ func NewRouter(pool *pgxpool.Pool, syncer *ingest.Syncer, webhookSecret string, 
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/tournaments", h.ListTournaments)
+		r.Get("/tournaments/{id}", h.TournamentDetail)
 		r.Get("/metas", h.ListMetas)
 		r.Get("/archetypes/stats", h.ArchetypeStats)
 		r.Get("/matchups/stats", h.MatchupStats)
