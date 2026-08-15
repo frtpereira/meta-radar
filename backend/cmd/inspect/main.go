@@ -23,8 +23,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/config"
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/limitless"
+	"github.com/frtpereira/meta-radar/internal/config"
+	"github.com/frtpereira/meta-radar/internal/limitless"
 )
 
 func main() {

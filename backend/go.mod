@@ -1,4 +1,4 @@
-module github.com/frtpereira/pokemon-tcg-tracker
+module github.com/frtpereira/meta-radar
 
 go 1.22
 

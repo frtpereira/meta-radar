@@ -11,8 +11,8 @@ import (
 
 	"os"
 
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/ingest"
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/models"
+	"github.com/frtpereira/meta-radar/internal/ingest"
+	"github.com/frtpereira/meta-radar/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -140,14 +140,14 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type standingRow struct {
-		Standing     int     `json:"standing"`
-		Wins         int     `json:"wins"`
-		Losses       int     `json:"losses"`
-		Ties         int     `json:"ties"`
-		PlayerID     string  `json:"player_id"`
-		PlayerName   string  `json:"player_name"`
-		DecklistID   *int64  `json:"decklist_id,omitempty"`
-		ArchetypeID  *int64  `json:"archetype_id,omitempty"`
+		Standing      int     `json:"standing"`
+		Wins          int     `json:"wins"`
+		Losses        int     `json:"losses"`
+		Ties          int     `json:"ties"`
+		PlayerID      string  `json:"player_id"`
+		PlayerName    string  `json:"player_name"`
+		DecklistID    *int64  `json:"decklist_id,omitempty"`
+		ArchetypeID   *int64  `json:"archetype_id,omitempty"`
 		ArchetypeName *string `json:"archetype_name,omitempty"`
 		ArchetypeSlug *string `json:"archetype_slug,omitempty"`
 	}
@@ -165,17 +165,17 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"id":              t.ID,
-		"name":            t.Name,
-		"game":            t.Game,
-		"format_code":     t.FormatCode,
-		"meta_id":         t.MetaID,
-		"date":            t.Date,
-		"players":         t.Players,
-		"is_online":       t.IsOnline,
-		"has_decklists":   t.HasDecklists,
-		"organizer_name":  t.OrganizerName,
-		"standings":       standings,
+		"id":             t.ID,
+		"name":           t.Name,
+		"game":           t.Game,
+		"format_code":    t.FormatCode,
+		"meta_id":        t.MetaID,
+		"date":           t.Date,
+		"players":        t.Players,
+		"is_online":      t.IsOnline,
+		"has_decklists":  t.HasDecklists,
+		"organizer_name": t.OrganizerName,
+		"standings":      standings,
 	})
 }
 

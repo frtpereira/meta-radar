@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/ingest"
+	"github.com/frtpereira/meta-radar/internal/ingest"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"

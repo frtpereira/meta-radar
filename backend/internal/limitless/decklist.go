@@ -3,7 +3,7 @@ package limitless
 import (
 	"encoding/json"
 
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/models"
+	"github.com/frtpereira/meta-radar/internal/models"
 )
 
 // ParsePTCGDecklist attempts to normalize the raw, game-specific `decklist`

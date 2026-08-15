@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/config"
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/db"
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/ingest"
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/limitless"
+	"github.com/frtpereira/meta-radar/internal/config"
+	"github.com/frtpereira/meta-radar/internal/db"
+	"github.com/frtpereira/meta-radar/internal/ingest"
+	"github.com/frtpereira/meta-radar/internal/limitless"
 )
 
 func main() {

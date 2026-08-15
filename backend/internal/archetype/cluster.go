@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/models"
+	"github.com/frtpereira/meta-radar/internal/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

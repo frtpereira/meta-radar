@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/limitless"
+	"github.com/frtpereira/meta-radar/internal/limitless"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )

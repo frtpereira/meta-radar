@@ -5,9 +5,9 @@ import (
 	"flag"
 	"log"
 
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/archetype"
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/config"
-	"github.com/frtpereira/pokemon-tcg-tracker/internal/db"
+	"github.com/frtpereira/meta-radar/internal/archetype"
+	"github.com/frtpereira/meta-radar/internal/config"
+	"github.com/frtpereira/meta-radar/internal/db"
 )
 
 func main() {
