@@ -110,8 +110,8 @@ export default async function TournamentPage({
                                                 )}
                                             </td>
                                             <td>
-                                                {row.wins}-{row.losses}
-                                                {row.ties > 0 ? `-${row.ties}` : ""}
+                                                {row.wins}-{row.losses}-
+                                                {row.ties}
                                             </td>
                                         </tr>
                                     ))}
