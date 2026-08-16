@@ -1,7 +1,10 @@
 import Link from "next/link";
+import Table from "@/components/table";
 
 import type { Meta, Tournament } from "@/lib/types";
 import { getMetas, getTournaments } from "@/lib/api";
+import Hero from "@/components/hero";
+import Card from "@/components/card";
 
 type SearchParams = {
     meta_id?: string;
@@ -56,58 +59,47 @@ function MetaSelector({
 }
 
 function TournamentsTable({ tournaments }: { tournaments: Tournament[] }) {
-    return (
-        <div className="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Event</th>
-                        <th>Date</th>
-                        <th>Players</th>
-                        <th>Source</th>
-                        <th>Winner archetype</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {tournaments.map((tournament) => (
-                        <tr key={tournament.id}>
-                            <td>
-                                <Link
-                                    className="table-link"
-                                    href={`/tournaments/${tournament.id}`}
-                                >
-                                    <div className="table-title">
-                                        {tournament.name}
-                                    </div>
-                                    <div className="muted tiny">
-                                        {tournament.format_code}
-                                    </div>
-                                </Link>
-                            </td>
-                            <td>{formatDate(tournament.date)}</td>
-                            <td>{tournament.players.toLocaleString()}</td>
-                            <td>
-                                <span
-                                    className={`badge ${tournament.is_online ? "badge--online" : ""}`}
-                                >
-                                    {tournament.is_online
-                                        ? "Online"
-                                        : "In person"}
-                                </span>
-                            </td>
-                            <td>
-                                {tournament.winner_archetype ?? (
-                                    <span className="muted tiny">
-                                        Unknown
-                                    </span>
-                                )}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+    const columns = [
+        {
+            key: "event",
+            label: "Event",
+            render: (t: Tournament) => (
+                <Link className="table-link" href={`/tournaments/${t.id}`}>
+                    <div className="table-title">{t.name}</div>
+                    <div className="muted tiny">{t.format_code}</div>
+                </Link>
+            ),
+        },
+        {
+            key: "date",
+            label: "Date",
+            render: (t: Tournament) => formatDate(t.date),
+        },
+        {
+            key: "players",
+            label: "Players",
+            render: (t: Tournament) => t.players.toLocaleString(),
+        },
+        {
+            key: "source",
+            label: "Source",
+            render: (t: Tournament) => (
+                <span className={`badge ${t.is_online ? "badge--online" : ""}`}>
+                    {t.is_online ? "Online" : "In person"}
+                </span>
+            ),
+        },
+        {
+            key: "winner_archetype",
+            label: "Winner archetype",
+            render: (t: Tournament) =>
+                t.winner_archetype ?? (
+                    <span className="muted tiny">Unknown</span>
+                ),
+        },
+    ];
+
+    return <Table columns={columns} rows={tournaments} />;
 }
 
 export default async function TournamentsPage({
@@ -132,35 +124,34 @@ export default async function TournamentsPage({
             <div className="ambient ambient--two" />
 
             <div className="shell">
-                <header className="hero card">
-                    <div>
-                        <p className="eyebrow">Tournament Explorer</p>
-                        <h1>All events for a given meta.</h1>
-                        <p className="lede">
-                            Browse every synced event for a meta, then open
-                            one to see its full leaderboard, standings, score,
-                            and archetype per player.
-                        </p>
-                    </div>
+                <Hero
+                    eyebrow="Tournament Explorer"
+                    title="All events for a given meta."
+                    lede="Browse every synced event for a meta, then open one
+                        to see its full leaderboard, standings, score, and
+                        archetype per player."
+                    meta={
+                        <>
+                            {activeMeta ? (
+                                <span className="pill">{activeMeta.name}</span>
+                            ) : null}
+                        </>
+                    }
+                />
 
-                    <div className="hero__meta">
-                        {activeMeta ? (
-                            <span className="pill">{activeMeta.name}</span>
-                        ) : null}
-                    </div>
-                </header>
-
-                <section className="card section">
-                    <div className="section__heading">
-                        <div>
+                <Card
+                    heading={
+                        <>
                             <p className="eyebrow">Filters</p>
                             <h2>Meta selection</h2>
-                        </div>
+                        </>
+                    }
+                    headingMeta={
                         <span className="muted">
                             {tournaments.length.toLocaleString()} events
                         </span>
-                    </div>
-
+                    }
+                >
                     {metas.length > 0 ? (
                         <MetaSelector metas={metas} activeMeta={activeMeta} />
                     ) : (
@@ -169,20 +160,21 @@ export default async function TournamentsPage({
                             copy="Seed a meta before tournaments can be loaded."
                         />
                     )}
-                </section>
+                </Card>
 
-                <section className="card section section--spaced">
-                    <div className="section__heading">
-                        <div>
+                <Card
+                    className="section--spaced"
+                    heading={
+                        <>
                             <p className="eyebrow">Events</p>
                             <h2>
                                 {activeMeta
                                     ? activeMeta.name
                                     : "No meta loaded"}
                             </h2>
-                        </div>
-                    </div>
-
+                        </>
+                    }
+                >
                     {tournaments.length > 0 ? (
                         <TournamentsTable tournaments={tournaments} />
                     ) : (
@@ -191,7 +183,7 @@ export default async function TournamentsPage({
                             copy="Once ingestion has synced events for this meta, they'll appear here."
                         />
                     )}
-                </section>
+                </Card>
             </div>
         </main>
     );

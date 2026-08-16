@@ -2,6 +2,9 @@ import type { ArchetypeStat, MatchupStat, Meta } from "@/lib/types";
 
 import { getArchetypeStats, getMatchupStats, getMetas } from "@/lib/api";
 import Pagination from "./Pagination";
+import Hero from "@/components/hero";
+import Table from "@/components/table";
+import Card from "@/components/card";
 
 type SearchParams = {
     meta_id?: string;
@@ -118,93 +121,100 @@ function MatchupTable({
     stats: MatchupStat[];
     selectedArchetypeId: string;
 }) {
-    return (
-        <div className="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Archetype</th>
-                        <th>Opponent</th>
-                        <th>Record</th>
-                        <th>Matches</th>
-                        <th>Score rate</th>
-                        <th>Win rate</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {stats.map((stat) => {
-                        const selectedIsArchetype =
-                            String(stat.archetype.id) ===
-                            String(selectedArchetypeId);
-                        const primary = selectedIsArchetype
-                            ? stat.archetype
-                            : stat.opponent;
-                        const secondary = selectedIsArchetype
-                            ? stat.opponent
-                            : stat.archetype;
+    const columns = [
+        {
+            key: "primary",
+            label: "Archetype",
+            render: (stat: MatchupStat) => {
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                const primary = selectedIsArchetype
+                    ? stat.archetype
+                    : stat.opponent;
+                return (
+                    <>
+                        <div className="table-title">{primary.name}</div>
+                        <div className="muted tiny">{primary.slug}</div>
+                    </>
+                );
+            },
+        },
+        {
+            key: "secondary",
+            label: "Opponent",
+            render: (stat: MatchupStat) => {
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                const secondary = selectedIsArchetype
+                    ? stat.opponent
+                    : stat.archetype;
+                return (
+                    <>
+                        <div className="table-title">{secondary.name}</div>
+                        <div className="muted tiny">{secondary.slug}</div>
+                    </>
+                );
+            },
+        },
+        {
+            key: "record",
+            label: "Record",
+            render: (stat: MatchupStat) => {
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                const displayedWins = selectedIsArchetype
+                    ? stat.wins
+                    : stat.losses;
+                const displayedLosses = selectedIsArchetype
+                    ? stat.losses
+                    : stat.wins;
+                const displayedTies = stat.ties;
+                return `${displayedWins}-${displayedLosses}-${displayedTies}`;
+            },
+        },
+        {
+            key: "matches",
+            label: "Matches",
+            render: (stat: MatchupStat) => stat.matches.toLocaleString(),
+        },
+        {
+            key: "score_rate",
+            label: "Score rate",
+            render: (stat: MatchupStat) => {
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                const displayedScoreRate =
+                    stat.score_rate === null
+                        ? null
+                        : selectedIsArchetype
+                          ? stat.score_rate
+                          : -stat.score_rate;
+                return formatPercent(displayedScoreRate);
+            },
+        },
+        {
+            key: "win_rate",
+            label: "Win rate",
+            render: (stat: MatchupStat) => {
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                const displayedWins = selectedIsArchetype
+                    ? stat.wins
+                    : stat.losses;
+                const displayedLosses = selectedIsArchetype
+                    ? stat.losses
+                    : stat.wins;
+                const displayedTies = stat.ties;
+                const totalForRate =
+                    displayedWins + displayedLosses + displayedTies;
+                const displayedWinRate =
+                    totalForRate > 0 ? displayedWins / totalForRate : null;
+                return formatPercent(displayedWinRate);
+            },
+        },
+    ];
 
-                        // When the selected archetype appears as the opponent in the API response,
-                        // swap the displayed wins/losses so the record is always from the
-                        // perspective of the primary (selected) archetype.
-                        const displayedWins = selectedIsArchetype
-                            ? stat.wins
-                            : stat.losses;
-                        const displayedLosses = selectedIsArchetype
-                            ? stat.losses
-                            : stat.wins;
-                        const displayedTies = stat.ties;
-                        const displayedMatches = stat.matches;
-
-                        // Recompute win rate from displayed counts to remain correct after swap.
-                        const totalForRate =
-                            displayedWins + displayedLosses + displayedTies;
-                        const displayedWinRate =
-                            totalForRate > 0
-                                ? displayedWins / totalForRate
-                                : null;
-
-                        // Score rate should flip sign when sides are swapped.
-                        const displayedScoreRate =
-                            stat.score_rate === null
-                                ? null
-                                : selectedIsArchetype
-                                  ? stat.score_rate
-                                  : -stat.score_rate;
-
-                        return (
-                            <tr
-                                key={`${stat.archetype.id}-${stat.opponent.id}`}
-                            >
-                                <td>
-                                    <div className="table-title">
-                                        {primary.name}
-                                    </div>
-                                    <div className="muted tiny">
-                                        {primary.slug}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div className="table-title">
-                                        {secondary.name}
-                                    </div>
-                                    <div className="muted tiny">
-                                        {secondary.slug}
-                                    </div>
-                                </td>
-                                <td>
-                                    {displayedWins}-{displayedLosses}-
-                                    {displayedTies}
-                                </td>
-                                <td>{displayedMatches.toLocaleString()}</td>
-                                <td>{formatPercent(displayedScoreRate)}</td>
-                                <td>{formatPercent(displayedWinRate)}</td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
-    );
+    return <Table columns={columns} rows={stats} />;
 }
 
 export default async function MatchupsPage({
@@ -259,40 +269,39 @@ export default async function MatchupsPage({
             <div className="ambient ambient--two" />
 
             <div className="shell">
-                <header className="hero card">
-                    <div>
-                        <p className="eyebrow">Matchup Explorer</p>
-                        <h1>Head-to-head archetype matchup stats.</h1>
-                        <p className="lede">
-                            Compare directional matchup performance by meta and
-                            archetype, including win rate and score rate from
-                            recorded pairings.
-                        </p>
-                    </div>
+                <Hero
+                    eyebrow="Matchup Explorer"
+                    title="Head-to-head archetype matchup stats."
+                    lede="Compare directional matchup performance by meta and
+                        archetype, including win rate and score rate from
+                        recorded pairings."
+                    meta={
+                        <>
+                            {activeMeta ? (
+                                <span className="pill">{activeMeta.name}</span>
+                            ) : null}
+                            {selectedArchetype ? (
+                                <span className="pill pill--soft">
+                                    {selectedArchetype.name}
+                                </span>
+                            ) : null}
+                        </>
+                    }
+                />
 
-                    <div className="hero__meta">
-                        {activeMeta ? (
-                            <span className="pill">{activeMeta.name}</span>
-                        ) : null}
-                        {selectedArchetype ? (
-                            <span className="pill pill--soft">
-                                {selectedArchetype.name}
-                            </span>
-                        ) : null}
-                    </div>
-                </header>
-
-                <section className="card section">
-                    <div className="section__heading">
-                        <div>
+                <Card
+                    heading={
+                        <>
                             <p className="eyebrow">Filters</p>
                             <h2>Meta and matchup filters</h2>
-                        </div>
+                        </>
+                    }
+                    headingMeta={
                         <span className="muted">
                             {matchupPage.total.toLocaleString()} rows
                         </span>
-                    </div>
-
+                    }
+                >
                     {metas.length > 0 ? (
                         <MatchupFilters
                             metas={metas}
@@ -308,19 +317,22 @@ export default async function MatchupsPage({
                             copy="Seed a meta before matchup stats can be loaded."
                         />
                     )}
-                </section>
+                </Card>
 
-                <section className="card section section--spaced">
-                    <div className="section__heading">
-                        <div>
+                <Card
+                    className="section--spaced"
+                    heading={
+                        <>
                             <p className="eyebrow">Matchups</p>
                             <h2>Archetype-vs-archetype results</h2>
-                        </div>
+                        </>
+                    }
+                    headingMeta={
                         <span className="muted">
                             Directional from pairings data
                         </span>
-                    </div>
-
+                    }
+                >
                     {matchupPage.items.length > 0 ? (
                         <>
                             <MatchupTable
@@ -374,7 +386,7 @@ export default async function MatchupsPage({
                             copy="Try lowering the minimum match threshold or selecting a different meta."
                         />
                     )}
-                </section>
+                </Card>
             </div>
         </main>
     );

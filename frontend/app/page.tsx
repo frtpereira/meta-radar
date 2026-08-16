@@ -1,5 +1,8 @@
 import type { ArchetypeStat, Meta, Tournament } from "@/lib/types";
 import Link from "next/link";
+import Hero from "@/components/hero";
+import Table from "@/components/table";
+import Card from "@/components/card";
 
 import { getArchetypeStats, getMetas, getTournaments } from "@/lib/api";
 
@@ -41,11 +44,11 @@ function TopStatCard({
     detail: string;
 }) {
     return (
-        <section className="card card--tight">
+        <Card className="card--tight">
             <p className="eyebrow">{label}</p>
             <p className="stat-value">{value}</p>
             <p className="muted">{detail}</p>
-        </section>
+        </Card>
     );
 }
 
@@ -97,9 +100,7 @@ export default async function Home({
     const params = await searchParams;
     const metas = await getMetas().catch(() => [] as Meta[]);
     const activeMeta =
-        metas.find((meta) => meta.id === params.meta_id) ??
-        metas[0] ??
-        null;
+        metas.find((meta) => meta.id === params.meta_id) ?? metas[0] ?? null;
 
     const [tournaments, archetypes] = activeMeta
         ? await Promise.all([
@@ -121,25 +122,25 @@ export default async function Home({
             <div className="ambient ambient--two" />
 
             <div className="shell">
-                <header className="hero card">
-                    <div>
-                        <p className="eyebrow">META Radar - Pokémon TCG</p>
-                        <h1>
+                <Hero
+                    eyebrow="META Radar - Pokémon TCG"
+                    title={
+                        <>
                             Dashboard for trending decks and archetype
                             performance.
-                        </h1>
-                        <p className="lede">
-                            Start with the current meta, then drill into
-                            tournaments and deck performance, then jump to
-                            directional matchup results for each archetype.
-                        </p>
-                    </div>
-
-                    <div className="hero__meta">
-                        <span className="pill">Next.js App Router</span>
-                        <span className="pill pill--soft">Core views only</span>
-                    </div>
-                </header>
+                        </>
+                    }
+                    lede="Analyze tournaments and deck performance,
+                        then jump into directional matchup results."
+                    meta={
+                        <>
+                            <span className="pill">Next.js App Router</span>
+                            <span className="pill pill--soft">
+                                Core views only
+                            </span>
+                        </>
+                    }
+                />
 
                 <section className="grid grid--summary">
                     <TopStatCard
@@ -168,23 +169,25 @@ export default async function Home({
                     />
                 </section>
 
-                <section className="card section">
-                    <div className="section__heading">
-                        <div>
+                <Card
+                    heading={
+                        <>
                             <p className="eyebrow">Meta selection</p>
                             <h2>
                                 {activeMeta
                                     ? activeMeta.name
                                     : "No meta loaded"}
                             </h2>
-                        </div>
-                        {activeMeta ? (
+                        </>
+                    }
+                    headingMeta={
+                        activeMeta ? (
                             <span className="pill">
                                 {activeMeta.format_code}
                             </span>
-                        ) : null}
-                    </div>
-
+                        ) : null
+                    }
+                >
                     {metas.length > 0 ? (
                         <MetaSelector metas={metas} activeMeta={activeMeta} />
                     ) : (
@@ -193,81 +196,84 @@ export default async function Home({
                             copy="Seed a specific meta before the dashboard can populate tournaments and archetypes."
                         />
                     )}
-                </section>
+                </Card>
 
                 <section className="grid grid--two">
-                    <article className="card section">
-                        <div className="section__heading">
-                            <div>
+                    <Card
+                        heading={
+                            <>
                                 <p className="eyebrow">Recent tournaments</p>
                                 <h2>Latest events</h2>
-                            </div>
+                            </>
+                        }
+                        headingMeta={
                             <span className="muted">64+ players only</span>
-                        </div>
-
+                        }
+                    >
                         {liveTournaments.length > 0 ? (
-                            <div className="table-wrap">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Event</th>
-                                            <th>Date</th>
-                                            <th>Players</th>
-                                            <th>Source</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {liveTournaments.map((tournament) => (
-                                            <tr key={tournament.id}>
-                                                <td>
-                                                    <Link
-                                                        className="table-link"
-                                                        href={`/tournaments/${tournament.id}`}
-                                                    >
-                                                        <div className="table-title">
-                                                            {tournament.name}
-                                                        </div>
-                                                        <div className="muted tiny">
-                                                            {tournament.format_code}
-                                                        </div>
-                                                    </Link>
-                                                </td>
-                                                <td>
-                                                    {formatDate(
-                                                        tournament.date,
-                                                    )}
-                                                </td>
-                                                <td>
-                                                    {tournament.players.toLocaleString()}
-                                                </td>
-                                                <td>
-                                                    <span
-                                                        className={`badge ${tournament.is_online ? "badge--online" : ""}`}
-                                                    >
-                                                        {tournament.is_online
-                                                            ? "Online"
-                                                            : "In person"}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <Table
+                                columns={[
+                                    {
+                                        key: "event",
+                                        label: "Event",
+                                        render: (t: Tournament) => (
+                                            <Link
+                                                className="table-link"
+                                                href={`/tournaments/${t.id}`}
+                                            >
+                                                <div className="table-title">
+                                                    {t.name}
+                                                </div>
+                                                <div className="muted tiny">
+                                                    {t.format_code}
+                                                </div>
+                                            </Link>
+                                        ),
+                                    },
+                                    {
+                                        key: "date",
+                                        label: "Date",
+                                        render: (t: Tournament) =>
+                                            formatDate(t.date),
+                                    },
+                                    {
+                                        key: "players",
+                                        label: "Players",
+                                        render: (t: Tournament) =>
+                                            t.players.toLocaleString(),
+                                    },
+                                    {
+                                        key: "source",
+                                        label: "Source",
+                                        render: (t: Tournament) => (
+                                            <span
+                                                className={`badge ${t.is_online ? "badge--online" : ""}`}
+                                            >
+                                                {t.is_online
+                                                    ? "Online"
+                                                    : "In person"}
+                                            </span>
+                                        ),
+                                    },
+                                ]}
+                                rows={liveTournaments}
+                            />
                         ) : (
                             <EmptyState
                                 title="No tournaments found"
                                 copy="Once ingestion has synced events for this meta, the latest tournaments will appear here."
                             />
                         )}
-                    </article>
+                    </Card>
 
-                    <article className="card section">
-                        <div className="section__heading">
-                            <div>
+                    <Card
+                        heading={
+                            <>
                                 <p className="eyebrow">Archetype stats</p>
                                 <h2>Performance snapshot</h2>
-                            </div>
+                            </>
+                        }
+                        headingMeta={
                             <Link
                                 className="pill pill--soft"
                                 href={
@@ -278,71 +284,66 @@ export default async function Home({
                             >
                                 View matchups
                             </Link>
-                        </div>
-
+                        }
+                    >
                         {archetypes.length > 0 ? (
-                            <div className="table-wrap">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Archetype</th>
-                                            <th>Decks</th>
-                                            <th>Avg standing</th>
-                                            <th>Win rate</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {archetypes.slice(0, 10).map((stat) => (
-                                            <tr key={stat.id}>
-                                                <td>
-                                                    {activeMeta ? (
-                                                        <Link
-                                                            className="table-link"
-                                                            href={`/matchups?meta_id=${activeMeta.id}&archetype_id=${stat.id}`}
-                                                        >
-                                                            <div className="table-title">
-                                                                {stat.name}
-                                                            </div>
-                                                            <div className="muted tiny">
-                                                                {stat.slug}
-                                                            </div>
-                                                        </Link>
-                                                    ) : (
-                                                        <>
-                                                            <div className="table-title">
-                                                                {stat.name}
-                                                            </div>
-                                                            <div className="muted tiny">
-                                                                {stat.slug}
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </td>
-                                                <td>
-                                                    {stat.deck_count.toLocaleString()}
-                                                </td>
-                                                <td>
-                                                    {formatStanding(
-                                                        stat.avg_standing,
-                                                    )}
-                                                </td>
-                                                <td>
-                                                    {formatPercent(
-                                                        stat.win_rate,
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <Table
+                                columns={[
+                                    {
+                                        key: "archetype",
+                                        label: "Archetype",
+                                        render: (stat: ArchetypeStat) =>
+                                            activeMeta ? (
+                                                <Link
+                                                    className="table-link"
+                                                    href={`/matchups?meta_id=${activeMeta.id}&archetype_id=${stat.id}`}
+                                                >
+                                                    <div className="table-title">
+                                                        {stat.name}
+                                                    </div>
+                                                    <div className="muted tiny">
+                                                        {stat.slug}
+                                                    </div>
+                                                </Link>
+                                            ) : (
+                                                <>
+                                                    <div className="table-title">
+                                                        {stat.name}
+                                                    </div>
+                                                    <div className="muted tiny">
+                                                        {stat.slug}
+                                                    </div>
+                                                </>
+                                            ),
+                                    },
+                                    {
+                                        key: "decks",
+                                        label: "Decks",
+                                        render: (s: ArchetypeStat) =>
+                                            s.deck_count.toLocaleString(),
+                                    },
+                                    {
+                                        key: "avg",
+                                        label: "Avg standing",
+                                        render: (s: ArchetypeStat) =>
+                                            formatStanding(s.avg_standing),
+                                    },
+                                    {
+                                        key: "win",
+                                        label: "Win rate",
+                                        render: (s: ArchetypeStat) =>
+                                            formatPercent(s.win_rate),
+                                    },
+                                ]}
+                                rows={archetypes.slice(0, 10)}
+                            />
                         ) : (
                             <EmptyState
                                 title="No archetype stats yet"
                                 copy="Run the clustering and pairings pipeline to populate archetype performance data."
                             />
                         )}
-                    </article>
+                    </Card>
                 </section>
             </div>
         </main>

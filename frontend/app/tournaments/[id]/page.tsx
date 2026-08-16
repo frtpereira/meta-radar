@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Hero from "@/components/hero";
+import Table from "@/components/table";
+import Card from "@/components/card";
 
 import { getTournament } from "@/lib/api";
 
@@ -32,7 +35,10 @@ export default async function TournamentPage({
     const { id } = await params;
 
     const tournament = await getTournament(id).catch((error: unknown) => {
-        if (error instanceof Error && error.message.startsWith("Request failed: 404")) {
+        if (
+            error instanceof Error &&
+            error.message.startsWith("Request failed: 404")
+        ) {
             notFound();
         }
         throw error;
@@ -44,87 +50,87 @@ export default async function TournamentPage({
             <div className="ambient ambient--two" />
 
             <div className="shell">
-                <header className="hero card">
-                    <div>
-                        <Link className="pill pill--soft" href="/">
-                            ← Back to dashboard
-                        </Link>
-                        <p className="eyebrow" style={{ marginTop: 16 }}>
-                            {tournament.format_code}
-                        </p>
-                        <h1>{tournament.name}</h1>
-                        <p className="lede">
+                <Hero
+                    eyebrow={tournament.format_code}
+                    title={tournament.name}
+                    lede={
+                        <>
                             {formatDate(tournament.date)} ·{" "}
                             {tournament.players.toLocaleString()} players
                             {tournament.organizer_name
                                 ? ` · Hosted by ${tournament.organizer_name}`
                                 : ""}
-                        </p>
-                    </div>
+                        </>
+                    }
+                    meta={
+                        <>
+                            <span
+                                className={`badge ${tournament.is_online ? "badge--online" : ""}`}
+                            >
+                                {tournament.is_online ? "Online" : "In person"}
+                            </span>
+                        </>
+                    }
+                />
 
-                    <div className="hero__meta">
-                        <span
-                            className={`badge ${tournament.is_online ? "badge--online" : ""}`}
-                        >
-                            {tournament.is_online ? "Online" : "In person"}
-                        </span>
-                    </div>
-                </header>
-
-                <section className="card section">
-                    <div className="section__heading">
-                        <div>
+                <Card
+                    heading={
+                        <>
                             <p className="eyebrow">Leaderboard</p>
                             <h2>Final standings</h2>
-                        </div>
+                        </>
+                    }
+                    headingMeta={
                         <span className="muted">
-                            {tournament.standings.length.toLocaleString()} entries
+                            {tournament.standings.length.toLocaleString()}{" "}
+                            entries
                         </span>
-                    </div>
-
+                    }
+                >
                     {tournament.standings.length > 0 ? (
-                        <div className="table-wrap">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Standing</th>
-                                        <th>Player</th>
-                                        <th>Archetype</th>
-                                        <th>Score</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {tournament.standings.map((row) => (
-                                        <tr key={row.player_id}>
-                                            <td>{formatStanding(row.standing)}</td>
-                                            <td>
-                                                <div className="table-title">
-                                                    {row.player_name}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {row.archetype_name ?? (
-                                                    <span className="muted tiny">
-                                                        Unknown
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                {row.wins}-{row.losses}-
-                                                {row.ties}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        <Table
+                            columns={[
+                                {
+                                    key: "standing",
+                                    label: "Standing",
+                                    render: (r: any) =>
+                                        formatStanding(r.standing),
+                                },
+                                {
+                                    key: "player",
+                                    label: "Player",
+                                    render: (r: any) => (
+                                        <div className="table-title">
+                                            {r.player_name}
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    key: "archetype",
+                                    label: "Archetype",
+                                    render: (r: any) =>
+                                        r.archetype_name ?? (
+                                            <span className="muted tiny">
+                                                Unknown
+                                            </span>
+                                        ),
+                                },
+                                {
+                                    key: "score",
+                                    label: "Score",
+                                    render: (r: any) =>
+                                        `${r.wins}-${r.losses}-${r.ties}`,
+                                },
+                            ]}
+                            rows={tournament.standings}
+                        />
                     ) : (
                         <EmptyState
                             title="No standings yet"
                             copy="This tournament hasn't been synced with standings data yet."
                         />
                     )}
-                </section>
+                </Card>
             </div>
         </main>
     );
