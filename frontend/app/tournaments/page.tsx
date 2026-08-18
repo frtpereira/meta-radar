@@ -125,8 +125,8 @@ export default async function TournamentsPage({
 
             <div className="shell">
                 <Hero
-                    eyebrow="Tournament Explorer"
-                    title="All events for a given meta."
+                    eyebrow="META Radar - Tournaments"
+                    title="Tournament Explorer"
                     lede="Browse every synced event for a meta, then open one
                         to see its full leaderboard, standings, score, and
                         archetype per player."

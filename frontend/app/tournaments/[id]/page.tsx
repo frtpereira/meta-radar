@@ -51,7 +51,7 @@ export default async function TournamentPage({
 
             <div className="shell">
                 <Hero
-                    eyebrow={tournament.format_code}
+                    eyebrow="Meta Radar - Tournament Standings"
                     title={tournament.name}
                     lede={
                         <>
@@ -64,6 +64,9 @@ export default async function TournamentPage({
                     }
                     meta={
                         <>
+                            <span className="pill">
+                                {tournament.format_code}
+                            </span>
                             <span
                                 className={`badge ${tournament.is_online ? "badge--online" : ""}`}
                             >

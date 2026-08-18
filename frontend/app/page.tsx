@@ -124,12 +124,7 @@ export default async function Home({
             <div className="shell">
                 <Hero
                     eyebrow="META Radar - Pokémon TCG"
-                    title={
-                        <>
-                            Dashboard for trending decks and archetype
-                            performance.
-                        </>
-                    }
+                    title="Meta Radar Dashboard"
                     lede="Analyze tournaments and deck performance,
                         then jump into directional matchup results."
                     meta={

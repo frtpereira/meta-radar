@@ -63,7 +63,6 @@ body {
 }
 
 .site-nav__brand {
-    /* match the Hero eyebrow style but a little larger */
     text-transform: uppercase;
     letter-spacing: 0.18em;
     font-size: 0.85rem;
@@ -85,7 +84,6 @@ body {
         border-color 120ms ease,
         color 120ms ease,
         background-color 120ms ease;
-    /* use eyebrow-like letter spacing and uppercase, slightly larger */
     text-transform: uppercase;
     letter-spacing: 0.12em;
     font-size: 0.82rem;
@@ -111,14 +109,12 @@ h1,
 h2,
 h3 {
     margin: 0;
-    font-family: Georgia, "Times New Roman", serif;
     letter-spacing: -0.02em;
 }
 
 h1 {
     font-size: clamp(2.5rem, 5vw, 4.75rem);
     line-height: 0.95;
-    max-width: 12ch;
 }
 
 h2 {
@@ -421,7 +417,7 @@ tbody tr:hover {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--line);
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
 }
 
 .badge--online {

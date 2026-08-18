@@ -270,8 +270,8 @@ export default async function MatchupsPage({
 
             <div className="shell">
                 <Hero
-                    eyebrow="Matchup Explorer"
-                    title="Head-to-head archetype matchup stats."
+                    eyebrow="Meta Radar - Matchups"
+                    title="Head-to-head Archetype Analysis"
                     lede="Compare directional matchup performance by meta and
                         archetype, including win rate and score rate from
                         recorded pairings."
