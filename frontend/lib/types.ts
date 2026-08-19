@@ -58,6 +58,45 @@ interface MatchupDeck {
     slug: string;
 }
 
+export interface Card {
+    name: string;
+    set: string;
+    number: string;
+    count: number;
+    category: string; // "pokemon" | "trainer" | "energy"
+}
+
+export interface ArchetypeDetail {
+    id: number;
+    meta_id: string;
+    name: string;
+    slug: string;
+    core_cards: Card[] | null;
+    core_threshold: number | null;
+    core_computed_at: string | null;
+}
+
+export interface ArchetypeVariant {
+    core_hash: string;
+    deck_count: number;
+    avg_standing: number | null;
+    drop_count: number;
+    sample_decklist_id: number;
+}
+
+export interface CardStat {
+    name: string;
+    set: string;
+    number: string;
+    category: string;
+    is_core: boolean;
+    deck_count: number;
+    total_decklists: number;
+    presence: number;
+    modal_count: number;
+    count_distribution: Record<string, number>; // copy count string -> fraction of all decklists
+}
+
 export interface MatchupStat {
     archetype: MatchupDeck;
     opponent: MatchupDeck;

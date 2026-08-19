@@ -1,5 +1,8 @@
 import type {
+    ArchetypeDetail,
     ArchetypeStat,
+    ArchetypeVariant,
+    CardStat,
     MatchupStat,
     Meta,
     Tournament,
@@ -39,7 +42,7 @@ async function fetchJson<T>(path: string): Promise<T> {
         throw new Error(
             `Request failed: ${response.status} ${response.statusText}${
                 serverMessage ? ` - ${serverMessage}` : ""
-            }`
+            }`,
         );
     }
 
@@ -70,6 +73,18 @@ export async function getTournament(id: string) {
 
 export async function getArchetypeStats(metaId: string) {
     return fetchJson<ArchetypeStat[]>(`/archetypes/stats?meta_id=${metaId}`);
+}
+
+export async function getArchetypeDetail(id: string) {
+    return fetchJson<ArchetypeDetail>(`/archetypes/${id}`);
+}
+
+export async function getArchetypeVariants(id: string) {
+    return fetchJson<ArchetypeVariant[]>(`/archetypes/${id}/variants`);
+}
+
+export async function getArchetypeCardStats(id: string) {
+    return fetchJson<CardStat[]>(`/archetypes/${id}/card-stats`);
 }
 
 export interface MatchupPage {

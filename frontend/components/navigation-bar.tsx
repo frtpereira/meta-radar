@@ -10,6 +10,7 @@ export function NavigationBar() {
                 <nav className="site-nav__links" aria-label="Main">
                     <Link href="/">Home</Link>
                     <Link href="/tournaments">Tournaments</Link>
+                    <Link href="/decklists">Decklists</Link>
                     <Link href="/matchups">Matchups</Link>
                 </nav>
             </div>

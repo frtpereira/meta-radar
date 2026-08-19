@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -581,6 +582,163 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(b)
+}
+
+// ArchetypeCardStats returns per-card usage statistics for every decklist in
+// an archetype: presence rate (what fraction of decklists include the card),
+// the count distribution (×1/×2/×3/×4 split across those decklists), and
+// the modal count (the most-played copy count). Cards are flagged is_core
+// if they appear in the archetype's stored core_cards list (requires
+// cmd/cluster to have been run). Results are sorted by presence DESC.
+func (h *Handler) ArchetypeCardStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	archetypeID := chi.URLParam(r, "id")
+
+	// Fetch core_cards from the archetype so we can flag core vs. optional.
+	var coreCardsJSON []byte
+	err := h.DB.QueryRow(ctx,
+		`SELECT COALESCE(core_cards, '[]'::jsonb) FROM archetypes WHERE id = $1`, archetypeID,
+	).Scan(&coreCardsJSON)
+	if err == pgx.ErrNoRows {
+		writeError(w, http.StatusNotFound, "archetype not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying archetype core cards: "+err.Error())
+		return
+	}
+
+	var coreCards []models.Card
+	_ = json.Unmarshal(coreCardsJSON, &coreCards)
+
+	// Build lookup set of core card keys (name|set|number).
+	coreSet := make(map[string]bool, len(coreCards))
+	for _, c := range coreCards {
+		coreSet[fmt.Sprintf("%s|%s|%s", c.Name, c.Set, c.Number)] = true
+	}
+
+	// Count total decklists in this archetype (denominator for all rates).
+	var totalDecks int
+	if err := h.DB.QueryRow(ctx,
+		`SELECT COUNT(*) FROM decklists WHERE archetype_id = $1`, archetypeID,
+	).Scan(&totalDecks); err != nil {
+		writeError(w, http.StatusInternalServerError, "counting decklists: "+err.Error())
+		return
+	}
+	if totalDecks == 0 {
+		writeJSON(w, http.StatusOK, []any{})
+		return
+	}
+
+	// Expand JSONB cards arrays and count, per (card identity, copy count),
+	// how many distinct decklists play exactly that many copies.
+	rows, err := h.DB.Query(ctx, `
+		SELECT
+			c->>'name'                   AS card_name,
+			COALESCE(c->>'set', '')      AS card_set,
+			COALESCE(c->>'number', '')   AS card_number,
+			COALESCE(c->>'category', '') AS category,
+			(c->>'count')::int           AS copy_count,
+			COUNT(DISTINCT d.id)::int    AS deck_count
+		FROM decklists d,
+		     jsonb_array_elements(d.cards) AS c
+		WHERE d.archetype_id = $1
+		  AND (c->>'count') ~ '^[0-9]+$'
+		GROUP BY 1, 2, 3, 4, 5
+	`, archetypeID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying card stats: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	type rawRow struct {
+		name, set, number, category string
+		copyCount, deckCount        int
+	}
+	var rawRows []rawRow
+	for rows.Next() {
+		var rr rawRow
+		if err := rows.Scan(&rr.name, &rr.set, &rr.number, &rr.category, &rr.copyCount, &rr.deckCount); err != nil {
+			writeError(w, http.StatusInternalServerError, "scanning card row: "+err.Error())
+			return
+		}
+		rawRows = append(rawRows, rr)
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "iterating card rows: "+err.Error())
+		return
+	}
+
+	// Aggregate into one entry per unique card (name+set+number).
+	type aggKey struct{ name, set, number string }
+	type aggEntry struct {
+		name, set, number, category string
+		countDist                   map[int]int // copy_count -> deck_count at that count
+	}
+	agg := map[aggKey]*aggEntry{}
+	for _, rr := range rawRows {
+		k := aggKey{rr.name, rr.set, rr.number}
+		if agg[k] == nil {
+			agg[k] = &aggEntry{
+				name: rr.name, set: rr.set, number: rr.number, category: rr.category,
+				countDist: map[int]int{},
+			}
+		}
+		agg[k].countDist[rr.copyCount] = rr.deckCount
+	}
+
+	type cardStatOut struct {
+		Name              string             `json:"name"`
+		Set               string             `json:"set"`
+		Number            string             `json:"number"`
+		Category          string             `json:"category"`
+		IsCore            bool               `json:"is_core"`
+		DeckCount         int                `json:"deck_count"`
+		TotalDecklists    int                `json:"total_decklists"`
+		Presence          float64            `json:"presence"`
+		ModalCount        int                `json:"modal_count"`
+		CountDistribution map[string]float64 `json:"count_distribution"`
+	}
+
+	result := make([]cardStatOut, 0, len(agg))
+	for _, a := range agg {
+		// A deck contributes to exactly one count bucket, so summing across
+		// all count buckets gives us the card's total presence count.
+		presenceCount := 0
+		modalCount, modalFreq := 0, 0
+		dist := make(map[string]float64, len(a.countDist))
+		for cnt, dc := range a.countDist {
+			presenceCount += dc
+			if dc > modalFreq {
+				modalFreq, modalCount = dc, cnt
+			}
+			dist[strconv.Itoa(cnt)] = float64(dc) / float64(totalDecks)
+		}
+
+		coreKey := fmt.Sprintf("%s|%s|%s", a.name, a.set, a.number)
+		result = append(result, cardStatOut{
+			Name:              a.name,
+			Set:               a.set,
+			Number:            a.number,
+			Category:          a.category,
+			IsCore:            coreSet[coreKey],
+			DeckCount:         presenceCount,
+			TotalDecklists:    totalDecks,
+			Presence:          float64(presenceCount) / float64(totalDecks),
+			ModalCount:        modalCount,
+			CountDistribution: dist,
+		})
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Presence != result[j].Presence {
+			return result[i].Presence > result[j].Presence
+		}
+		return result[i].Name < result[j].Name
+	})
+
+	writeJSON(w, http.StatusOK, result)
 }
 
 // a sync for that single tournament. Limitless calls this synchronously and

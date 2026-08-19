@@ -41,6 +41,7 @@ func NewRouter(pool *pgxpool.Pool, syncer *ingest.Syncer, webhookSecret string, 
 		r.Get("/matchups/stats", h.MatchupStats)
 		r.Get("/archetypes/{id}", h.ArchetypeDetail)
 		r.Get("/archetypes/{id}/variants", h.ArchetypeVariants)
+		r.Get("/archetypes/{id}/card-stats", h.ArchetypeCardStats)
 		r.Post("/webhooks/limitless", h.LimitlessWebhook)
 	})
 
