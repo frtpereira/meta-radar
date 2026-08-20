@@ -1,6 +1,18 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const NAV_LINKS = [
+    { href: "/", label: "Home" },
+    { href: "/tournaments", label: "Tournaments" },
+    { href: "/decklists", label: "Decklists" },
+    { href: "/matchups", label: "Matchups" },
+];
 
 export function NavigationBar() {
+    const pathname = usePathname();
+
     return (
         <header className="site-nav">
             <div className="site-nav__inner">
@@ -8,10 +20,22 @@ export function NavigationBar() {
                     META Radar
                 </Link>
                 <nav className="site-nav__links" aria-label="Main">
-                    <Link href="/">Home</Link>
-                    <Link href="/tournaments">Tournaments</Link>
-                    <Link href="/decklists">Decklists</Link>
-                    <Link href="/matchups">Matchups</Link>
+                    {NAV_LINKS.map(({ href, label }) => {
+                        const isCurrent =
+                            href === "/"
+                                ? pathname === "/"
+                                : pathname === href || pathname.startsWith(`${href}/`);
+
+                        return (
+                            <Link
+                                key={href}
+                                href={href}
+                                aria-current={isCurrent ? "page" : undefined}
+                            >
+                                {label}
+                            </Link>
+                        );
+                    })}
                 </nav>
             </div>
         </header>

@@ -89,7 +89,8 @@ body {
     font-size: 0.82rem;
 }
 
-.site-nav__links a:hover {
+.site-nav__links a:hover,
+.site-nav__links a[aria-current="page"] {
     color: var(--text);
     border-color: var(--line-strong);
     background: rgba(255, 255, 255, 0.05);
