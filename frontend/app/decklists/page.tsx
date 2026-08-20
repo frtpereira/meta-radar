@@ -64,7 +64,11 @@ function WinRateBadge({ value }: { value: number | null }) {
     if (value === null) return <span className="muted">—</span>;
     const pct = Math.round(value * 1000) / 10;
     const color =
-        pct >= 55 ? "#4ade80" : pct >= 48 ? "var(--accent)" : "var(--accent-2)";
+        pct >= 55
+            ? "var(--success)"
+            : pct >= 48
+              ? "var(--accent)"
+              : "var(--accent-2)";
     return <span style={{ color, fontWeight: 600 }}>{pct}%</span>;
 }
 

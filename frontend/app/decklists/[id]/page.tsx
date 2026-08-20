@@ -50,7 +50,7 @@ function PresenceBar({ value }: { value: number }) {
                 style={{
                     flex: 1,
                     height: 5,
-                    background: "rgba(255,255,255,0.08)",
+                    background: "var(--overlay-med)",
                     borderRadius: 3,
                     overflow: "hidden",
                 }}
@@ -70,7 +70,7 @@ function PresenceBar({ value }: { value: number }) {
                 style={{
                     color:
                         value >= 0.9
-                            ? "#4ade80"
+                            ? "var(--success)"
                             : value >= 0.7
                               ? "var(--accent)"
                               : "var(--muted)",
@@ -111,7 +111,7 @@ function CountDist({
                         padding: "2px 8px",
                         borderRadius: 999,
                         border: "1px solid var(--line)",
-                        background: "rgba(255,255,255,0.04)",
+                        background: "var(--overlay-soft)",
                         fontSize: "0.76rem",
                         whiteSpace: "nowrap",
                     }}
@@ -394,7 +394,7 @@ export default async function DecklistDetailPage({
         .map((m) => m.stat);
 
     const goodColor = (wr: number | null) =>
-        wr === null ? "var(--muted)" : wr >= 0.55 ? "#4ade80" : "var(--accent)";
+        wr === null ? "var(--muted)" : wr >= 0.55 ? "var(--success)" : "var(--accent)";
     const badColor = (wr: number | null) =>
         wr === null
             ? "var(--muted)"
@@ -605,7 +605,7 @@ export default async function DecklistDetailPage({
                         headingMeta={
                             <span
                                 style={{
-                                    color: "#4ade80",
+                                    color: "var(--success)",
                                     fontSize: "0.84rem",
                                     fontWeight: 600,
                                 }}
