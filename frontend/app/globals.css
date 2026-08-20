@@ -398,6 +398,30 @@ tbody tr:hover {
     font-weight: 700;
 }
 
+th .info-tooltip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    margin-left: 6px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    color: var(--muted);
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: help;
+    vertical-align: middle;
+}
+
+th .info-tooltip:hover,
+th .info-tooltip:focus {
+    color: var(--text);
+    border-color: var(--accent-3);
+}
+
 .table-link {
     display: block;
 }

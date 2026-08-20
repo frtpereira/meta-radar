@@ -4,6 +4,7 @@ import { getArchetypeStats, getMetas } from "@/lib/api";
 import Hero from "@/components/hero";
 import Table from "@/components/table";
 import Card from "@/components/card";
+import InfoTooltip from "@/components/info-tooltip";
 
 type SearchParams = {
     meta_id?: string;
@@ -100,7 +101,12 @@ function ArchetypesTable({
         },
         {
             key: "score_rate",
-            label: "Score rate",
+            label: (
+                <>
+                    Score rate
+                    <InfoTooltip text="Share of possible match points earned: (wins + 0.5 × ties) ÷ matches played. Unlike win rate, ties count as half a win instead of being excluded." />
+                </>
+            ),
             render: (s: ArchetypeStat) => formatPercent(s.score_rate),
         },
         {

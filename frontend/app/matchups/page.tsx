@@ -5,6 +5,7 @@ import Pagination from "./Pagination";
 import Hero from "@/components/hero";
 import Table from "@/components/table";
 import Card from "@/components/card";
+import InfoTooltip from "@/components/info-tooltip";
 
 type SearchParams = {
     meta_id?: string;
@@ -179,16 +180,27 @@ function MatchupTable({
         },
         {
             key: "score_rate",
-            label: "Score rate",
+            label: (
+                <>
+                    Score rate
+                    <InfoTooltip text="Share of possible match points earned in this matchup, from the highlighted archetype's perspective: (wins + 0.5 × ties) ÷ matches played. Unlike win rate, ties count as half a win instead of being excluded." />
+                </>
+            ),
             render: (stat: MatchupStat) => {
                 const selectedIsArchetype =
                     String(stat.archetype.id) === String(selectedArchetypeId);
+                // score_rate is stored from `stat.archetype`'s perspective
+                // and is always a fraction in [0, 1]. When the row is being
+                // displayed from the opponent's perspective, the correct
+                // complement is `1 - score_rate` (matches the win_rate swap
+                // above), not `-score_rate` — negating it produced bogus
+                // negative percentages.
                 const displayedScoreRate =
                     stat.score_rate === null
                         ? null
                         : selectedIsArchetype
                           ? stat.score_rate
-                          : -stat.score_rate;
+                          : 1 - stat.score_rate;
                 return formatPercent(displayedScoreRate);
             },
         },
