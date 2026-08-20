@@ -355,8 +355,11 @@ export default async function DecklistDetailPage({
     const thisStat = archetypeStats.find((s) => String(s.id) === id);
 
     // Split cards into skeleton (core) and optional
+    const MIN_OPTIONAL_CARD_PRESENCE = 0.1;
     const skeletonCards = cardStats.filter((c) => c.is_core);
-    const optionalCards = cardStats.filter((c) => !c.is_core);
+    const optionalCards = cardStats.filter(
+        (c) => !c.is_core && c.presence >= MIN_OPTIONAL_CARD_PRESENCE,
+    );
 
     // Group skeleton by category
     const byCategory = (cat: string) =>
@@ -375,11 +378,13 @@ export default async function DecklistDetailPage({
         const l = weAreArchetype ? s.losses : s.wins;
         const total = w + l + s.ties;
         const wr = total > 0 ? w / total : null;
-        return { stat: s, winRate: wr };
+        return { stat: s, winRate: wr, total };
     });
 
+    const MIN_MATCHUP_SAMPLE_SIZE = 10;
+
     const ranked = [...matchupsWithWinRate]
-        .filter((m) => m.winRate !== null)
+        .filter((m) => m.winRate !== null && m.total >= MIN_MATCHUP_SAMPLE_SIZE)
         .sort((a, b) => (b.winRate ?? 0) - (a.winRate ?? 0));
 
     const bestAgainst = ranked.slice(0, 5).map((m) => m.stat);
