@@ -296,19 +296,11 @@ export default async function Home({
                                                     <div className="table-title">
                                                         {stat.name}
                                                     </div>
-                                                    <div className="muted tiny">
-                                                        {stat.slug}
-                                                    </div>
                                                 </Link>
                                             ) : (
-                                                <>
-                                                    <div className="table-title">
-                                                        {stat.name}
-                                                    </div>
-                                                    <div className="muted tiny">
-                                                        {stat.slug}
-                                                    </div>
-                                                </>
+                                                <div className="table-title">
+                                                    {stat.name}
+                                                </div>
                                             ),
                                     },
                                     {

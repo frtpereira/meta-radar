@@ -89,7 +89,6 @@ function ArchetypesTable({
                     href={`/decklists/${s.id}?meta_id=${metaId}`}
                 >
                     <div className="table-title">{s.name}</div>
-                    <div className="muted tiny">{s.slug}</div>
                 </Link>
             ),
         },

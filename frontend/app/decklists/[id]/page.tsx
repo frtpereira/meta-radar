@@ -242,12 +242,7 @@ function MatchupMiniTable({
                     String(s.archetype.id) === String(archetypeId)
                         ? s.opponent
                         : s.archetype;
-                return (
-                    <div>
-                        <div className="table-title">{opp.name}</div>
-                        <div className="muted tiny">{opp.slug}</div>
-                    </div>
-                );
+                return <div className="table-title">{opp.name}</div>;
             },
         },
         {
