@@ -58,9 +58,10 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	metaID := q.Get("meta_id")
 
 	query := `
-		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
+		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
 		       w.archetype_name
 		FROM tournaments t
+		LEFT JOIN metas m ON m.id = t.meta_id
 		LEFT JOIN LATERAL (
 			SELECT a.name AS archetype_name
 			FROM standings s
@@ -85,7 +86,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	tournaments := []models.Tournament{}
 	for rows.Next() {
 		var t models.Tournament
-		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning tournament: "+err.Error())
 			return
 		}
@@ -107,10 +108,11 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 
 	var t models.Tournament
 	err := h.DB.QueryRow(ctx, `
-		SELECT id, name, game, format_code, meta_id, date, players, is_online, has_decklists, organizer_name
-		FROM tournaments
-		WHERE id = $1`, id,
-	).Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName)
+		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name
+		FROM tournaments t
+		LEFT JOIN metas m ON m.id = t.meta_id
+		WHERE t.id = $1`, id,
+	).Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName)
 	if err == pgx.ErrNoRows {
 		writeError(w, http.StatusNotFound, "tournament not found")
 		return
@@ -171,6 +173,7 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 		"game":           t.Game,
 		"format_code":    t.FormatCode,
 		"meta_id":        t.MetaID,
+		"meta_name":      t.MetaName,
 		"date":           t.Date,
 		"players":        t.Players,
 		"is_online":      t.IsOnline,

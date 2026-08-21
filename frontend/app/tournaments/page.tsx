@@ -66,7 +66,7 @@ function TournamentsTable({ tournaments }: { tournaments: Tournament[] }) {
             render: (t: Tournament) => (
                 <Link className="table-link" href={`/tournaments/${t.id}`}>
                     <div className="table-title">{t.name}</div>
-                    <div className="muted tiny">{t.format_code}</div>
+                    <div className="muted tiny">{t.meta_name}</div>
                 </Link>
             ),
         },
