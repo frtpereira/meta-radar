@@ -132,12 +132,7 @@ function MatchupTable({
                 const primary = selectedIsArchetype
                     ? stat.archetype
                     : stat.opponent;
-                return (
-                    <>
-                        <div className="table-title">{primary.name}</div>
-                        <div className="muted tiny">{primary.slug}</div>
-                    </>
-                );
+                return <div className="table-title">{primary.name}</div>;
             },
         },
         {
@@ -149,12 +144,7 @@ function MatchupTable({
                 const secondary = selectedIsArchetype
                     ? stat.opponent
                     : stat.archetype;
-                return (
-                    <>
-                        <div className="table-title">{secondary.name}</div>
-                        <div className="muted tiny">{secondary.slug}</div>
-                    </>
-                );
+                return <div className="table-title">{secondary.name}</div>;
             },
         },
         {
