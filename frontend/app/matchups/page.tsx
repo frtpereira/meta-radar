@@ -161,6 +161,13 @@ function MatchupTable({
             key: "record",
             label: "Record",
             render: (stat: MatchupStat) => {
+                // W-L is meaningless for a mirror: both sides are the same
+                // archetype, so wins and losses are equal by definition.
+                const isMirror = stat.archetype.id === stat.opponent.id;
+                if (isMirror) {
+                    return `${stat.ties} ties`;
+                }
+
                 const selectedIsArchetype =
                     String(stat.archetype.id) === String(selectedArchetypeId);
                 const displayedWins = selectedIsArchetype
@@ -210,17 +217,15 @@ function MatchupTable({
             render: (stat: MatchupStat) => {
                 const selectedIsArchetype =
                     String(stat.archetype.id) === String(selectedArchetypeId);
-                const displayedWins = selectedIsArchetype
-                    ? stat.wins
-                    : stat.losses;
-                const displayedLosses = selectedIsArchetype
-                    ? stat.losses
-                    : stat.wins;
-                const displayedTies = stat.ties;
-                const totalForRate =
-                    displayedWins + displayedLosses + displayedTies;
+                // win_rate is null for mirrors (see backend) -- trust that
+                // instead of recomputing from wins/losses, which are equal
+                // for a mirror and would otherwise render a bogus 50%.
                 const displayedWinRate =
-                    totalForRate > 0 ? displayedWins / totalForRate : null;
+                    stat.win_rate === null
+                        ? null
+                        : selectedIsArchetype
+                          ? stat.win_rate
+                          : 1 - stat.win_rate;
                 return formatPercent(displayedWinRate);
             },
         },

@@ -120,7 +120,9 @@ separate `make migrate` target) instead of relying on container init.
     - `include_mirrors=true` includes archetype-vs-itself rows.
     - Mirror rows are intentionally returned with `score_rate = null` and
       `win_rate = null`, because the directed aggregation makes them a
-      mathematical dead end at 0.5.
+      mathematical dead end at 0.5. Their `wins`/`losses` both equal the
+      decisive-match count (`matches - ties`) rather than being split by
+      player slot, since both sides of a mirror are the same archetype.
 
 ### Webhooks
 

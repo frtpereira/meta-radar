@@ -42,8 +42,13 @@ SELECT
     b.name AS opponent_name,
     b.slug AS opponent_slug,
     COUNT(*)::int AS matches,
-    SUM(pairs.win_a)::int AS wins,
-    SUM(pairs.win_b)::int AS losses,
+    -- Mirror matches (a.id = b.id): player1/player2 are arbitrary
+    -- table-position labels, not archetype identity, so splitting wins
+    -- between them is meaningless -- both sides are the same archetype,
+    -- meaning every decisive match is *both* a win and a loss for it.
+    -- wins/losses must both equal the decisive-match count, not sum to it.
+    CASE WHEN a.id = b.id THEN (COUNT(*) - SUM(pairs.ties))::int ELSE SUM(pairs.win_a)::int END AS wins,
+    CASE WHEN a.id = b.id THEN (COUNT(*) - SUM(pairs.ties))::int ELSE SUM(pairs.win_b)::int END AS losses,
     SUM(pairs.ties)::int AS ties,
     CASE WHEN a.id = b.id THEN NULL
          ELSE (SUM(pairs.win_a) + 0.5 * SUM(pairs.ties)) / COUNT(*)::float8 END AS score_rate,

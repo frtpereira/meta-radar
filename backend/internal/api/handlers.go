@@ -392,16 +392,15 @@ func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
 // actual pairings, not final placement proxies.
 //
 // Mirror matches (archetype_id == opponent_archetype_id) are a special
-// case worth understanding before trusting this endpoint for them: because
-// a mirror match's two "directed" rows (A's perspective and B's, where
-// A == B) both land in the *same* group, every mirror match contributes
-// exactly one win and one loss to that one bucket. win_rate/score_rate for
-// any mirror row are therefore mathematically guaranteed to come out at
-// 0.5, regardless of what actually happened -- they carry no information.
-// matches/wins/losses/ties are still real counts (useful for e.g. "how
-// often do mirrors even happen" or draw-rate in the mirror), so rather than
-// hide the row entirely, we null out just the two derived rate columns for
-// the mirror case so it can't be mistaken for a real 50/50 signal.
+// case worth understanding before trusting this endpoint for them: both
+// sides of a mirror are the same archetype, so player1/player2 (arbitrary
+// table-position labels from the source data, not archetype identity)
+// carry no directional meaning. matchups_mv accounts for this by making
+// wins and losses both equal the decisive-match count (matches - ties)
+// for mirror rows, instead of splitting them by player slot -- every
+// decisive mirror match is simultaneously a win and a loss for the one
+// archetype involved. win_rate/score_rate are still nulled out for mirror
+// rows since a 50/50 rate carries no information either way.
 func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query()
