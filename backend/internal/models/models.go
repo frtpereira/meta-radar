@@ -16,6 +16,7 @@ type Tournament struct {
 	Game            string    `json:"game"`
 	FormatCode      string    `json:"format_code"`
 	MetaID          *string   `json:"meta_id,omitempty"`
+	MetaName        *string   `json:"meta_name,omitempty"`
 	Date            time.Time `json:"date"`
 	Players         int       `json:"players"`
 	IsOnline        bool      `json:"is_online"`

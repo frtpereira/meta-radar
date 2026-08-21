@@ -12,6 +12,7 @@ export interface Tournament {
     game: string;
     format_code: string;
     meta_id: string | null;
+    meta_name: string | null;
     date: string;
     players: number;
     is_online: boolean;

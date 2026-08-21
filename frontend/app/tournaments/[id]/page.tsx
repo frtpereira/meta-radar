@@ -65,7 +65,7 @@ export default async function TournamentPage({
                     meta={
                         <>
                             <span className="pill">
-                                {tournament.format_code}
+                                {tournament.meta_name}
                             </span>
                             <span
                                 className={`badge ${tournament.is_online ? "badge--online" : ""}`}

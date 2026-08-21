@@ -220,7 +220,7 @@ export default async function Home({
                                                     {t.name}
                                                 </div>
                                                 <div className="muted tiny">
-                                                    {t.format_code}
+                                                    {t.meta_name}
                                                 </div>
                                             </Link>
                                         ),
