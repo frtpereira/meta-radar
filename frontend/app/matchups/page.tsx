@@ -11,7 +11,6 @@ type SearchParams = {
     meta_id?: string;
     archetype_id?: string;
     min_matches?: string;
-    include_mirrors?: string;
     page?: string;
 };
 
@@ -38,14 +37,12 @@ function MatchupFilters({
     archetypes,
     selectedArchetypeId,
     minMatches,
-    includeMirrors,
 }: {
     metas: Meta[];
     activeMeta: Meta | null;
     archetypes: ArchetypeStat[];
     selectedArchetypeId: string;
     minMatches: number;
-    includeMirrors: boolean;
 }) {
     return (
         <form className="selector selector--stack" method="get">
@@ -99,16 +96,6 @@ function MatchupFilters({
                     defaultValue={minMatches}
                 />
             </div>
-
-            <label className="selector__toggle">
-                <input
-                    type="checkbox"
-                    name="include_mirrors"
-                    value="true"
-                    defaultChecked={includeMirrors}
-                />
-                Include mirror matchups
-            </label>
 
             <button type="submit">Load matchups</button>
         </form>
@@ -240,7 +227,6 @@ export default async function MatchupsPage({
         Number.isFinite(parsedMinMatches) && parsedMinMatches > 0
             ? parsedMinMatches
             : 20;
-    const includeMirrors = params.include_mirrors === "true";
     const page = Number.parseInt(params.page ?? "1", 10) || 1;
     const pageSize = 20;
 
@@ -253,7 +239,6 @@ export default async function MatchupsPage({
                   metaId: activeMeta.id,
                   archetypeId: selectedArchetypeId || undefined,
                   minMatches,
-                  includeMirrors,
                   page,
                   pageSize,
               }).catch(() => ({
@@ -316,7 +301,6 @@ export default async function MatchupsPage({
                             archetypes={archetypes}
                             selectedArchetypeId={selectedArchetypeId}
                             minMatches={minMatches}
-                            includeMirrors={includeMirrors}
                         />
                     ) : (
                         <EmptyState

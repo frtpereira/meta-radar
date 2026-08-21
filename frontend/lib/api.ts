@@ -114,7 +114,12 @@ export async function getMatchupStats(options: {
     if (options.archetypeId) {
         params.set("archetype_id", options.archetypeId);
     }
-    params.set("include_mirrors", options.includeMirrors ? "true" : "false");
+    if (options.includeMirrors !== undefined) {
+        params.set(
+            "include_mirrors",
+            options.includeMirrors ? "true" : "false",
+        );
+    }
     params.set("page", String(options.page ?? 1));
     params.set("page_size", String(options.pageSize ?? 20));
 

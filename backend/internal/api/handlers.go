@@ -423,7 +423,8 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	archetypeID := q.Get("archetype_id")
-	includeMirrors := q.Get("include_mirrors") == "true"
+	// mirrors are included by default; only an explicit "false" excludes them
+	includeMirrors := q.Get("include_mirrors") != "false"
 
 	// pagination
 	page := 1
