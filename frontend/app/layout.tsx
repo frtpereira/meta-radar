@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { NavigationBar } from "@/components/navigation-bar";
 
+// @ts-ignore -- Next.js handles global CSS imports at build time.
 import "./globals.css";
 
 export const metadata: Metadata = {
-    title: "Pokémon TCG Tracker",
+    title: "Meta Radar",
     description: "Track metas, tournaments, and archetype performance.",
 };
 
