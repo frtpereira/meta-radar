@@ -15,7 +15,7 @@ import (
 func main() {
 	game := flag.String("game", "PTCG", "Limitless game id to sync")
 	format := flag.String("format", "STANDARD", "Limitless format id to sync (empty = all formats for the game)")
-	minPlayers := flag.Int("min-players", 64, "skip tournaments with fewer players than this")
+	minPlayers := flag.Int("min-players", 32, "skip tournaments with fewer players than this")
 	maxPages := flag.Int("max-pages", 5, "how many pages of /tournaments to walk per pass (50 per page)")
 	interval := flag.Duration("interval", 0, "if set (e.g. 15m), run continuously on this interval instead of once")
 	requestDelay := flag.Duration("request-delay", 500*time.Millisecond, "pause between tournaments during a sync pass, to stay under the API's rate limit")
