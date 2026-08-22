@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi)
 
-.PHONY: up upd down logs psql frontend-install frontend-dev frontend-dev-host frontend-build tidy migrate ingest-once seed-meta resync cluster inspect
+.PHONY: up upd down logs psql frontend-install frontend-dev frontend-dev-host frontend-build tidy migrate ingest-once seed-meta resync cluster inspect swagger-gen
 
 up:
 	$(DOCKER_COMPOSE) up --build
@@ -31,6 +31,12 @@ frontend-build:
 
 tidy:
 	cd backend && go mod tidy
+
+# Regenerate docs/swagger.json + swagger.yaml from the @-annotations on
+# handlers in internal/api and the general API info in cmd/api/main.go.
+# Requires the swag CLI: `go install github.com/swaggo/swag/cmd/swag@latest`.
+swagger-gen:
+	cd backend && swag init -g cmd/api/main.go -o docs --outputTypes json,yaml
 
 # Apply any migrations after 0001 (which is handled automatically by
 # Postgres's init-on-empty-volume mechanism). Poor-man's migration runner --

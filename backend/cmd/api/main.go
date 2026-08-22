@@ -12,6 +12,10 @@ import (
 	"github.com/frtpereira/meta-radar/internal/limitless"
 )
 
+// @title Meta Radar API
+// @version 1.0
+// @description API for tracking Pokemon TCG tournaments, decklists, archetypes and matchup statistics.
+// @BasePath /
 func main() {
 	cfg := config.Load()
 

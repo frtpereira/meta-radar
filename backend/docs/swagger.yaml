@@ -1,0 +1,357 @@
+basePath: /
+definitions:
+  models.Meta:
+    properties:
+      ends_at:
+        type: string
+      format_code:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      starts_at:
+        type: string
+    type: object
+  models.Tournament:
+    properties:
+      date:
+        type: string
+      format_code:
+        type: string
+      game:
+        type: string
+      has_decklists:
+        type: boolean
+      id:
+        type: string
+      is_online:
+        type: boolean
+      meta_id:
+        type: string
+      meta_name:
+        type: string
+      name:
+        type: string
+      organizer_name:
+        type: string
+      players:
+        type: integer
+      winner_archetype:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for tracking Pokemon TCG tournaments, decklists, archetypes and
+    matchup statistics.
+  title: Meta Radar API
+  version: "1.0"
+paths:
+  /api/archetypes/{id}:
+    get:
+      description: Returns an archetype's metadata plus its computed core card list.
+      parameters:
+      - description: Archetype ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get archetype detail
+      tags:
+      - archetypes
+  /api/archetypes/{id}/card-stats:
+    get:
+      description: Returns per-card usage statistics (presence rate, copy-count distribution,
+        modal count) for every decklist in an archetype.
+      parameters:
+      - description: Archetype ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Archetype card stats
+      tags:
+      - archetypes
+  /api/archetypes/{id}/variants:
+    get:
+      description: Groups an archetype's decklists by core_hash into distinct build
+        variants. Requires cmd/cluster to have run.
+      parameters:
+      - description: Archetype ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List archetype variants
+      tags:
+      - archetypes
+  /api/archetypes/stats:
+    get:
+      description: Returns per-archetype play counts, average standing, and win/score
+        rates for a given meta.
+      parameters:
+      - description: Meta UUID
+        in: query
+        name: meta_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Archetype stats for a meta
+      tags:
+      - archetypes
+  /api/matchups/stats:
+    get:
+      description: Returns paginated, directional archetype-vs-archetype matchup results
+        for a meta.
+      parameters:
+      - description: Meta UUID
+        in: query
+        name: meta_id
+        required: true
+        type: string
+      - description: Minimum number of matches required to include a matchup (default
+          20)
+        in: query
+        name: min_matches
+        type: integer
+      - description: Filter to matchups involving this archetype ID
+        in: query
+        name: archetype_id
+        type: string
+      - description: Include mirror matchups (default true)
+        in: query
+        name: include_mirrors
+        type: boolean
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Page size, max 100 (default 20)
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Archetype matchup stats
+      tags:
+      - matchups
+  /api/metas:
+    get:
+      description: Lists all known metas (format eras) ordered by start date descending.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Meta'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List metas
+      tags:
+      - metas
+  /api/tournaments:
+    get:
+      description: Lists tournaments, optionally filtered by minimum player count,
+        format, and meta.
+      parameters:
+      - description: Minimum number of players
+        in: query
+        name: min_players
+        type: integer
+      - description: Format code (e.g. STANDARD)
+        in: query
+        name: format
+        type: string
+      - description: Meta UUID to filter by
+        in: query
+        name: meta_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Tournament'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List tournaments
+      tags:
+      - tournaments
+  /api/tournaments/{id}:
+    get:
+      description: Returns a tournament's metadata plus its full standings (player,
+        archetype, match record).
+      parameters:
+      - description: Tournament ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get tournament detail
+      tags:
+      - tournaments
+  /api/webhooks/limitless:
+    post:
+      consumes:
+      - application/json
+      description: Receives tournament update events from Limitless TCG and triggers
+        an async sync of the affected tournament.
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Limitless tournament webhook
+      tags:
+      - webhooks
+  /health:
+    get:
+      description: Reports whether the API is up.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
+swagger: "2.0"
