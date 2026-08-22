@@ -1,5 +1,207 @@
 basePath: /
 definitions:
+  apidocs.ArchetypeDetail:
+    properties:
+      core_cards:
+        items:
+          $ref: '#/definitions/models.Card'
+        type: array
+      core_computed_at:
+        type: string
+      core_threshold:
+        type: number
+      id:
+        type: integer
+      meta_id:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  apidocs.ArchetypeRef:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  apidocs.ArchetypeStat:
+    properties:
+      avg_standing:
+        type: number
+      deck_count:
+        type: integer
+      drop_count:
+        type: integer
+      id:
+        type: integer
+      losses:
+        type: integer
+      matches:
+        type: integer
+      name:
+        type: string
+      score_rate:
+        type: number
+      slug:
+        type: string
+      ties:
+        type: integer
+      win_rate:
+        type: number
+      wins:
+        type: integer
+    type: object
+  apidocs.CardStat:
+    properties:
+      category:
+        type: string
+      count_distribution:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      deck_count:
+        type: integer
+      is_core:
+        type: boolean
+      modal_count:
+        type: integer
+      name:
+        type: string
+      number:
+        type: string
+      presence:
+        type: number
+      set:
+        type: string
+      total_decklists:
+        type: integer
+    type: object
+  apidocs.MatchupStat:
+    properties:
+      archetype:
+        $ref: '#/definitions/apidocs.ArchetypeRef'
+      losses:
+        type: integer
+      matches:
+        type: integer
+      opponent:
+        $ref: '#/definitions/apidocs.ArchetypeRef'
+      score_rate:
+        type: number
+      ties:
+        type: integer
+      win_rate:
+        type: number
+      wins:
+        type: integer
+    type: object
+  apidocs.MatchupsResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/apidocs.MatchupStat'
+        type: array
+      next_page:
+        type: integer
+      next_url:
+        type: string
+      page:
+        type: integer
+      page_size:
+        type: integer
+      prev_page:
+        type: integer
+      prev_url:
+        type: string
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  apidocs.StandingRow:
+    properties:
+      archetype_id:
+        type: integer
+      archetype_name:
+        type: string
+      archetype_slug:
+        type: string
+      decklist_id:
+        type: integer
+      losses:
+        type: integer
+      player_id:
+        type: string
+      player_name:
+        type: string
+      standing:
+        type: integer
+      ties:
+        type: integer
+      wins:
+        type: integer
+    type: object
+  apidocs.TournamentDetail:
+    properties:
+      date:
+        type: string
+      format_code:
+        type: string
+      game:
+        type: string
+      has_decklists:
+        type: boolean
+      id:
+        type: integer
+      is_online:
+        type: boolean
+      meta_id:
+        type: string
+      meta_name:
+        type: string
+      name:
+        type: string
+      organizer_name:
+        type: string
+      players:
+        type: integer
+      standings:
+        items:
+          $ref: '#/definitions/apidocs.StandingRow'
+        type: array
+    type: object
+  apidocs.Variant:
+    properties:
+      avg_standing:
+        type: number
+      core_hash:
+        type: string
+      deck_count:
+        type: integer
+      drop_count:
+        type: integer
+      sample_decklist_id:
+        type: integer
+    type: object
+  models.Card:
+    properties:
+      category:
+        description: '"pokemon" | "trainer" | "energy"'
+        type: string
+      count:
+        type: integer
+      name:
+        type: string
+      number:
+        type: string
+      set:
+        type: string
+    type: object
   models.Meta:
     properties:
       ends_at:
@@ -62,7 +264,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/apidocs.ArchetypeDetail'
         "404":
           description: Not Found
           schema:
@@ -95,7 +297,7 @@ paths:
           description: OK
           schema:
             items:
-              type: object
+              $ref: '#/definitions/apidocs.CardStat'
             type: array
         "500":
           description: Internal Server Error
@@ -123,7 +325,7 @@ paths:
           description: OK
           schema:
             items:
-              type: object
+              $ref: '#/definitions/apidocs.Variant'
             type: array
         "500":
           description: Internal Server Error
@@ -151,7 +353,7 @@ paths:
           description: OK
           schema:
             items:
-              type: object
+              $ref: '#/definitions/apidocs.ArchetypeStat'
             type: array
         "400":
           description: Bad Request
@@ -205,7 +407,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/apidocs.MatchupsResponse'
         "400":
           description: Bad Request
           schema:
@@ -293,7 +495,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/apidocs.TournamentDetail'
         "404":
           description: Not Found
           schema:
