@@ -37,6 +37,12 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
+// @Summary Health check
+// @Description Reports whether the API is up.
+// @Tags health
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Router /health [get]
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
@@ -49,6 +55,20 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 // filter out entirely. date_from/date_to are inclusive on both ends.
 // winner_archetype matches the slug of the archetype that took 1st place
 // (see the LATERAL join below), not the archetype's display name.
+// ListTournaments supports ?min_players=64&format=STANDARD&meta_id=... so the
+// frontend can drive the "64+ player, current meta" filter directly via
+// query params rather than filtering client-side.
+//
+// @Summary List tournaments
+// @Description Lists tournaments, optionally filtered by minimum player count, format, and meta.
+// @Tags tournaments
+// @Produce json
+// @Param min_players query int false "Minimum number of players"
+// @Param format query string false "Format code (e.g. STANDARD)"
+// @Param meta_id query string false "Meta UUID to filter by"
+// @Success 200 {array} models.Tournament
+// @Failure 500 {object} map[string]string
+// @Router /api/tournaments [get]
 func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query()
@@ -137,6 +157,16 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 // player, archetype, and match record. A standing of 0 means the player
 // dropped rather than finished in that position (see standings comment in
 // the schema), so those rows are sorted to the end instead of to the top.
+//
+// @Summary Get tournament detail
+// @Description Returns a tournament's metadata plus its full standings (player, archetype, match record).
+// @Tags tournaments
+// @Produce json
+// @Param id path string true "Tournament ID"
+// @Success 200 {object} object
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/tournaments/{id} [get]
 func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
@@ -218,6 +248,13 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// @Summary List metas
+// @Description Lists all known metas (format eras) ordered by start date descending.
+// @Tags metas
+// @Produce json
+// @Success 200 {array} models.Meta
+// @Failure 500 {object} map[string]string
+// @Router /api/metas [get]
 func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -253,6 +290,16 @@ func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 // needs for a specific matchup. It's null until cmd/ingest has synced
 // pairings for this meta's tournaments (needs `make migrate` + a resync
 // for anything synced before pairings existed) -- see README.
+//
+// @Summary Archetype stats for a meta
+// @Description Returns per-archetype play counts, average standing, and win/score rates for a given meta.
+// @Tags archetypes
+// @Produce json
+// @Param meta_id query string true "Meta UUID"
+// @Success 200 {array} object
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/archetypes/stats [get]
 func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	metaID := r.URL.Query().Get("meta_id")
@@ -339,6 +386,16 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 
 // ArchetypeDetail returns one archetype's metadata plus its computed core
 // card list (populated by cmd/cluster; nil until that's been run).
+//
+// @Summary Get archetype detail
+// @Description Returns an archetype's metadata plus its computed core card list.
+// @Tags archetypes
+// @Produce json
+// @Param id path string true "Archetype ID"
+// @Success 200 {object} object
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/archetypes/{id} [get]
 func (h *Handler) ArchetypeDetail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
@@ -382,6 +439,15 @@ func (h *Handler) ArchetypeDetail(w http.ResponseWriter, r *http.Request) {
 // group is one distinct build (skeleton), separate from tech-choice noise.
 // Requires cmd/cluster to have run for this archetype's meta first;
 // decklists with a NULL core_hash (not yet clustered) are excluded.
+//
+// @Summary List archetype variants
+// @Description Groups an archetype's decklists by core_hash into distinct build variants. Requires cmd/cluster to have run.
+// @Tags archetypes
+// @Produce json
+// @Param id path string true "Archetype ID"
+// @Success 200 {array} object
+// @Failure 500 {object} map[string]string
+// @Router /api/archetypes/{id}/variants [get]
 func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
@@ -439,6 +505,21 @@ func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
 // decisive mirror match is simultaneously a win and a loss for the one
 // archetype involved. win_rate/score_rate are still nulled out for mirror
 // rows since a 50/50 rate carries no information either way.
+//
+// @Summary Archetype matchup stats
+// @Description Returns paginated, directional archetype-vs-archetype matchup results for a meta.
+// @Tags matchups
+// @Produce json
+// @Param meta_id query string true "Meta UUID"
+// @Param min_matches query int false "Minimum number of matches required to include a matchup (default 20)"
+// @Param archetype_id query string false "Filter to matchups involving this archetype ID"
+// @Param include_mirrors query bool false "Include mirror matchups (default true)"
+// @Param page query int false "Page number (default 1)"
+// @Param page_size query int false "Page size, max 100 (default 20)"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/matchups/stats [get]
 func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query()
@@ -628,6 +709,15 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 // the modal count (the most-played copy count). Cards are flagged is_core
 // if they appear in the archetype's stored core_cards list (requires
 // cmd/cluster to have been run). Results are sorted by presence DESC.
+//
+// @Summary Archetype card stats
+// @Description Returns per-card usage statistics (presence rate, copy-count distribution, modal count) for every decklist in an archetype.
+// @Tags archetypes
+// @Produce json
+// @Param id path string true "Archetype ID"
+// @Success 200 {array} object
+// @Failure 500 {object} map[string]string
+// @Router /api/archetypes/{id}/card-stats [get]
 func (h *Handler) ArchetypeCardStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	archetypeID := chi.URLParam(r, "id")
@@ -783,6 +873,16 @@ func (h *Handler) ArchetypeCardStats(w http.ResponseWriter, r *http.Request) {
 // doesn't document a retry policy, so we acknowledge immediately (202) and
 // run the actual sync in the background rather than making Limitless wait
 // on our full fetch-standings-and-upsert round trip.
+//
+// @Summary Limitless tournament webhook
+// @Description Receives tournament update events from Limitless TCG and triggers an async sync of the affected tournament.
+// @Tags webhooks
+// @Accept json
+// @Produce json
+// @Success 202 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /api/webhooks/limitless [post]
 func (h *Handler) LimitlessWebhook(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		Secret string `json:"secret"`
