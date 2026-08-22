@@ -72,6 +72,12 @@ separate `make migrate` target) instead of relying on container init.
 
 ## API Reference
 
+Interactive Swagger UI is served at `http://localhost:8080/swagger/index.html`
+(spec at `/swagger/doc.json`), generated from the `@`-annotations on the
+handlers in `backend/internal/api/handlers.go`. Regenerate it after changing
+those annotations with `make swagger-gen` (requires the swag CLI: `go install
+github.com/swaggo/swag/cmd/swag@latest`).
+
 ### Health
 
 - `GET /health`

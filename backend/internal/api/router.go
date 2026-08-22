@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/frtpereira/meta-radar/docs"
 	"github.com/frtpereira/meta-radar/internal/ingest"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -32,6 +33,8 @@ func NewRouter(pool *pgxpool.Pool, syncer *ingest.Syncer, webhookSecret string, 
 	}))
 
 	r.Get("/health", h.Health)
+
+	r.Get("/swagger/*", swaggerHandler(docs.SwaggerJSON))
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/tournaments", h.ListTournaments)
