@@ -41,9 +41,14 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// ListTournaments supports ?min_players=64&format=STANDARD&meta_id=... so the
-// frontend can drive the "64+ player, current meta" filter directly via
-// query params rather than filtering client-side.
+// ListTournaments supports ?min_players=64&format=STANDARD&meta_id=...&source=online|offline
+// &date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&winner_archetype=<slug> so the
+// frontend can drive the tournament search filters directly via query
+// params rather than filtering client-side. source, date_from, date_to,
+// and winner_archetype are all optional; an empty/absent value leaves that
+// filter out entirely. date_from/date_to are inclusive on both ends.
+// winner_archetype matches the slug of the archetype that took 1st place
+// (see the LATERAL join below), not the archetype's display name.
 func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query()
@@ -57,13 +62,39 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	format := q.Get("format")
 	metaID := q.Get("meta_id")
 
+	var isOnline *bool
+	switch q.Get("source") {
+	case "online":
+		v := true
+		isOnline = &v
+	case "offline":
+		v := false
+		isOnline = &v
+	}
+
+	var dateFrom, dateTo *time.Time
+	if v := q.Get("date_from"); v != "" {
+		if parsed, err := time.Parse("2006-01-02", v); err == nil {
+			dateFrom = &parsed
+		}
+	}
+	if v := q.Get("date_to"); v != "" {
+		if parsed, err := time.Parse("2006-01-02", v); err == nil {
+			// end-of-day so the filter is inclusive of the whole day
+			endOfDay := parsed.Add(24*time.Hour - time.Nanosecond)
+			dateTo = &endOfDay
+		}
+	}
+
+	winnerArchetypeSlug := q.Get("winner_archetype")
+
 	query := `
 		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
 		       w.archetype_name
 		FROM tournaments t
 		LEFT JOIN metas m ON m.id = t.meta_id
 		LEFT JOIN LATERAL (
-			SELECT a.name AS archetype_name
+			SELECT a.name AS archetype_name, a.slug AS archetype_slug
 			FROM standings s
 			JOIN decklists d ON d.id = s.decklist_id
 			JOIN archetypes a ON a.id = d.archetype_id
@@ -73,10 +104,14 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		WHERE t.players >= $1
 		  AND ($2 = '' OR t.format_code = $2)
 		  AND ($3 = '' OR t.meta_id::text = $3)
+		  AND ($4::boolean IS NULL OR t.is_online = $4)
+		  AND ($5::timestamptz IS NULL OR t.date >= $5)
+		  AND ($6::timestamptz IS NULL OR t.date <= $6)
+		  AND ($7 = '' OR w.archetype_slug = $7)
 		ORDER BY t.date DESC
 		LIMIT 200`
 
-	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID)
+	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying tournaments: "+err.Error())
 		return

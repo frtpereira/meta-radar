@@ -1,13 +1,18 @@
 import Link from "next/link";
 import Table from "@/components/table";
 
-import type { Meta, Tournament } from "@/lib/types";
-import { getMetas, getTournaments } from "@/lib/api";
+import type { ArchetypeStat, Meta, Tournament } from "@/lib/types";
+import { getArchetypeStats, getMetas, getTournaments } from "@/lib/api";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
 
 type SearchParams = {
     meta_id?: string;
+    source?: string;
+    min_players?: string;
+    date_from?: string;
+    date_to?: string;
+    winner_archetype?: string;
 };
 
 function formatDate(value: string) {
@@ -27,16 +32,28 @@ function EmptyState({ title, copy }: { title: string; copy: string }) {
     );
 }
 
-function MetaSelector({
+function TournamentFilters({
     metas,
     activeMeta,
+    archetypes,
+    source,
+    minPlayers,
+    dateFrom,
+    dateTo,
+    winnerArchetype,
 }: {
     metas: Meta[];
     activeMeta: Meta | null;
+    archetypes: ArchetypeStat[];
+    source: string;
+    minPlayers: number;
+    dateFrom: string;
+    dateTo: string;
+    winnerArchetype: string;
 }) {
     return (
-        <form className="selector" method="get">
-            <div>
+        <form className="selector selector--stack" method="get">
+            <div className="selector__field">
                 <p className="eyebrow">Meta</p>
                 <label className="sr-only" htmlFor="meta_id">
                     Select meta
@@ -53,7 +70,79 @@ function MetaSelector({
                     ))}
                 </select>
             </div>
-            <button type="submit">Load meta</button>
+
+            <div className="selector__field">
+                <p className="eyebrow">Source</p>
+                <label className="sr-only" htmlFor="source">
+                    Filter by source
+                </label>
+                <select id="source" name="source" defaultValue={source}>
+                    <option value="">All sources</option>
+                    <option value="online">Online</option>
+                    <option value="offline">In person</option>
+                </select>
+            </div>
+
+            <div className="selector__field">
+                <p className="eyebrow">Minimum players</p>
+                <label className="sr-only" htmlFor="min_players">
+                    Minimum players
+                </label>
+                <input
+                    id="min_players"
+                    name="min_players"
+                    type="number"
+                    min={0}
+                    defaultValue={minPlayers}
+                />
+            </div>
+
+            <div className="selector__field">
+                <p className="eyebrow">From date</p>
+                <label className="sr-only" htmlFor="date_from">
+                    From date
+                </label>
+                <input
+                    id="date_from"
+                    name="date_from"
+                    type="date"
+                    defaultValue={dateFrom}
+                />
+            </div>
+
+            <div className="selector__field">
+                <p className="eyebrow">To date</p>
+                <label className="sr-only" htmlFor="date_to">
+                    To date
+                </label>
+                <input
+                    id="date_to"
+                    name="date_to"
+                    type="date"
+                    defaultValue={dateTo}
+                />
+            </div>
+
+            <div className="selector__field">
+                <p className="eyebrow">Winner archetype</p>
+                <label className="sr-only" htmlFor="winner_archetype">
+                    Filter by winner archetype
+                </label>
+                <select
+                    id="winner_archetype"
+                    name="winner_archetype"
+                    defaultValue={winnerArchetype}
+                >
+                    <option value="">All archetypes</option>
+                    {archetypes.map((archetype) => (
+                        <option key={archetype.id} value={archetype.slug}>
+                            {archetype.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <button type="submit">Apply filters</button>
         </form>
     );
 }
@@ -112,10 +201,34 @@ export default async function TournamentsPage({
     const activeMeta =
         metas.find((meta) => meta.id === params.meta_id) ?? metas[0] ?? null;
 
-    const tournaments = activeMeta
-        ? await getTournaments({ metaId: activeMeta.id, minPlayers: 0 }).catch(
-              () => [] as Tournament[],
+    const source =
+        params.source === "online" || params.source === "offline"
+            ? params.source
+            : "";
+    const parsedMinPlayers = Number.parseInt(params.min_players ?? "0", 10);
+    const minPlayers =
+        Number.isFinite(parsedMinPlayers) && parsedMinPlayers >= 0
+            ? parsedMinPlayers
+            : 0;
+    const dateFrom = params.date_from ?? "";
+    const dateTo = params.date_to ?? "";
+    const winnerArchetype = params.winner_archetype ?? "";
+
+    const archetypes = activeMeta
+        ? await getArchetypeStats(activeMeta.id).catch(
+              () => [] as ArchetypeStat[],
           )
+        : [];
+
+    const tournaments = activeMeta
+        ? await getTournaments({
+              metaId: activeMeta.id,
+              minPlayers,
+              source: source || undefined,
+              dateFrom: dateFrom || undefined,
+              dateTo: dateTo || undefined,
+              winnerArchetype: winnerArchetype || undefined,
+          }).catch(() => [] as Tournament[])
         : [];
 
     return (
@@ -143,7 +256,7 @@ export default async function TournamentsPage({
                     heading={
                         <>
                             <p className="eyebrow">Filters</p>
-                            <h2>Meta selection</h2>
+                            <h2>Search tournaments</h2>
                         </>
                     }
                     headingMeta={
@@ -153,7 +266,16 @@ export default async function TournamentsPage({
                     }
                 >
                     {metas.length > 0 ? (
-                        <MetaSelector metas={metas} activeMeta={activeMeta} />
+                        <TournamentFilters
+                            metas={metas}
+                            activeMeta={activeMeta}
+                            archetypes={archetypes}
+                            source={source}
+                            minPlayers={minPlayers}
+                            dateFrom={dateFrom}
+                            dateTo={dateTo}
+                            winnerArchetype={winnerArchetype}
+                        />
                     ) : (
                         <EmptyState
                             title="No metas yet"
