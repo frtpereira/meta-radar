@@ -56,12 +56,28 @@ export async function getMetas() {
 export async function getTournaments(options: {
     metaId?: string;
     minPlayers?: number;
+    source?: "online" | "offline";
+    dateFrom?: string;
+    dateTo?: string;
+    winnerArchetype?: string;
 }) {
     const params = new URLSearchParams();
 
     params.set("min_players", String(options.minPlayers ?? 64));
     if (options.metaId) {
         params.set("meta_id", options.metaId);
+    }
+    if (options.source) {
+        params.set("source", options.source);
+    }
+    if (options.dateFrom) {
+        params.set("date_from", options.dateFrom);
+    }
+    if (options.dateTo) {
+        params.set("date_to", options.dateTo);
+    }
+    if (options.winnerArchetype) {
+        params.set("winner_archetype", options.winnerArchetype);
     }
 
     return fetchJson<Tournament[]>(`/tournaments?${params.toString()}`);

@@ -85,11 +85,16 @@ github.com/swaggo/swag/cmd/swag@latest`).
 
 ### Tournaments
 
-- `GET /api/tournaments?min_players=64&format=STANDARD&meta_id=...`
+- `GET /api/tournaments?min_players=64&format=STANDARD&meta_id=...&source=online&date_from=2026-01-01&date_to=2026-01-31&winner_archetype=charizard-pidgeot`
     - Lists tournaments stored in Postgres.
     - `min_players` filters by field size.
     - `format` filters by Limitless format code.
     - `meta_id` filters to one internal meta.
+    - `source` filters by `online` or `offline` (in-person); omit for both.
+    - `date_from` / `date_to` filter by tournament date (inclusive, `YYYY-MM-DD`).
+    - `winner_archetype` filters to tournaments won by the archetype with this
+      slug (the 1st-place standing's archetype, see `/api/archetypes/stats`
+      for slugs).
 
 ### Metas
 
