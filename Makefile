@@ -36,7 +36,7 @@ tidy:
 # handlers in internal/api and the general API info in cmd/api/main.go.
 # Requires the swag CLI: `go install github.com/swaggo/swag/cmd/swag@latest`.
 swagger-gen:
-	cd backend && swag init -g cmd/api/main.go -o docs --outputTypes json,yaml
+	cd backend && swag init -g cmd/api/main.go -o docs --outputTypes json,yaml --parseInternal
 
 # Apply any migrations after 0001 (which is handled automatically by
 # Postgres's init-on-empty-volume mechanism). Poor-man's migration runner --

@@ -33,7 +33,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object"
+                                "$ref": "#/definitions/apidocs.ArchetypeStat"
                             }
                         }
                     },
@@ -81,7 +81,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/apidocs.ArchetypeDetail"
                         }
                     },
                     "404": {
@@ -130,7 +130,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object"
+                                "$ref": "#/definitions/apidocs.CardStat"
                             }
                         }
                     },
@@ -171,7 +171,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object"
+                                "$ref": "#/definitions/apidocs.Variant"
                             }
                         }
                     },
@@ -240,7 +240,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/apidocs.MatchupsResponse"
                         }
                     },
                     "400": {
@@ -371,7 +371,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/apidocs.TournamentDetail"
                         }
                     },
                     "404": {
@@ -464,6 +464,313 @@
         }
     },
     "definitions": {
+        "apidocs.ArchetypeDetail": {
+            "type": "object",
+            "properties": {
+                "core_cards": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Card"
+                    }
+                },
+                "core_computed_at": {
+                    "type": "string"
+                },
+                "core_threshold": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "meta_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "apidocs.ArchetypeRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "apidocs.ArchetypeStat": {
+            "type": "object",
+            "properties": {
+                "avg_standing": {
+                    "type": "number"
+                },
+                "deck_count": {
+                    "type": "integer"
+                },
+                "drop_count": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "losses": {
+                    "type": "integer"
+                },
+                "matches": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "score_rate": {
+                    "type": "number"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "ties": {
+                    "type": "integer"
+                },
+                "win_rate": {
+                    "type": "number"
+                },
+                "wins": {
+                    "type": "integer"
+                }
+            }
+        },
+        "apidocs.CardStat": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "count_distribution": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "deck_count": {
+                    "type": "integer"
+                },
+                "is_core": {
+                    "type": "boolean"
+                },
+                "modal_count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "string"
+                },
+                "presence": {
+                    "type": "number"
+                },
+                "set": {
+                    "type": "string"
+                },
+                "total_decklists": {
+                    "type": "integer"
+                }
+            }
+        },
+        "apidocs.MatchupStat": {
+            "type": "object",
+            "properties": {
+                "archetype": {
+                    "$ref": "#/definitions/apidocs.ArchetypeRef"
+                },
+                "losses": {
+                    "type": "integer"
+                },
+                "matches": {
+                    "type": "integer"
+                },
+                "opponent": {
+                    "$ref": "#/definitions/apidocs.ArchetypeRef"
+                },
+                "score_rate": {
+                    "type": "number"
+                },
+                "ties": {
+                    "type": "integer"
+                },
+                "win_rate": {
+                    "type": "number"
+                },
+                "wins": {
+                    "type": "integer"
+                }
+            }
+        },
+        "apidocs.MatchupsResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/apidocs.MatchupStat"
+                    }
+                },
+                "next_page": {
+                    "type": "integer"
+                },
+                "next_url": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "prev_page": {
+                    "type": "integer"
+                },
+                "prev_url": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "apidocs.StandingRow": {
+            "type": "object",
+            "properties": {
+                "archetype_id": {
+                    "type": "integer"
+                },
+                "archetype_name": {
+                    "type": "string"
+                },
+                "archetype_slug": {
+                    "type": "string"
+                },
+                "decklist_id": {
+                    "type": "integer"
+                },
+                "losses": {
+                    "type": "integer"
+                },
+                "player_id": {
+                    "type": "string"
+                },
+                "player_name": {
+                    "type": "string"
+                },
+                "standing": {
+                    "type": "integer"
+                },
+                "ties": {
+                    "type": "integer"
+                },
+                "wins": {
+                    "type": "integer"
+                }
+            }
+        },
+        "apidocs.TournamentDetail": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "format_code": {
+                    "type": "string"
+                },
+                "game": {
+                    "type": "string"
+                },
+                "has_decklists": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_online": {
+                    "type": "boolean"
+                },
+                "meta_id": {
+                    "type": "string"
+                },
+                "meta_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "organizer_name": {
+                    "type": "string"
+                },
+                "players": {
+                    "type": "integer"
+                },
+                "standings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/apidocs.StandingRow"
+                    }
+                }
+            }
+        },
+        "apidocs.Variant": {
+            "type": "object",
+            "properties": {
+                "avg_standing": {
+                    "type": "number"
+                },
+                "core_hash": {
+                    "type": "string"
+                },
+                "deck_count": {
+                    "type": "integer"
+                },
+                "drop_count": {
+                    "type": "integer"
+                },
+                "sample_decklist_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Card": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "description": "\"pokemon\" | \"trainer\" | \"energy\"",
+                    "type": "string"
+                },
+                "count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "string"
+                },
+                "set": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Meta": {
             "type": "object",
             "properties": {

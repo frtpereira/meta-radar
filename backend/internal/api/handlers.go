@@ -163,7 +163,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 // @Tags tournaments
 // @Produce json
 // @Param id path string true "Tournament ID"
-// @Success 200 {object} object
+// @Success 200 {object} apidocs.TournamentDetail
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /api/tournaments/{id} [get]
@@ -296,7 +296,7 @@ func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 // @Tags archetypes
 // @Produce json
 // @Param meta_id query string true "Meta UUID"
-// @Success 200 {array} object
+// @Success 200 {array} apidocs.ArchetypeStat
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /api/archetypes/stats [get]
@@ -392,7 +392,7 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 // @Tags archetypes
 // @Produce json
 // @Param id path string true "Archetype ID"
-// @Success 200 {object} object
+// @Success 200 {object} apidocs.ArchetypeDetail
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /api/archetypes/{id} [get]
@@ -445,7 +445,7 @@ func (h *Handler) ArchetypeDetail(w http.ResponseWriter, r *http.Request) {
 // @Tags archetypes
 // @Produce json
 // @Param id path string true "Archetype ID"
-// @Success 200 {array} object
+// @Success 200 {array} apidocs.Variant
 // @Failure 500 {object} map[string]string
 // @Router /api/archetypes/{id}/variants [get]
 func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
@@ -516,7 +516,7 @@ func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
 // @Param include_mirrors query bool false "Include mirror matchups (default true)"
 // @Param page query int false "Page number (default 1)"
 // @Param page_size query int false "Page size, max 100 (default 20)"
-// @Success 200 {object} object
+// @Success 200 {object} apidocs.MatchupsResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /api/matchups/stats [get]
@@ -715,7 +715,7 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 // @Tags archetypes
 // @Produce json
 // @Param id path string true "Archetype ID"
-// @Success 200 {array} object
+// @Success 200 {array} apidocs.CardStat
 // @Failure 500 {object} map[string]string
 // @Router /api/archetypes/{id}/card-stats [get]
 func (h *Handler) ArchetypeCardStats(w http.ResponseWriter, r *http.Request) {
