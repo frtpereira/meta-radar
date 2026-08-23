@@ -6,8 +6,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_LINKS = [
     { href: "/", label: "Home" },
-    { href: "/tournaments", label: "Tournaments" },
-    { href: "/decklists", label: "Decklists" },
+    { href: "/tournaments", label: "Events" },
+    { href: "/decklists", label: "Decks" },
     { href: "/matchups", label: "Matchups" },
 ];
 
@@ -33,7 +33,9 @@ export function NavigationBar() {
                                 <Link
                                     key={href}
                                     href={href}
-                                    aria-current={isCurrent ? "page" : undefined}
+                                    aria-current={
+                                        isCurrent ? "page" : undefined
+                                    }
                                 >
                                     {label}
                                 </Link>

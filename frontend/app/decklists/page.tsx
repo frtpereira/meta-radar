@@ -71,8 +71,8 @@ export default async function DecklistsPage({
 
             <div className="shell">
                 <Hero
-                    eyebrow="Meta Radar — Decklists"
-                    title="Archetype Decklists"
+                    eyebrow="Meta Radar — Decks"
+                    title="Deck Archetype Explorer"
                     lede="Browse every archetype in the meta. Open one to see its
                         deck skeleton, optional tech choices, and head-to-head
                         matchup summary."
@@ -92,7 +92,7 @@ export default async function DecklistsPage({
                     heading={
                         <>
                             <p className="eyebrow">Filters</p>
-                            <h2>Meta selection</h2>
+                            <h2>Search Archetypes</h2>
                         </>
                     }
                     headingMeta={
@@ -122,13 +122,6 @@ export default async function DecklistsPage({
                                     : "No meta loaded"}
                             </h2>
                         </>
-                    }
-                    headingMeta={
-                        activeMeta ? (
-                            <span className="pill">
-                                {activeMeta.format_code}
-                            </span>
-                        ) : null
                     }
                 >
                     {archetypes.length > 0 ? (
