@@ -148,19 +148,6 @@ function ArchetypesTable({
             label: "Record",
             render: (s: ArchetypeStat) => `${s.wins}–${s.losses}–${s.ties}`,
         },
-        {
-            key: "action",
-            label: "",
-            render: (s: ArchetypeStat) => (
-                <Link
-                    href={`/decklists/${s.id}?meta_id=${metaId}`}
-                    className="button"
-                    style={{ whiteSpace: "nowrap" }}
-                >
-                    View deck →
-                </Link>
-            ),
-        },
     ];
 
     return <Table columns={columns} rows={archetypes} />;
