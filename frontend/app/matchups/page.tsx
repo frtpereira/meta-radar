@@ -1,7 +1,7 @@
 import type { ArchetypeStat, MatchupStat, Meta } from "@/lib/types";
 
 import { getArchetypeStats, getMatchupStats, getMetas } from "@/lib/api";
-import Pagination from "./Pagination";
+import Pagination from "@/components/pagination";
 import Hero from "@/components/hero";
 import Table from "@/components/table";
 import Card from "@/components/card";

@@ -5,6 +5,7 @@ import type { ArchetypeStat, Meta, Tournament } from "@/lib/types";
 import { getArchetypeStats, getMetas, getTournaments } from "@/lib/api";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
+import Pagination from "@/components/pagination";
 
 type SearchParams = {
     meta_id?: string;
@@ -13,6 +14,7 @@ type SearchParams = {
     date_from?: string;
     date_to?: string;
     winner_archetype?: string;
+    page?: string;
 };
 
 function formatDate(value: string) {
@@ -214,6 +216,8 @@ export default async function TournamentsPage({
     const dateFrom = params.date_from ?? "";
     const dateTo = params.date_to ?? "";
     const winnerArchetype = params.winner_archetype ?? "";
+    const page = Number.parseInt(params.page ?? "1", 10) || 1;
+    const pageSize = 20;
 
     const archetypes = activeMeta
         ? await getArchetypeStats(activeMeta.id).catch(
@@ -221,7 +225,7 @@ export default async function TournamentsPage({
           )
         : [];
 
-    const tournaments = activeMeta
+    const tournamentPage = activeMeta
         ? await getTournaments({
               metaId: activeMeta.id,
               minPlayers,
@@ -229,8 +233,31 @@ export default async function TournamentsPage({
               dateFrom: dateFrom || undefined,
               dateTo: dateTo || undefined,
               winnerArchetype: winnerArchetype || undefined,
-          }).catch(() => [] as Tournament[])
-        : [];
+              page,
+              pageSize,
+          }).catch(() => ({
+              total: 0,
+              page,
+              page_size: pageSize,
+              total_pages: 1,
+              prev_page: 0,
+              next_page: 0,
+              items: [] as Tournament[],
+          }))
+        : {
+              total: 0,
+              page,
+              page_size: pageSize,
+              total_pages: 1,
+              prev_page: 0,
+              next_page: 0,
+              items: [] as Tournament[],
+          };
+    const tournaments = tournamentPage.items;
+    const totalPages = Math.max(
+        1,
+        Math.ceil(tournamentPage.total / tournamentPage.page_size),
+    );
 
     return (
         <main className="page">
@@ -262,7 +289,7 @@ export default async function TournamentsPage({
                     }
                     headingMeta={
                         <span className="muted">
-                            {tournaments.length.toLocaleString()} events
+                            {tournamentPage.total.toLocaleString()} events
                         </span>
                     }
                 >
@@ -299,7 +326,37 @@ export default async function TournamentsPage({
                     }
                 >
                     {tournaments.length > 0 ? (
-                        <TournamentsTable tournaments={tournaments} />
+                        <>
+                            <TournamentsTable tournaments={tournaments} />
+                            <div className="pagination">
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: "8px",
+                                        marginTop: "12px",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <span className="muted">
+                                        Page {tournamentPage.page} of{" "}
+                                        {totalPages}
+                                    </span>
+                                </div>
+
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: "8px",
+                                        marginTop: "8px",
+                                    }}
+                                >
+                                    <Pagination
+                                        page={tournamentPage.page}
+                                        totalPages={totalPages}
+                                    />
+                                </div>
+                            </div>
+                        </>
                     ) : (
                         <EmptyState
                             title="No tournaments found"

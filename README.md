@@ -85,7 +85,7 @@ github.com/swaggo/swag/cmd/swag@latest`).
 
 ### Tournaments
 
-- `GET /api/tournaments?min_players=64&format=STANDARD&meta_id=...&source=online&date_from=2026-01-01&date_to=2026-01-31&winner_archetype=charizard-pidgeot`
+- `GET /api/tournaments?min_players=32&format=STANDARD&meta_id=...&source=online&date_from=2026-01-01&date_to=2026-01-31&winner_archetype=charizard-pidgeot`
     - Lists tournaments stored in Postgres.
     - `min_players` filters by field size.
     - `format` filters by Limitless format code.
@@ -159,7 +159,7 @@ github.com/swaggo/swag/cmd/swag@latest`).
 
 - `cmd/ingest`
     - Walks `GET /tournaments` in pages.
-    - Skips tournaments under `--min-players` (default `64`).
+    - Skips tournaments under `--min-players` (default `32`).
     - For each tournament it syncs `/details`, `/standings`, and `/pairings`,
       then upserts tournament, player, archetype, decklist, standing, and
       pairing rows in one transaction.
@@ -175,7 +175,7 @@ Try it after `make up`:
 
 ```bash
 make ingest-once
-curl http://localhost:8080/api/tournaments?min_players=64
+curl http://localhost:8080/api/tournaments?min_players=32
 ```
 
 ## Operator playbook

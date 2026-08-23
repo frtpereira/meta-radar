@@ -37,12 +37,12 @@ type Options struct {
 	RequestDelay time.Duration // pause between tournaments, to stay under the API's rate limit
 }
 
-// DefaultOptions matches the brief: 64+ player events, standard format.
+// DefaultOptions matches the brief: 32+ player events, standard format.
 func DefaultOptions() Options {
 	return Options{
 		Game:         "PTCG",
 		Format:       "STANDARD",
-		MinPlayers:   64,
+		MinPlayers:   32,
 		MaxPages:     5,
 		Refresh:      0,
 		RequestDelay: 500 * time.Millisecond,

@@ -324,16 +324,25 @@
                         "description": "Meta UUID to filter by",
                         "name": "meta_id",
                         "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, max 100 (default 20)",
+                        "name": "page_size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Tournament"
-                            }
+                            "$ref": "#/definitions/apidocs.TournamentsResponse"
                         }
                     },
                     "500": {
@@ -727,6 +736,41 @@
                     "items": {
                         "$ref": "#/definitions/apidocs.StandingRow"
                     }
+                }
+            }
+        },
+        "apidocs.TournamentsResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Tournament"
+                    }
+                },
+                "next_page": {
+                    "type": "integer"
+                },
+                "next_url": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "prev_page": {
+                    "type": "integer"
+                },
+                "prev_url": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
                 }
             }
         },

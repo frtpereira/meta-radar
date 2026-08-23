@@ -53,6 +53,18 @@ export async function getMetas() {
     return fetchJson<Meta[]>("/metas");
 }
 
+export interface TournamentPage {
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+    prev_page: number;
+    next_page: number;
+    prev_url?: string;
+    next_url?: string;
+    items: Tournament[];
+}
+
 export async function getTournaments(options: {
     metaId?: string;
     minPlayers?: number;
@@ -60,10 +72,12 @@ export async function getTournaments(options: {
     dateFrom?: string;
     dateTo?: string;
     winnerArchetype?: string;
+    page?: number;
+    pageSize?: number;
 }) {
     const params = new URLSearchParams();
 
-    params.set("min_players", String(options.minPlayers ?? 64));
+    params.set("min_players", String(options.minPlayers ?? 32));
     if (options.metaId) {
         params.set("meta_id", options.metaId);
     }
@@ -79,8 +93,10 @@ export async function getTournaments(options: {
     if (options.winnerArchetype) {
         params.set("winner_archetype", options.winnerArchetype);
     }
+    params.set("page", String(options.page ?? 1));
+    params.set("page_size", String(options.pageSize ?? 20));
 
-    return fetchJson<Tournament[]>(`/tournaments?${params.toString()}`);
+    return fetchJson<TournamentPage>(`/tournaments?${params.toString()}`);
 }
 
 export async function getTournament(id: string) {
