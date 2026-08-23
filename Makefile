@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi)
 
-.PHONY: up upd down logs psql frontend-install frontend-dev frontend-dev-host frontend-build tidy migrate ingest-once seed-meta resync cluster inspect swagger-gen certs
+.PHONY: up upd down logs psql frontend-install frontend-dev frontend-dev-host frontend-dev-https frontend-build tidy migrate ingest-once seed-meta resync cluster inspect swagger-gen certs
 
 up:
 	$(DOCKER_COMPOSE) up --build
@@ -25,6 +25,13 @@ frontend-dev:
 
 frontend-dev-host:
 	cd frontend && npm run dev:host
+
+# Runs the Next.js dev server over HTTPS with an auto-generated self-signed
+# certificate (Next.js's own --experimental-https, separate from the
+# backend's `make certs`). Your browser will warn about the cert, which is
+# expected for local dev.
+frontend-dev-https:
+	cd frontend && npm run dev:https
 
 frontend-build:
 	cd frontend && npm run build

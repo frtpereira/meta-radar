@@ -5,6 +5,7 @@
     "scripts": {
         "dev": "next dev --turbopack",
         "dev:host": "next dev --turbopack -H 0.0.0.0",
+        "dev:https": "next dev --turbopack --experimental-https",
         "build": "next build",
         "start": "next start",
         "start:host": "next start -H 0.0.0.0",

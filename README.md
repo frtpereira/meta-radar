@@ -76,6 +76,28 @@ For a real deployment, replace the self-signed pair with a certificate from
 a trusted CA (e.g. Let's Encrypt) and point `TLS_CERT_FILE`/`TLS_KEY_FILE`
 at those files instead.
 
+### Frontend
+
+The `make certs`/`TLS_CERT_FILE` setup above only covers the Go API — the
+Next.js dev server (`npm run dev`, `make frontend-dev`) still serves plain
+HTTP by default and isn't affected by it. To run the frontend dev server
+over HTTPS too, use:
+
+```bash
+make frontend-dev-https
+# or: cd frontend && npm run dev:https
+```
+
+This uses Next.js's built-in `--experimental-https` flag, which generates
+and reuses its own self-signed certificate (independent from the one
+`make certs` writes for the API) at `https://localhost:3000`. If the API is
+also served over HTTPS, update `NEXT_PUBLIC_API_BASE_URL` (see
+[Frontend](#frontend) above) to an `https://` URL — otherwise browsers may
+block the frontend's client-side requests to a plain-HTTP API as mixed
+content. `next start` (production) does not support `--experimental-https`;
+put a reverse proxy (e.g. nginx, Caddy) or load balancer in front of it to
+terminate TLS in production instead.
+
 ## First real step: generate go.sum
 
 The `go.mod` here lists dependencies but has no `go.sum` yet (this
