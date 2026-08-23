@@ -286,6 +286,10 @@ p {
     padding: 32px 0 56px;
 }
 
+.shell > * + * {
+    margin-top: 18px;
+}
+
 .ambient {
     position: absolute;
     inset: auto;
