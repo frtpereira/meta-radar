@@ -3,3 +3,4 @@
 *.patch
 *.sh
 .env
+/certs/

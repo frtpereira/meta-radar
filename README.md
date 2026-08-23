@@ -43,6 +43,39 @@ npm run dev
 
 By default it talks to the API at `http://localhost:8080/api`. If you need a different base URL, set `NEXT_PUBLIC_API_BASE_URL` in `frontend/.env.local`.
 
+## HTTPS
+
+The API server can serve HTTPS directly instead of plain HTTP. It's
+disabled by default (plain HTTP), and enabled by setting `TLS_CERT_FILE`
+and `TLS_KEY_FILE` to the paths of a certificate/key pair — leave either one
+unset to keep serving HTTP.
+
+For local development, generate a self-signed certificate with:
+
+```bash
+make certs
+```
+
+This writes `certs/server.crt` and `certs/server.key` (gitignored, since
+they're only meant for local use). To use them with `make up`, set the
+following in `.env`:
+
+```bash
+TLS_CERT_FILE=/certs/server.crt
+TLS_KEY_FILE=/certs/server.key
+API_PORT=8443
+```
+
+`docker-compose.yml` mounts `./certs` into the `api` container at `/certs`,
+so those paths resolve inside the container. Restart with `make upd` (or
+`make up`) and the API will be reachable at `https://localhost:8443` — your
+browser/`curl` will warn about the self-signed cert, which is expected for
+local dev (`curl -k https://localhost:8443/health`).
+
+For a real deployment, replace the self-signed pair with a certificate from
+a trusted CA (e.g. Let's Encrypt) and point `TLS_CERT_FILE`/`TLS_KEY_FILE`
+at those files instead.
+
 ## First real step: generate go.sum
 
 The `go.mod` here lists dependencies but has no `go.sum` yet (this

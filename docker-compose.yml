@@ -38,8 +38,12 @@ services:
             LIMITLESS_API_BASE: https://play.limitlesstcg.com/api
             LIMITLESS_API_KEY: ${LIMITLESS_API_KEY:-}
             WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+            TLS_CERT_FILE: ${TLS_CERT_FILE:-}
+            TLS_KEY_FILE: ${TLS_KEY_FILE:-}
+        volumes:
+            - ./certs:/certs:ro
         ports:
-            - "8080:8080"
+            - "${API_PORT:-8080}:8080"
 
     ingest:
         build:

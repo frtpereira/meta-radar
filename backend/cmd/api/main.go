@@ -31,7 +31,15 @@ func main() {
 
 	router := api.NewRouter(pool, syncer, cfg.WebhookSecret)
 
-	log.Printf("listening on :%s", cfg.Port)
+	if cfg.TLSEnabled() {
+		log.Printf("listening on :%s (HTTPS)", cfg.Port)
+		if err := http.ListenAndServeTLS(":"+cfg.Port, cfg.TLSCertFile, cfg.TLSKeyFile, router); err != nil {
+			log.Fatalf("server error: %v", err)
+		}
+		return
+	}
+
+	log.Printf("listening on :%s (HTTP)", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
 		log.Fatalf("server error: %v", err)
 	}

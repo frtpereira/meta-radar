@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi)
 
-.PHONY: up upd down logs psql frontend-install frontend-dev frontend-dev-host frontend-build tidy migrate ingest-once seed-meta resync cluster inspect swagger-gen
+.PHONY: up upd down logs psql frontend-install frontend-dev frontend-dev-host frontend-build tidy migrate ingest-once seed-meta resync cluster inspect swagger-gen certs
 
 up:
 	$(DOCKER_COMPOSE) up --build
@@ -79,3 +79,16 @@ cluster:
 inspect:
 	$(DOCKER_COMPOSE) build ingest
 	$(DOCKER_COMPOSE) run --rm --entrypoint inspect ingest --tournament=$(ID) $(if $(PAIRINGS),--pairings)
+
+# Generate a self-signed TLS certificate/key pair for local HTTPS
+# development, written to ./certs (gitignored). Not for production use — see
+# README.md for enabling HTTPS and for how to plug in a real certificate
+# instead (e.g. from Let's Encrypt). Usage: make certs [CERT_HOST=localhost]
+certs:
+	mkdir -p certs
+	openssl req -x509 -nodes -newkey rsa:2048 \
+		-days 365 \
+		-keyout certs/server.key \
+		-out certs/server.crt \
+		-subj "/CN=$(or $(CERT_HOST),localhost)" \
+		-addext "subjectAltName=DNS:$(or $(CERT_HOST),localhost),IP:127.0.0.1"
