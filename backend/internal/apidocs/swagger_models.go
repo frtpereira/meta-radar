@@ -96,6 +96,18 @@ type MatchupsResponse struct {
 	Items      []MatchupStat `json:"items"`
 }
 
+type TournamentsResponse struct {
+	Total      int                 `json:"total"`
+	Page       int                 `json:"page"`
+	PageSize   int                 `json:"page_size"`
+	TotalPages int                 `json:"total_pages"`
+	PrevPage   int                 `json:"prev_page"`
+	NextPage   int                 `json:"next_page"`
+	PrevURL    string              `json:"prev_url,omitempty"`
+	NextURL    string              `json:"next_url,omitempty"`
+	Items      []models.Tournament `json:"items"`
+}
+
 type CardStat struct {
 	Name              string             `json:"name"`
 	Set               string             `json:"set"`

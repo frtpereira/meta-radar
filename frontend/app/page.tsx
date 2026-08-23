@@ -103,19 +103,22 @@ export default async function Home({
     const activeMeta =
         metas.find((meta) => meta.id === params.meta_id) ?? metas[0] ?? null;
 
-    const [tournaments, archetypes] = activeMeta
+    const [tournamentPage, archetypes] = activeMeta
         ? await Promise.all([
-              getTournaments({ metaId: activeMeta.id, minPlayers: 64 }).catch(
-                  () => [] as Tournament[],
-              ),
+              getTournaments({
+                  metaId: activeMeta.id,
+                  minPlayers: 32,
+                  page: 1,
+                  pageSize: 8,
+              }).catch(() => ({ items: [] as Tournament[] })),
               getArchetypeStats(activeMeta.id).catch(
                   () => [] as ArchetypeStat[],
               ),
           ])
-        : [[], []];
+        : [{ items: [] as Tournament[] }, [] as ArchetypeStat[]];
 
     const topArchetype = archetypes[0] ?? null;
-    const liveTournaments = tournaments.slice(0, 8);
+    const liveTournaments = tournamentPage.items;
 
     return (
         <main className="page">
@@ -147,7 +150,7 @@ export default async function Home({
                     <TopStatCard
                         label="Recent tournaments"
                         value={liveTournaments.length.toLocaleString()}
-                        detail="Filtered to 64+ player events for the selected meta."
+                        detail="Filtered to 32+ player events for the selected meta."
                     />
                     <TopStatCard
                         label="Top archetype"
@@ -203,7 +206,7 @@ export default async function Home({
                             </>
                         }
                         headingMeta={
-                            <span className="muted">64+ players only</span>
+                            <span className="muted">32+ players only</span>
                         }
                     >
                         {liveTournaments.length > 0 ? (

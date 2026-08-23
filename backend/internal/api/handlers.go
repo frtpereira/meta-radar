@@ -47,17 +47,16 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// ListTournaments supports ?min_players=64&format=STANDARD&meta_id=...&source=online|offline
-// &date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&winner_archetype=<slug> so the
-// frontend can drive the tournament search filters directly via query
-// params rather than filtering client-side. source, date_from, date_to,
+// ListTournaments supports ?min_players=32&format=STANDARD&meta_id=...&source=online|offline
+// &date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&winner_archetype=<slug>&page=1&page_size=20
+// so the frontend can drive the tournament search filters directly via
+// query params rather than filtering client-side. source, date_from, date_to,
 // and winner_archetype are all optional; an empty/absent value leaves that
 // filter out entirely. date_from/date_to are inclusive on both ends.
 // winner_archetype matches the slug of the archetype that took 1st place
 // (see the LATERAL join below), not the archetype's display name.
-// ListTournaments supports ?min_players=64&format=STANDARD&meta_id=... so the
-// frontend can drive the "64+ player, current meta" filter directly via
-// query params rather than filtering client-side.
+// Results are paginated (see MatchupStats for the same page/page_size
+// convention) instead of the old flat LIMIT 200 array response.
 //
 // @Summary List tournaments
 // @Description Lists tournaments, optionally filtered by minimum player count, format, and meta.
@@ -66,7 +65,9 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 // @Param min_players query int false "Minimum number of players"
 // @Param format query string false "Format code (e.g. STANDARD)"
 // @Param meta_id query string false "Meta UUID to filter by"
-// @Success 200 {array} models.Tournament
+// @Param page query int false "Page number (default 1)"
+// @Param page_size query int false "Page size, max 100 (default 20)"
+// @Success 200 {object} apidocs.TournamentsResponse
 // @Failure 500 {object} map[string]string
 // @Router /api/tournaments [get]
 func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
@@ -108,6 +109,50 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 
 	winnerArchetypeSlug := q.Get("winner_archetype")
 
+	// pagination -- same page/page_size convention as MatchupStats
+	page := 1
+	if v := q.Get("page"); v != "" {
+		if p, err := strconv.Atoi(v); err == nil && p > 0 {
+			page = p
+		}
+	}
+	pageSize := 20
+	// allow explicit page_size but cap it to 100
+	if v := q.Get("page_size"); v != "" {
+		if ps, err := strconv.Atoi(v); err == nil && ps > 0 {
+			if ps > 100 {
+				ps = 100
+			}
+			pageSize = ps
+		}
+	}
+	offset := (page - 1) * pageSize
+
+	countQuery := `
+		SELECT COUNT(*)
+		FROM tournaments t
+		LEFT JOIN LATERAL (
+			SELECT a.slug AS archetype_slug
+			FROM standings s
+			JOIN decklists d ON d.id = s.decklist_id
+			JOIN archetypes a ON a.id = d.archetype_id
+			WHERE s.tournament_id = t.id AND s.standing = 1
+			LIMIT 1
+		) w ON true
+		WHERE t.players >= $1
+		  AND ($2 = '' OR t.format_code = $2)
+		  AND ($3 = '' OR t.meta_id::text = $3)
+		  AND ($4::boolean IS NULL OR t.is_online = $4)
+		  AND ($5::timestamptz IS NULL OR t.date >= $5)
+		  AND ($6::timestamptz IS NULL OR t.date <= $6)
+		  AND ($7 = '' OR w.archetype_slug = $7)`
+
+	var total int
+	if err := h.DB.QueryRow(ctx, countQuery, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug).Scan(&total); err != nil {
+		writeError(w, http.StatusInternalServerError, "counting tournaments: "+err.Error())
+		return
+	}
+
 	query := `
 		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
 		       w.archetype_name
@@ -129,9 +174,9 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		  AND ($6::timestamptz IS NULL OR t.date <= $6)
 		  AND ($7 = '' OR w.archetype_slug = $7)
 		ORDER BY t.date DESC
-		LIMIT 200`
+		LIMIT $8 OFFSET $9`
 
-	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug)
+	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, pageSize, offset)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying tournaments: "+err.Error())
 		return
@@ -148,7 +193,45 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		tournaments = append(tournaments, t)
 	}
 
-	writeJSON(w, http.StatusOK, tournaments)
+	totalPages := 1
+	if total > 0 {
+		totalPages = (total + pageSize - 1) / pageSize
+	}
+	prevPage := 0
+	if page > 1 {
+		prevPage = page - 1
+	}
+	nextPage := 0
+	if page < totalPages {
+		nextPage = page + 1
+	}
+
+	basePath := r.URL.Path
+	respQuery := r.URL.Query()
+	prevURLStr := ""
+	if prevPage > 0 {
+		respQuery.Set("page", strconv.Itoa(prevPage))
+		prevURLStr = basePath + "?" + respQuery.Encode()
+		respQuery.Set("page", strconv.Itoa(page))
+	}
+	nextURLStr := ""
+	if nextPage > 0 {
+		respQuery.Set("page", strconv.Itoa(nextPage))
+		nextURLStr = basePath + "?" + respQuery.Encode()
+		respQuery.Set("page", strconv.Itoa(page))
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"total":       total,
+		"page":        page,
+		"page_size":   pageSize,
+		"total_pages": totalPages,
+		"prev_page":   prevPage,
+		"next_page":   nextPage,
+		"prev_url":    prevURLStr,
+		"next_url":    nextURLStr,
+		"items":       tournaments,
+	})
 }
 
 // TournamentDetail returns one tournament's metadata plus its full
