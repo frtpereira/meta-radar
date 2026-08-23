@@ -65,9 +65,7 @@ export default async function TournamentPage({
                     }
                     meta={
                         <>
-                            <span className="pill">
-                                {tournament.meta_name}
-                            </span>
+                            <span className="pill">{tournament.meta_name}</span>
                             <span
                                 className={`badge ${tournament.is_online ? "badge--online" : ""}`}
                             >
@@ -81,7 +79,7 @@ export default async function TournamentPage({
                     heading={
                         <>
                             <p className="eyebrow">Leaderboard</p>
-                            <h2>Final standings</h2>
+                            <h2>Final Standings</h2>
                         </>
                     }
                     headingMeta={

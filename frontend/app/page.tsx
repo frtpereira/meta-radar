@@ -133,10 +133,8 @@ export default async function Home({
                         then jump into directional matchup results."
                     meta={
                         <>
-                            <span className="pill">Next.js App Router</span>
-                            <span className="pill pill--soft">
-                                Core views only
-                            </span>
+                            <span className="pill">PBL+ Metas</span>
+                            <span className="pill pill--soft">[WIP]</span>
                         </>
                     }
                 />
@@ -171,7 +169,7 @@ export default async function Home({
                 <Card
                     heading={
                         <>
-                            <p className="eyebrow">Meta selection</p>
+                            <p className="eyebrow">Meta Selection</p>
                             <h2>
                                 {activeMeta
                                     ? activeMeta.name
@@ -179,19 +177,12 @@ export default async function Home({
                             </h2>
                         </>
                     }
-                    headingMeta={
-                        activeMeta ? (
-                            <span className="pill">
-                                {activeMeta.format_code}
-                            </span>
-                        ) : null
-                    }
                 >
                     {metas.length > 0 ? (
                         <MetaSelector metas={metas} activeMeta={activeMeta} />
                     ) : (
                         <EmptyState
-                            title="No metas yet"
+                            title="No Metas yet"
                             copy="Seed a specific meta before the dashboard can populate tournaments and archetypes."
                         />
                     )}
@@ -201,13 +192,11 @@ export default async function Home({
                     <Card
                         heading={
                             <>
-                                <p className="eyebrow">Recent tournaments</p>
-                                <h2>Latest events</h2>
+                                <p className="eyebrow">Recent Tournaments</p>
+                                <h2>Latest Events</h2>
                             </>
                         }
-                        headingMeta={
-                            <span className="muted">32+ players only</span>
-                        }
+                        headingMeta={<span className="muted">32+ players</span>}
                     >
                         {liveTournaments.length > 0 ? (
                             <Table
@@ -222,9 +211,6 @@ export default async function Home({
                                             >
                                                 <div className="table-title">
                                                     {t.name}
-                                                </div>
-                                                <div className="muted tiny">
-                                                    {t.meta_name}
                                                 </div>
                                             </Link>
                                         ),
@@ -268,8 +254,8 @@ export default async function Home({
                     <Card
                         heading={
                             <>
-                                <p className="eyebrow">Archetype stats</p>
-                                <h2>Performance snapshot</h2>
+                                <p className="eyebrow">Archetype Stats</p>
+                                <h2>Trending Decks</h2>
                             </>
                         }
                         headingMeta={
@@ -281,7 +267,7 @@ export default async function Home({
                                         : "/matchups"
                                 }
                             >
-                                View matchups
+                                View Matchups
                             </Link>
                         }
                     >

@@ -266,7 +266,7 @@ export default async function TournamentsPage({
 
             <div className="shell">
                 <Hero
-                    eyebrow="META Radar - Tournaments"
+                    eyebrow="META Radar - Events"
                     title="Tournament Explorer"
                     lede="Browse every synced event for a meta, then open one
                         to see its full leaderboard, standings, score, and
@@ -284,7 +284,7 @@ export default async function TournamentsPage({
                     heading={
                         <>
                             <p className="eyebrow">Filters</p>
-                            <h2>Search tournaments</h2>
+                            <h2>Search Tournaments</h2>
                         </>
                     }
                     headingMeta={
@@ -306,7 +306,7 @@ export default async function TournamentsPage({
                         />
                     ) : (
                         <EmptyState
-                            title="No metas yet"
+                            title="No Metas yet"
                             copy="Seed a meta before tournaments can be loaded."
                         />
                     )}

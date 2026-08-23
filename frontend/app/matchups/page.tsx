@@ -263,7 +263,7 @@ export default async function MatchupsPage({
             <div className="shell">
                 <Hero
                     eyebrow="Meta Radar - Matchups"
-                    title="Head-to-head Archetype Analysis"
+                    title="Matchup Analysis"
                     lede="Compare directional matchup performance by meta and
                         archetype, including win rate and score rate from
                         recorded pairings."
@@ -285,7 +285,7 @@ export default async function MatchupsPage({
                     heading={
                         <>
                             <p className="eyebrow">Filters</p>
-                            <h2>Meta and matchup filters</h2>
+                            <h2>Meta and Deck Filters</h2>
                         </>
                     }
                     headingMeta={
@@ -315,7 +315,7 @@ export default async function MatchupsPage({
                     heading={
                         <>
                             <p className="eyebrow">Matchups</p>
-                            <h2>Archetype-vs-archetype results</h2>
+                            <h2>Head-to-Head Results</h2>
                         </>
                     }
                     headingMeta={

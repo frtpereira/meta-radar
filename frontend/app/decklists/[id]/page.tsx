@@ -389,7 +389,11 @@ export default async function DecklistDetailPage({
         .map((m) => m.stat);
 
     const goodColor = (wr: number | null) =>
-        wr === null ? "var(--muted)" : wr >= 0.55 ? "var(--success)" : "var(--accent)";
+        wr === null
+            ? "var(--muted)"
+            : wr >= 0.55
+              ? "var(--success)"
+              : "var(--accent)";
     const badColor = (wr: number | null) =>
         wr === null
             ? "var(--muted)"
@@ -415,7 +419,7 @@ export default async function DecklistDetailPage({
                 </div>
 
                 <Hero
-                    eyebrow="Meta Radar — Decklist"
+                    eyebrow="Meta Radar — Archetype"
                     title={archetype.name}
                     lede={`Deck skeleton, tech cards, and matchup breakdown for ${archetype.name} in this meta.`}
                     meta={
@@ -452,8 +456,8 @@ export default async function DecklistDetailPage({
                     className="section--spaced"
                     heading={
                         <>
-                            <p className="eyebrow">Core cards</p>
-                            <h2>Deck Skeleton</h2>
+                            <p className="eyebrow">Decklist</p>
+                            <h2>Core/Skeleton</h2>
                         </>
                     }
                     headingMeta={
@@ -594,7 +598,7 @@ export default async function DecklistDetailPage({
                         heading={
                             <>
                                 <p className="eyebrow">Matchups</p>
-                                <h2>Best against</h2>
+                                <h2>Best Against</h2>
                             </>
                         }
                         headingMeta={
@@ -621,7 +625,7 @@ export default async function DecklistDetailPage({
                         heading={
                             <>
                                 <p className="eyebrow">Matchups</p>
-                                <h2>Worst against</h2>
+                                <h2>Worst Against</h2>
                             </>
                         }
                         headingMeta={
