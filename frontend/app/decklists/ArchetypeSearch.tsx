@@ -217,7 +217,7 @@ export default function ArchetypeSearch({
             </div>
 
             {filtered.length > 0 ? (
-                <>
+                <div style={{ marginTop: "18px" }}>
                     <ArchetypesTable archetypes={paged} metaId={metaId} />
                     {totalPages > 1 ? (
                         <div
@@ -225,6 +225,7 @@ export default function ArchetypeSearch({
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: "4px",
+                                marginTop: "16px",
                             }}
                         >
                             <span className="muted">
@@ -237,7 +238,7 @@ export default function ArchetypeSearch({
                             />
                         </div>
                     ) : null}
-                </>
+                </div>
             ) : (
                 <EmptyState
                     title="No matching archetypes"
