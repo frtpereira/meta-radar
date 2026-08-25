@@ -162,6 +162,7 @@ function SkeletonCategory({
                     {c.modal_count}
                 </span>
             ),
+            sortValue: (c: CardStat) => c.modal_count,
         },
         {
             key: "card",
@@ -177,6 +178,7 @@ function SkeletonCategory({
                     ) : null}
                 </div>
             ),
+            sortValue: (c: CardStat) => c.name,
         },
         {
             key: "presence",
@@ -192,6 +194,7 @@ function SkeletonCategory({
                     totalDecklists={totalDecklists}
                 />
             ),
+            sortable: false,
         },
     ];
 
@@ -292,7 +295,9 @@ function MatchupMiniTable({
         },
     ];
 
-    return <Table columns={columns} rows={stats} />;
+    // Best/worst against are fixed top-5 previews -- too short to bother
+    // sorting.
+    return <Table columns={columns} rows={stats} sortable={false} />;
 }
 
 // ─── page ─────────────────────────────────────────────────────────────────────
@@ -538,6 +543,7 @@ export default async function DecklistDetailPage({
                                             ) : null}
                                         </div>
                                     ),
+                                    sortValue: (c: CardStat) => c.name,
                                 },
                                 {
                                     key: "category",
@@ -560,6 +566,7 @@ export default async function DecklistDetailPage({
                                     render: (c: CardStat) => (
                                         <PresenceBar value={c.presence} />
                                     ),
+                                    sortValue: (c: CardStat) => c.presence,
                                 },
                                 {
                                     key: "typical",
@@ -575,6 +582,7 @@ export default async function DecklistDetailPage({
                                             ×{c.modal_count}
                                         </span>
                                     ),
+                                    sortValue: (c: CardStat) => c.modal_count,
                                 },
                                 {
                                     key: "dist",
@@ -585,6 +593,7 @@ export default async function DecklistDetailPage({
                                             totalDecklists={totalDecklists}
                                         />
                                     ),
+                                    sortable: false,
                                 },
                             ]}
                             rows={optionalCards}

@@ -121,6 +121,13 @@ function MatchupTable({
                     : stat.opponent;
                 return <div className="table-title">{primary.name}</div>;
             },
+            sortValue: (stat: MatchupStat) => {
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                return selectedIsArchetype
+                    ? stat.archetype.name
+                    : stat.opponent.name;
+            },
         },
         {
             key: "secondary",
@@ -133,10 +140,21 @@ function MatchupTable({
                     : stat.archetype;
                 return <div className="table-title">{secondary.name}</div>;
             },
+            sortValue: (stat: MatchupStat) => {
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                return selectedIsArchetype
+                    ? stat.opponent.name
+                    : stat.archetype.name;
+            },
         },
         {
             key: "record",
             label: "Record",
+            // The displayed W-L-T string depends on perspective/mirror
+            // status and isn't a single meaningful sort key, so leave this
+            // column unsortable.
+            sortable: false,
             render: (stat: MatchupStat) => {
                 // W-L is meaningless for a mirror: both sides are the same
                 // archetype, so wins and losses are equal by definition.
@@ -161,6 +179,7 @@ function MatchupTable({
             key: "matches",
             label: "Matches",
             render: (stat: MatchupStat) => stat.matches.toLocaleString(),
+            sortValue: (stat: MatchupStat) => stat.matches,
         },
         {
             key: "score_rate",
@@ -187,6 +206,16 @@ function MatchupTable({
                           : 1 - stat.score_rate;
                 return formatPercent(displayedScoreRate);
             },
+            sortValue: (stat: MatchupStat) => {
+                if (stat.score_rate === null) {
+                    return null;
+                }
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                return selectedIsArchetype
+                    ? stat.score_rate
+                    : 1 - stat.score_rate;
+            },
         },
         {
             key: "win_rate",
@@ -204,6 +233,14 @@ function MatchupTable({
                           ? stat.win_rate
                           : 1 - stat.win_rate;
                 return formatPercent(displayedWinRate);
+            },
+            sortValue: (stat: MatchupStat) => {
+                if (stat.win_rate === null) {
+                    return null;
+                }
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                return selectedIsArchetype ? stat.win_rate : 1 - stat.win_rate;
             },
         },
     ];

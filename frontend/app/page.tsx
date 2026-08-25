@@ -242,6 +242,7 @@ export default async function Home({
                                     },
                                 ]}
                                 rows={liveTournaments}
+                                sortable={false}
                             />
                         ) : (
                             <EmptyState
@@ -313,6 +314,7 @@ export default async function Home({
                                     },
                                 ]}
                                 rows={archetypes.slice(0, 10)}
+                                sortable={false}
                             />
                         ) : (
                             <EmptyState

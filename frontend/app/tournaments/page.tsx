@@ -161,6 +161,7 @@ function TournamentsTable({ tournaments }: { tournaments: Tournament[] }) {
                     <div className="muted tiny">{t.meta_name}</div>
                 </Link>
             ),
+            sortValue: (t: Tournament) => t.name,
         },
         {
             key: "date",
@@ -180,6 +181,7 @@ function TournamentsTable({ tournaments }: { tournaments: Tournament[] }) {
                     {t.is_online ? "Online" : "In person"}
                 </span>
             ),
+            sortValue: (t: Tournament) => (t.is_online ? 1 : 0),
         },
         {
             key: "winner_archetype",

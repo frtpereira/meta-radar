@@ -4,6 +4,7 @@ import Hero from "@/components/hero";
 import Table from "@/components/table";
 import Card from "@/components/card";
 
+import type { TournamentStanding } from "@/lib/types";
 import { getTournament } from "@/lib/api";
 
 function formatDate(value: string) {
@@ -106,6 +107,7 @@ export default async function TournamentPage({
                                             {r.player_name}
                                         </div>
                                     ),
+                                    sortValue: (r: TournamentStanding) => r.player_name,
                                 },
                                 {
                                     key: "archetype",
@@ -116,12 +118,14 @@ export default async function TournamentPage({
                                                 Unknown
                                             </span>
                                         ),
+                                    sortValue: (r: TournamentStanding) => r.archetype_name,
                                 },
                                 {
                                     key: "score",
                                     label: "Score",
                                     render: (r: any) =>
                                         `${r.wins}-${r.losses}-${r.ties}`,
+                                    sortValue: (r: TournamentStanding) => r.wins - r.losses,
                                 },
                             ]}
                             rows={tournament.standings}
