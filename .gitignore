@@ -3,3 +3,4 @@
 *.patch
 *.sh
 .env
+node_modules

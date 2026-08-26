@@ -8,11 +8,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
-func NewRouter(pool *pgxpool.Pool, syncer *ingest.Syncer, webhookSecret string, redisClient ...*redis.Client) http.Handler {
+func NewRouter(pool HandlerDB, syncer *ingest.Syncer, webhookSecret string, redisClient ...*redis.Client) http.Handler {
 	var rc *redis.Client
 	if len(redisClient) > 0 {
 		rc = redisClient[0]

@@ -16,12 +16,18 @@ import (
 	"github.com/frtpereira/meta-radar/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
+// HandlerDB is the narrow slice of pgxpool.Pool the handlers actually need,
+// so tests can swap in pgxmock without changing production call sites.
+type HandlerDB interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 type Handler struct {
-	DB            *pgxpool.Pool
+	DB            HandlerDB
 	Syncer        *ingest.Syncer
 	WebhookSecret string
 	Redis         *redis.Client

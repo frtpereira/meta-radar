@@ -18,9 +18,9 @@ export default function Card({
                     <div>
                         {typeof heading === "string" ? (
                             <>
-                                <p className="eyebrow">
-                                    {headingMeta ? headingMeta : ""}
-                                </p>
+                                {typeof headingMeta === "string" ? (
+                                    <p className="eyebrow">{headingMeta}</p>
+                                ) : null}
                                 <h2>{heading}</h2>
                             </>
                         ) : (
