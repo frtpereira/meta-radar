@@ -1,11 +1,9 @@
-import Link from "next/link";
-import Table from "@/components/table";
-
 import type { ArchetypeStat, Meta, Tournament } from "@/lib/types";
 import { getArchetypeStats, getMetas, getTournaments } from "@/lib/api";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
 import Pagination from "@/components/pagination";
+import TournamentsTable from "./TournamentsTable";
 
 type SearchParams = {
     meta_id?: string;
@@ -16,15 +14,6 @@ type SearchParams = {
     winner_archetype?: string;
     page?: string;
 };
-
-function formatDate(value: string) {
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        timeZone: "UTC",
-    }).format(new Date(value));
-}
 
 function EmptyState({ title, copy }: { title: string; copy: string }) {
     return (
@@ -148,50 +137,6 @@ function TournamentFilters({
             <button type="submit">Apply filters</button>
         </form>
     );
-}
-
-function TournamentsTable({ tournaments }: { tournaments: Tournament[] }) {
-    const columns = [
-        {
-            key: "event",
-            label: "Event",
-            render: (t: Tournament) => (
-                <Link className="table-link" href={`/tournaments/${t.id}`}>
-                    <div className="table-title">{t.name}</div>
-                    <div className="muted tiny">{t.meta_name}</div>
-                </Link>
-            ),
-        },
-        {
-            key: "date",
-            label: "Date",
-            render: (t: Tournament) => formatDate(t.date),
-        },
-        {
-            key: "players",
-            label: "Players",
-            render: (t: Tournament) => t.players.toLocaleString(),
-        },
-        {
-            key: "source",
-            label: "Source",
-            render: (t: Tournament) => (
-                <span className={`badge ${t.is_online ? "badge--online" : ""}`}>
-                    {t.is_online ? "Online" : "In person"}
-                </span>
-            ),
-        },
-        {
-            key: "winner_archetype",
-            label: "Winner archetype",
-            render: (t: Tournament) =>
-                t.winner_archetype ?? (
-                    <span className="muted tiny">Unknown</span>
-                ),
-        },
-    ];
-
-    return <Table columns={columns} rows={tournaments} />;
 }
 
 export default async function TournamentsPage({

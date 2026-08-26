@@ -117,11 +117,13 @@ function ArchetypesTable({
                     <div className="table-title">{s.name}</div>
                 </Link>
             ),
+            sortValue: (s: ArchetypeStat) => s.name,
         },
         {
             key: "decks",
             label: "Decklists",
             render: (s: ArchetypeStat) => s.deck_count.toLocaleString(),
+            sortValue: (s: ArchetypeStat) => s.deck_count,
         },
         {
             key: "win_rate",
@@ -147,6 +149,7 @@ function ArchetypesTable({
             key: "record",
             label: "Record",
             render: (s: ArchetypeStat) => `${s.wins}–${s.losses}–${s.ties}`,
+            sortValue: (s: ArchetypeStat) => s.wins - s.losses,
         },
     ];
 

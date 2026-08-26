@@ -569,6 +569,37 @@ th .info-tooltip:focus {
     border-color: var(--accent-3);
 }
 
+.th-sort-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+}
+
+.th-sort-button:hover,
+.th-sort-button:focus-visible {
+    color: var(--text);
+}
+
+.th-sort-indicator {
+    font-size: 0.7em;
+    opacity: 0.6;
+}
+
+.th-sortable[aria-sort="ascending"] .th-sort-indicator,
+.th-sortable[aria-sort="descending"] .th-sort-indicator {
+    opacity: 1;
+    color: var(--accent);
+}
+
 .table-link {
     display: block;
 }

@@ -1,39 +1,14 @@
 import type { ArchetypeStat, Meta, Tournament } from "@/lib/types";
 import Link from "next/link";
 import Hero from "@/components/hero";
-import Table from "@/components/table";
 import Card from "@/components/card";
 
 import { getArchetypeStats, getMetas, getTournaments } from "@/lib/api";
+import { LiveTournamentsTable, TopArchetypesTable } from "./HomeTables";
 
 type SearchParams = {
     meta_id?: string;
 };
-
-function formatDate(value: string) {
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        timeZone: "UTC",
-    }).format(new Date(value));
-}
-
-function formatPercent(value: number | null) {
-    if (value === null) {
-        return "—";
-    }
-
-    return `${Math.round(value * 1000) / 10}%`;
-}
-
-function formatStanding(value: number | null) {
-    if (value === null) {
-        return "—";
-    }
-
-    return Math.round(value).toLocaleString();
-}
 
 function TopStatCard({
     label,
@@ -199,49 +174,8 @@ export default async function Home({
                         headingMeta={<span className="muted">32+ players</span>}
                     >
                         {liveTournaments.length > 0 ? (
-                            <Table
-                                columns={[
-                                    {
-                                        key: "event",
-                                        label: "Event",
-                                        render: (t: Tournament) => (
-                                            <Link
-                                                className="table-link"
-                                                href={`/tournaments/${t.id}`}
-                                            >
-                                                <div className="table-title">
-                                                    {t.name}
-                                                </div>
-                                            </Link>
-                                        ),
-                                    },
-                                    {
-                                        key: "date",
-                                        label: "Date",
-                                        render: (t: Tournament) =>
-                                            formatDate(t.date),
-                                    },
-                                    {
-                                        key: "players",
-                                        label: "Players",
-                                        render: (t: Tournament) =>
-                                            t.players.toLocaleString(),
-                                    },
-                                    {
-                                        key: "source",
-                                        label: "Source",
-                                        render: (t: Tournament) => (
-                                            <span
-                                                className={`badge ${t.is_online ? "badge--online" : ""}`}
-                                            >
-                                                {t.is_online
-                                                    ? "Online"
-                                                    : "In person"}
-                                            </span>
-                                        ),
-                                    },
-                                ]}
-                                rows={liveTournaments}
+                            <LiveTournamentsTable
+                                tournaments={liveTournaments}
                             />
                         ) : (
                             <EmptyState
@@ -272,47 +206,9 @@ export default async function Home({
                         }
                     >
                         {archetypes.length > 0 ? (
-                            <Table
-                                columns={[
-                                    {
-                                        key: "archetype",
-                                        label: "Archetype",
-                                        render: (stat: ArchetypeStat) =>
-                                            activeMeta ? (
-                                                <Link
-                                                    className="table-link"
-                                                    href={`/matchups?meta_id=${activeMeta.id}&archetype_id=${stat.id}`}
-                                                >
-                                                    <div className="table-title">
-                                                        {stat.name}
-                                                    </div>
-                                                </Link>
-                                            ) : (
-                                                <div className="table-title">
-                                                    {stat.name}
-                                                </div>
-                                            ),
-                                    },
-                                    {
-                                        key: "decks",
-                                        label: "Decks",
-                                        render: (s: ArchetypeStat) =>
-                                            s.deck_count.toLocaleString(),
-                                    },
-                                    {
-                                        key: "avg",
-                                        label: "Avg standing",
-                                        render: (s: ArchetypeStat) =>
-                                            formatStanding(s.avg_standing),
-                                    },
-                                    {
-                                        key: "win",
-                                        label: "Win rate",
-                                        render: (s: ArchetypeStat) =>
-                                            formatPercent(s.win_rate),
-                                    },
-                                ]}
-                                rows={archetypes.slice(0, 10)}
+                            <TopArchetypesTable
+                                archetypes={archetypes.slice(0, 10)}
+                                activeMetaId={activeMeta?.id ?? null}
                             />
                         ) : (
                             <EmptyState

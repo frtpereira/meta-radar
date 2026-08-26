@@ -2,15 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
-import Table from "@/components/table";
 
-import type { CardStat, MatchupStat } from "@/lib/types";
+import type { MatchupStat } from "@/lib/types";
 import {
     getArchetypeCardStats,
     getArchetypeDetail,
     getArchetypeStats,
     getMatchupStats,
 } from "@/lib/api";
+import {
+    MatchupMiniTable,
+    OptionalCardsTable,
+    SkeletonCategory,
+} from "./DecklistTables";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,266 +37,6 @@ function EmptyState({ title, copy }: { title: string; copy: string }) {
             <p>{copy}</p>
         </div>
     );
-}
-
-/** Thin horizontal progress bar, gold→coral gradient */
-function PresenceBar({ value }: { value: number }) {
-    return (
-        <div
-            style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                minWidth: 120,
-            }}
-        >
-            <div
-                style={{
-                    flex: 1,
-                    height: 5,
-                    background: "var(--overlay-med)",
-                    borderRadius: 3,
-                    overflow: "hidden",
-                }}
-            >
-                <div
-                    style={{
-                        width: `${Math.round(value * 100)}%`,
-                        height: "100%",
-                        background:
-                            "linear-gradient(90deg, var(--accent), var(--accent-2))",
-                        borderRadius: 3,
-                    }}
-                />
-            </div>
-            <span
-                className="tiny"
-                style={{
-                    color:
-                        value >= 0.9
-                            ? "var(--success)"
-                            : value >= 0.7
-                              ? "var(--accent)"
-                              : "var(--muted)",
-                    fontWeight: 600,
-                    minWidth: 38,
-                    textAlign: "right",
-                }}
-            >
-                {Math.round(value * 100)}%
-            </span>
-        </div>
-    );
-}
-
-/** Compact copy-count distribution: ×4 85%  ×3 15% */
-function CountDist({
-    dist,
-    totalDecklists,
-}: {
-    dist: Record<string, number>;
-    totalDecklists: number;
-}) {
-    const entries = Object.entries(dist)
-        .map(([cnt, frac]) => ({ cnt: Number(cnt), frac }))
-        .sort((a, b) => b.frac - a.frac);
-
-    if (entries.length === 0) return <span className="muted">—</span>;
-
-    return (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {entries.map(({ cnt, frac }) => (
-                <span
-                    key={cnt}
-                    style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 3,
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        border: "1px solid var(--line)",
-                        background: "var(--overlay-soft)",
-                        fontSize: "0.76rem",
-                        whiteSpace: "nowrap",
-                    }}
-                >
-                    <span style={{ color: "var(--accent)", fontWeight: 700 }}>
-                        ×{cnt}
-                    </span>
-                    <span className="muted">{Math.round(frac * 100)}%</span>
-                </span>
-            ))}
-        </div>
-    );
-}
-
-/** One category block inside the skeleton section */
-function SkeletonCategory({
-    label,
-    cards,
-    totalDecklists,
-}: {
-    label: string;
-    cards: CardStat[];
-    totalDecklists: number;
-}) {
-    if (cards.length === 0) return null;
-
-    const columns = [
-        {
-            key: "count",
-            label: "Count",
-            render: (c: CardStat) => (
-                <span
-                    style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        background: "rgba(255,209,102,0.12)",
-                        border: "1px solid rgba(255,209,102,0.3)",
-                        color: "var(--accent)",
-                        fontWeight: 700,
-                        fontSize: "0.85rem",
-                        fontFamily: "Georgia, serif",
-                    }}
-                >
-                    {c.modal_count}
-                </span>
-            ),
-        },
-        {
-            key: "card",
-            label: "Card",
-            render: (c: CardStat) => (
-                <div>
-                    <div className="table-title">{c.name}</div>
-                    {c.set ? (
-                        <div className="muted tiny">
-                            {c.set}
-                            {c.number ? ` ${c.number}` : ""}
-                        </div>
-                    ) : null}
-                </div>
-            ),
-        },
-        {
-            key: "presence",
-            label: "Usage",
-            render: (c: CardStat) => <PresenceBar value={c.presence} />,
-        },
-        {
-            key: "dist",
-            label: "Count distribution",
-            render: (c: CardStat) => (
-                <CountDist
-                    dist={c.count_distribution}
-                    totalDecklists={totalDecklists}
-                />
-            ),
-        },
-    ];
-
-    return (
-        <div style={{ marginTop: 24 }}>
-            <p
-                className="eyebrow"
-                style={{
-                    marginBottom: 10,
-                    paddingBottom: 8,
-                    borderBottom: "1px solid var(--line)",
-                }}
-            >
-                {label}
-            </p>
-            <Table columns={columns} rows={cards} />
-        </div>
-    );
-}
-
-/** Best / Worst matchup mini-table */
-function MatchupMiniTable({
-    stats,
-    archetypeId,
-    label,
-    colorFn,
-}: {
-    stats: MatchupStat[];
-    archetypeId: number;
-    label: string;
-    colorFn: (wr: number | null) => string;
-}) {
-    if (stats.length === 0) {
-        return (
-            <EmptyState
-                title={`No ${label.toLowerCase()} data`}
-                copy="Run the pairings pipeline to populate matchup stats."
-            />
-        );
-    }
-
-    const columns = [
-        {
-            key: "opponent",
-            label: "Opponent",
-            render: (s: MatchupStat) => {
-                const opp =
-                    String(s.archetype.id) === String(archetypeId)
-                        ? s.opponent
-                        : s.archetype;
-                return <div className="table-title">{opp.name}</div>;
-            },
-        },
-        {
-            key: "record",
-            label: "Record",
-            render: (s: MatchupStat) => {
-                const weAreArchetype =
-                    String(s.archetype.id) === String(archetypeId);
-                const w = weAreArchetype ? s.wins : s.losses;
-                const l = weAreArchetype ? s.losses : s.wins;
-                return (
-                    <span className="muted tiny">
-                        {w}–{l}–{s.ties}
-                    </span>
-                );
-            },
-        },
-        {
-            key: "win_rate",
-            label: "Win rate",
-            render: (s: MatchupStat) => {
-                const weAreArchetype =
-                    String(s.archetype.id) === String(archetypeId);
-                const w = weAreArchetype ? s.wins : s.losses;
-                const l = weAreArchetype ? s.losses : s.wins;
-                const total = w + l + s.ties;
-                const wr = total > 0 ? w / total : null;
-                return (
-                    <span
-                        style={{
-                            color: colorFn(wr),
-                            fontWeight: 700,
-                            fontFamily: "Georgia, serif",
-                        }}
-                    >
-                        {formatPercent(wr)}
-                    </span>
-                );
-            },
-        },
-        {
-            key: "matches",
-            label: "Matches",
-            render: (s: MatchupStat) => (
-                <span className="muted tiny">{s.matches.toLocaleString()}</span>
-            ),
-        },
-    ];
-
-    return <Table columns={columns} rows={stats} />;
 }
 
 // ─── page ─────────────────────────────────────────────────────────────────────
@@ -387,19 +131,6 @@ export default async function DecklistDetailPage({
         .slice(-5)
         .reverse()
         .map((m) => m.stat);
-
-    const goodColor = (wr: number | null) =>
-        wr === null
-            ? "var(--muted)"
-            : wr >= 0.55
-              ? "var(--success)"
-              : "var(--accent)";
-    const badColor = (wr: number | null) =>
-        wr === null
-            ? "var(--muted)"
-            : wr < 0.4
-              ? "var(--accent-2)"
-              : "var(--muted)";
 
     return (
         <main className="page">
@@ -518,77 +249,7 @@ export default async function DecklistDetailPage({
                             copy="Run the clustering pipeline to separate core cards from tech choices."
                         />
                     ) : (
-                        <Table
-                            columns={[
-                                {
-                                    key: "card",
-                                    label: "Card",
-                                    render: (c: CardStat) => (
-                                        <div>
-                                            <div className="table-title">
-                                                {c.name}
-                                            </div>
-                                            {c.set ? (
-                                                <div className="muted tiny">
-                                                    {c.set}
-                                                    {c.number
-                                                        ? ` ${c.number}`
-                                                        : ""}
-                                                </div>
-                                            ) : null}
-                                        </div>
-                                    ),
-                                },
-                                {
-                                    key: "category",
-                                    label: "Category",
-                                    render: (c: CardStat) => (
-                                        <span className="badge">
-                                            {c.category === "pokemon"
-                                                ? "Pokémon"
-                                                : c.category === "trainer"
-                                                  ? "Trainer"
-                                                  : c.category === "energy"
-                                                    ? "Energy"
-                                                    : c.category}
-                                        </span>
-                                    ),
-                                },
-                                {
-                                    key: "usage",
-                                    label: "Usage",
-                                    render: (c: CardStat) => (
-                                        <PresenceBar value={c.presence} />
-                                    ),
-                                },
-                                {
-                                    key: "typical",
-                                    label: "Typical count",
-                                    render: (c: CardStat) => (
-                                        <span
-                                            style={{
-                                                color: "var(--accent)",
-                                                fontWeight: 700,
-                                                fontFamily: "Georgia, serif",
-                                            }}
-                                        >
-                                            ×{c.modal_count}
-                                        </span>
-                                    ),
-                                },
-                                {
-                                    key: "dist",
-                                    label: "Count distribution",
-                                    render: (c: CardStat) => (
-                                        <CountDist
-                                            dist={c.count_distribution}
-                                            totalDecklists={totalDecklists}
-                                        />
-                                    ),
-                                },
-                            ]}
-                            rows={optionalCards}
-                        />
+                        <OptionalCardsTable cards={optionalCards} />
                     )}
                 </Card>
 
@@ -617,7 +278,7 @@ export default async function DecklistDetailPage({
                             stats={bestAgainst}
                             archetypeId={archetype.id}
                             label="Best against"
-                            colorFn={goodColor}
+                            variant="good"
                         />
                     </Card>
 
@@ -644,7 +305,7 @@ export default async function DecklistDetailPage({
                             stats={worstAgainst}
                             archetypeId={archetype.id}
                             label="Worst against"
-                            colorFn={badColor}
+                            variant="bad"
                         />
                     </Card>
                 </section>

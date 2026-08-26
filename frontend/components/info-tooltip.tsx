@@ -7,7 +7,14 @@ import React from "react";
 // bubble would risk being clipped.
 export default function InfoTooltip({ text }: { text: string }) {
     return (
-        <span className="info-tooltip" tabIndex={0} title={text}>
+        <span
+            className="info-tooltip"
+            tabIndex={0}
+            title={text}
+            // Table headers can wrap this in a sort button; keep taps/clicks
+            // on the tooltip from also triggering a sort toggle.
+            onClick={(e) => e.stopPropagation()}
+        >
             ?<span className="sr-only"> {text}</span>
         </span>
     );
