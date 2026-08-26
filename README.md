@@ -70,6 +70,98 @@ migrate create -ext sql -dir db/migrations -seq add_pairings_table
 and run migrations explicitly (e.g. from `cmd/api/main.go` on startup, or a
 separate `make migrate` target) instead of relying on container init.
 
+## Testing
+
+This project includes unit tests for the Go backend and unit + E2E tests
+for the Next.js frontend. The steps below describe how to run them
+locally.
+
+Prerequisites:
+
+- Go (as required by the backend module)
+- Node.js and npm (for the frontend)
+- Docker (if you want to run the full stack services during tests)
+
+Backend (Go) unit tests
+
+1. Change to the backend folder and run the tests:
+
+```bash
+cd backend
+go test ./...
+```
+
+2. If a test imports `github.com/stretchr/testify` and it's not present
+   in your `go.sum`, fetch it:
+
+```bash
+cd backend
+go get github.com/stretchr/testify@latest
+go test ./...
+```
+
+Frontend unit tests (Vitest)
+
+1. Install frontend dependencies. Testing packages may have peer-dep
+   constraints; if install fails use `--legacy-peer-deps`:
+
+```bash
+npm --prefix frontend install --legacy-peer-deps
+```
+
+2. (Optional) Install Playwright browsers if you plan to run E2E below:
+
+```bash
+npx --prefix frontend playwright install
+```
+
+3. Run unit tests with Vitest:
+
+```bash
+npx --prefix frontend vitest
+```
+
+If Vitest reports missing `jsdom`, install it (use legacy peer resolution
+if you run into peer dependency errors):
+
+```bash
+npm --prefix frontend install jsdom --save-dev --legacy-peer-deps
+npx --prefix frontend vitest
+```
+
+Frontend E2E tests (Playwright)
+
+1. Ensure the frontend dev server and API are available. Playwright can
+   be configured to start the dev server automatically; in this repo
+   the Playwright config will start `npm run dev` for the frontend but
+   the backend API must be running separately if your tests hit it.
+
+2. Install browsers (if not already):
+
+```bash
+npx --prefix frontend playwright install
+# On Linux you may also need system dependencies:
+# sudo npx --prefix frontend playwright install-deps
+```
+
+3. Run Playwright tests (this will start the dev server if configured):
+
+```bash
+npx --prefix frontend playwright test
+```
+
+Notes
+
+- Use `npm --prefix frontend install --legacy-peer-deps` when you see
+  peer dependency resolution errors (React 19 vs testing-library versions
+  is a common friction point today).
+- Playwright downloads browser binaries and may require additional OS
+  packages on Linux; run `playwright install-deps` as shown above if you
+  see host validation warnings.
+- The backend example test uses only the handler code and does not start
+  external services; integration tests that hit Postgres will need the
+  database running (via `make up` or your local Postgres).
+
 ## API Reference
 
 Interactive Swagger UI is served at `http://localhost:8080/swagger/index.html`

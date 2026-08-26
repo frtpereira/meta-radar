@@ -15,15 +15,24 @@ import (
 
 	"github.com/frtpereira/meta-radar/internal/limitless"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// SyncerDB keeps Syncer tied only to the pgx behavior it uses, which lets
+// tests drive ingestion through pgxmock while production still passes a pool.
+type SyncerDB interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Begin(ctx context.Context) (pgx.Tx, error)
+}
+
 type Syncer struct {
-	DB     *pgxpool.Pool
+	DB     SyncerDB
 	Client *limitless.Client
 }
 
-func NewSyncer(db *pgxpool.Pool, client *limitless.Client) *Syncer {
+func NewSyncer(db SyncerDB, client *limitless.Client) *Syncer {
 	return &Syncer{DB: db, Client: client}
 }
 
