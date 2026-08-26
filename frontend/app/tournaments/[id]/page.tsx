@@ -1,11 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import Hero from "@/components/hero";
-import Table from "@/components/table";
 import Card from "@/components/card";
 
-import type { TournamentStanding } from "@/lib/types";
 import { getTournament } from "@/lib/api";
+import StandingsTable from "./StandingsTable";
 
 function formatDate(value: string) {
     return new Intl.DateTimeFormat("en-US", {
@@ -14,10 +12,6 @@ function formatDate(value: string) {
         year: "numeric",
         timeZone: "UTC",
     }).format(new Date(value));
-}
-
-function formatStanding(value: number) {
-    return value === 0 ? "Dropped" : `#${value}`;
 }
 
 function EmptyState({ title, copy }: { title: string; copy: string }) {
@@ -91,45 +85,7 @@ export default async function TournamentPage({
                     }
                 >
                     {tournament.standings.length > 0 ? (
-                        <Table
-                            columns={[
-                                {
-                                    key: "standing",
-                                    label: "Standing",
-                                    render: (r: any) =>
-                                        formatStanding(r.standing),
-                                },
-                                {
-                                    key: "player",
-                                    label: "Player",
-                                    render: (r: any) => (
-                                        <div className="table-title">
-                                            {r.player_name}
-                                        </div>
-                                    ),
-                                    sortValue: (r: TournamentStanding) => r.player_name,
-                                },
-                                {
-                                    key: "archetype",
-                                    label: "Archetype",
-                                    render: (r: any) =>
-                                        r.archetype_name ?? (
-                                            <span className="muted tiny">
-                                                Unknown
-                                            </span>
-                                        ),
-                                    sortValue: (r: TournamentStanding) => r.archetype_name,
-                                },
-                                {
-                                    key: "score",
-                                    label: "Score",
-                                    render: (r: any) =>
-                                        `${r.wins}-${r.losses}-${r.ties}`,
-                                    sortValue: (r: TournamentStanding) => r.wins - r.losses,
-                                },
-                            ]}
-                            rows={tournament.standings}
-                        />
+                        <StandingsTable standings={tournament.standings} />
                     ) : (
                         <EmptyState
                             title="No standings yet"
