@@ -17,7 +17,7 @@ import (
 	"sort"
 
 	"github.com/frtpereira/meta-radar/internal/models"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 )
 
 // DefaultCoreThreshold: a card played in at least 70% of an archetype's
@@ -25,10 +25,16 @@ import (
 const DefaultCoreThreshold = 0.7
 
 type Clusterer struct {
-	DB *pgxpool.Pool
+	DB ClustererDB
 }
 
-func NewClusterer(db *pgxpool.Pool) *Clusterer {
+// ClustererDB narrows database access to the methods clustering actually uses.
+type ClustererDB interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	Begin(ctx context.Context) (pgx.Tx, error)
+}
+
+func NewClusterer(db ClustererDB) *Clusterer {
 	return &Clusterer{DB: db}
 }
 
@@ -180,7 +186,7 @@ func coreCardList(decks []deckRow, core map[string]bool) []models.Card {
 		c := rep[k]
 		bestCount, bestFreq := c.Count, -1
 		for cnt, freq := range countFreq[k] {
-			if freq > bestFreq {
+			if freq > bestFreq || (freq == bestFreq && cnt < bestCount) {
 				bestCount, bestFreq = cnt, freq
 			}
 		}
