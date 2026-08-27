@@ -166,28 +166,19 @@ const successCases = [
     {
         name: "getMatchupStats",
         call: () => getMatchupStats({ metaId: "meta-1" }),
-        expectedPath:
-            "/matchups/stats?meta_id=meta-1&min_matches=20&page=1&page_size=20",
-        payload: {
-            total: 1,
-            page: 1,
-            page_size: 20,
-            total_pages: 1,
-            prev_page: 0,
-            next_page: 0,
-            items: [
-                {
-                    archetype: { id: 1, name: "Charizard", slug: "charizard" },
-                    opponent: { id: 2, name: "Gardevoir", slug: "gardevoir" },
-                    matches: 18,
-                    wins: 10,
-                    losses: 6,
-                    ties: 2,
-                    score_rate: 0.61,
-                    win_rate: 0.63,
-                },
-            ],
-        },
+        expectedPath: "/matchups/stats?meta_id=meta-1&min_matches=20",
+        payload: [
+            {
+                archetype: { id: 1, name: "Charizard", slug: "charizard" },
+                opponent: { id: 2, name: "Gardevoir", slug: "gardevoir" },
+                matches: 18,
+                wins: 10,
+                losses: 6,
+                ties: 2,
+                score_rate: 0.61,
+                win_rate: 0.63,
+            },
+        ],
     },
 ] as const;
 
@@ -312,13 +303,13 @@ describe("api fetch helpers", () => {
             ok: true,
             status: 200,
             statusText: "OK",
-            body: JSON.stringify({ items: [] }),
+            body: JSON.stringify([]),
         });
 
         await getMatchupStats({ metaId: "meta-1" });
 
         expect(fetchMock).toHaveBeenCalledWith(
-            `${API_BASE}/matchups/stats?meta_id=meta-1&min_matches=20&page=1&page_size=20`,
+            `${API_BASE}/matchups/stats?meta_id=meta-1&min_matches=20`,
             { cache: "no-store" },
         );
     });
@@ -328,7 +319,7 @@ describe("api fetch helpers", () => {
             ok: true,
             status: 200,
             statusText: "OK",
-            body: JSON.stringify({ items: [] }),
+            body: JSON.stringify([]),
         });
 
         await getMatchupStats({
@@ -336,12 +327,10 @@ describe("api fetch helpers", () => {
             archetypeId: "7",
             minMatches: 5,
             includeMirrors: false,
-            page: 2,
-            pageSize: 40,
         });
 
         expect(fetchMock).toHaveBeenCalledWith(
-            `${API_BASE}/matchups/stats?meta_id=meta-1&min_matches=5&archetype_id=7&include_mirrors=false&page=2&page_size=40`,
+            `${API_BASE}/matchups/stats?meta_id=meta-1&min_matches=5&archetype_id=7&include_mirrors=false`,
             { cache: "no-store" },
         );
     });

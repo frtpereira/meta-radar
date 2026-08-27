@@ -9,6 +9,8 @@ import InfoTooltip from "@/components/info-tooltip";
 // Server -> Client Component boundary, so this column configuration lives
 // here, in a client module, rather than inline in the (Server Component)
 // matchups page.
+const PAGE_SIZE = 20;
+
 function formatPercent(value: number | null) {
     if (value === null) {
         return "—";
@@ -28,6 +30,11 @@ export default function MatchupTable({
         {
             key: "primary",
             label: "Archetype",
+            // This column shows the currently-selected archetype's
+            // perspective, which flips per row depending on which side of
+            // the pairing the selected archetype was on -- not a stable
+            // sort key, so leave it unsortable.
+            sortable: false,
             render: (stat: MatchupStat) => {
                 const selectedIsArchetype =
                     String(stat.archetype.id) === String(selectedArchetypeId);
@@ -35,13 +42,6 @@ export default function MatchupTable({
                     ? stat.archetype
                     : stat.opponent;
                 return <div className="table-title">{primary.name}</div>;
-            },
-            sortValue: (stat: MatchupStat) => {
-                const selectedIsArchetype =
-                    String(stat.archetype.id) === String(selectedArchetypeId);
-                return selectedIsArchetype
-                    ? stat.archetype.name
-                    : stat.opponent.name;
             },
         },
         {
@@ -93,6 +93,7 @@ export default function MatchupTable({
         {
             key: "matches",
             label: "Matches",
+            sortDescFirst: true,
             render: (stat: MatchupStat) => stat.matches.toLocaleString(),
             sortValue: (stat: MatchupStat) => stat.matches,
         },
@@ -104,6 +105,7 @@ export default function MatchupTable({
                     <InfoTooltip text="Share of possible match points earned in this matchup, from the highlighted archetype's perspective: (wins + 0.5 × ties) ÷ matches played. Unlike win rate, ties count as half a win instead of being excluded." />
                 </>
             ),
+            sortDescFirst: true,
             render: (stat: MatchupStat) => {
                 const selectedIsArchetype =
                     String(stat.archetype.id) === String(selectedArchetypeId);
@@ -135,6 +137,7 @@ export default function MatchupTable({
         {
             key: "win_rate",
             label: "Win rate",
+            sortDescFirst: true,
             render: (stat: MatchupStat) => {
                 const selectedIsArchetype =
                     String(stat.archetype.id) === String(selectedArchetypeId);
@@ -160,5 +163,5 @@ export default function MatchupTable({
         },
     ];
 
-    return <Table columns={columns} rows={stats} />;
+    return <Table columns={columns} rows={stats} pageSize={PAGE_SIZE} />;
 }

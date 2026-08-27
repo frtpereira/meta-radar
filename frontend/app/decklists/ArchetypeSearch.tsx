@@ -8,65 +8,6 @@ import InfoTooltip from "@/components/info-tooltip";
 
 const PAGE_SIZE = 20;
 
-// Client-side pagination window, mirroring components/pagination.tsx's
-// prev/next + numbered-window layout, but driven by local state instead
-// of the URL: the archetype list here is filtered entirely in the
-// browser (see the note on ArchetypeSearch below), so there's no page
-// to navigate to on the server -- flipping pages just re-slices the
-// already-filtered array.
-function ArchetypePagination({
-    page,
-    totalPages,
-    onPageChange,
-}: {
-    page: number;
-    totalPages: number;
-    onPageChange: (page: number) => void;
-}) {
-    const windowSize = 2; // show current +/- 2
-    const pages: number[] = [];
-    for (
-        let i = Math.max(1, page - windowSize);
-        i <= Math.min(totalPages, page + windowSize);
-        i++
-    ) {
-        pages.push(i);
-    }
-
-    return (
-        <div className="pagination" style={{ marginTop: 12 }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <button
-                    className="button"
-                    onClick={() => onPageChange(Math.max(1, page - 1))}
-                    disabled={page <= 1}
-                >
-                    Prev
-                </button>
-
-                {pages.map((p) => (
-                    <button
-                        key={p}
-                        className={`button ${p === page ? "button--active" : ""}`}
-                        onClick={() => onPageChange(p)}
-                        aria-current={p === page}
-                    >
-                        {p}
-                    </button>
-                ))}
-
-                <button
-                    className="button"
-                    onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-                    disabled={page >= totalPages}
-                >
-                    Next
-                </button>
-            </div>
-        </div>
-    );
-}
-
 function formatPercent(value: number | null) {
     if (value === null) return "—";
     return `${Math.round(value * 1000) / 10}%`;
@@ -122,12 +63,14 @@ function ArchetypesTable({
         {
             key: "decks",
             label: "Decklists",
+            sortDescFirst: true,
             render: (s: ArchetypeStat) => s.deck_count.toLocaleString(),
             sortValue: (s: ArchetypeStat) => s.deck_count,
         },
         {
             key: "win_rate",
             label: "Win rate",
+            sortDescFirst: true,
             render: (s: ArchetypeStat) => <WinRateBadge value={s.win_rate} />,
         },
         {
@@ -138,6 +81,7 @@ function ArchetypesTable({
                     <InfoTooltip text="Share of possible match points earned: (wins + 0.5 × ties) ÷ matches played. Unlike win rate, ties count as half a win instead of being excluded." />
                 </>
             ),
+            sortDescFirst: true,
             render: (s: ArchetypeStat) => formatPercent(s.score_rate),
         },
         {
@@ -148,12 +92,13 @@ function ArchetypesTable({
         {
             key: "record",
             label: "Record",
+            // W-L-T alone doesn't reduce to one meaningful sort key.
+            sortable: false,
             render: (s: ArchetypeStat) => `${s.wins}–${s.losses}–${s.ties}`,
-            sortValue: (s: ArchetypeStat) => s.wins - s.losses,
         },
     ];
 
-    return <Table columns={columns} rows={archetypes} />;
+    return <Table columns={columns} rows={archetypes} pageSize={PAGE_SIZE} />;
 }
 
 // Client-side, instant filtering: the archetype list for a meta is small
@@ -161,12 +106,10 @@ function ArchetypesTable({
 // already loaded avoids a server round-trip and sidesteps the pagination
 // concerns a server-side search would raise on other list endpoints.
 //
-// Pagination (below) follows the same shape as the /matchups page, but
-// paginates over the already-filtered, in-browser array instead of a
-// server-paginated response -- the API isn't paginated here, so there's
-// nothing to fetch per page. Search stays fully functional: it filters
-// the complete archetype list before pagination ever slices it, so a
-// match on page 3 is still found even if you're currently viewing page 1.
+// The full filtered list (not a pre-sliced page of it) is handed to
+// Table, which sorts it and paginates the sorted result itself -- sorting
+// a page that was already sliced down to PAGE_SIZE rows could only ever
+// reorder that one page, not the full result set.
 export default function ArchetypeSearch({
     archetypes,
     metaId,
@@ -175,7 +118,6 @@ export default function ArchetypeSearch({
     metaId: string;
 }) {
     const [query, setQuery] = useState("");
-    const [page, setPage] = useState(1);
 
     const filtered = useMemo(() => {
         const trimmed = query.trim().toLowerCase();
@@ -183,19 +125,8 @@ export default function ArchetypeSearch({
         return archetypes.filter((a) => a.name.toLowerCase().includes(trimmed));
     }, [archetypes, query]);
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    // Clamp instead of resetting state directly during render: keeps the
-    // displayed page in range if a filter shrinks the result set without
-    // fighting the explicit page=1 reset in handleQueryChange below.
-    const safePage = Math.min(page, totalPages);
-    const paged = filtered.slice(
-        (safePage - 1) * PAGE_SIZE,
-        safePage * PAGE_SIZE,
-    );
-
     function handleQueryChange(value: string) {
         setQuery(value);
-        setPage(1);
     }
 
     return (
@@ -221,26 +152,7 @@ export default function ArchetypeSearch({
 
             {filtered.length > 0 ? (
                 <div style={{ marginTop: "18px" }}>
-                    <ArchetypesTable archetypes={paged} metaId={metaId} />
-                    {totalPages > 1 ? (
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "4px",
-                                marginTop: "16px",
-                            }}
-                        >
-                            <span className="muted">
-                                Page {safePage} of {totalPages}
-                            </span>
-                            <ArchetypePagination
-                                page={safePage}
-                                totalPages={totalPages}
-                                onPageChange={setPage}
-                            />
-                        </div>
-                    ) : null}
+                    <ArchetypesTable archetypes={filtered} metaId={metaId} />
                 </div>
             ) : (
                 <EmptyState

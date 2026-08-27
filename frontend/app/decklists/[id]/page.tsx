@@ -69,7 +69,7 @@ export default async function DecklistDetailPage({
     const resolvedMetaId = meta_id ?? archetype.meta_id;
 
     // Fetch the rest in parallel — gracefully degrade on failure
-    const [cardStats, archetypeStats, matchupPage] = await Promise.all([
+    const [cardStats, archetypeStats, matchupStats] = await Promise.all([
         getArchetypeCardStats(id).catch(
             () => [] as import("@/lib/types").CardStat[],
         ),
@@ -79,13 +79,7 @@ export default async function DecklistDetailPage({
             archetypeId: id,
             minMatches: 1,
             includeMirrors: false,
-            pageSize: 100,
-        }).catch(() => ({
-            items: [] as MatchupStat[],
-            total: 0,
-            page: 1,
-            page_size: 100,
-        })),
+        }).catch(() => [] as MatchupStat[]),
     ]);
 
     const totalDecklists =
@@ -111,7 +105,7 @@ export default async function DecklistDetailPage({
     const energyCards = byCategory("energy");
 
     // Derive per-archetype win rates from matchup stats, then rank
-    const matchupsWithWinRate = matchupPage.items.map((s) => {
+    const matchupsWithWinRate = matchupStats.map((s) => {
         const weAreArchetype = String(s.archetype.id) === id;
         const w = weAreArchetype ? s.wins : s.losses;
         const l = weAreArchetype ? s.losses : s.wins;
