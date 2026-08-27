@@ -189,7 +189,7 @@
         },
         "/api/matchups/stats": {
             "get": {
-                "description": "Returns paginated, directional archetype-vs-archetype matchup results for a meta.",
+                "description": "Returns directional archetype-vs-archetype matchup results for a meta. Not paginated -- matchups_mv rows for one meta are bounded by archetype-pair count, small enough for the frontend to sort/paginate client-side.",
                 "produces": [
                     "application/json"
                 ],
@@ -222,25 +222,16 @@
                         "description": "Include mirror matchups (default true)",
                         "name": "include_mirrors",
                         "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page number (default 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size, max 100 (default 20)",
-                        "name": "page_size",
-                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/apidocs.MatchupsResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/apidocs.MatchupStat"
+                            }
                         }
                     },
                     "400": {
@@ -298,7 +289,7 @@
         },
         "/api/tournaments": {
             "get": {
-                "description": "Lists tournaments, optionally filtered by minimum player count, format, and meta.",
+                "description": "Lists tournaments, optionally filtered by minimum player count, format, meta, and event name, and sorted by date, players, or winner archetype.",
                 "produces": [
                     "application/json"
                 ],
@@ -323,6 +314,24 @@
                         "type": "string",
                         "description": "Meta UUID to filter by",
                         "name": "meta_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Case-insensitive substring match on the tournament name",
+                        "name": "event_name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort column: date, players, or winner_archetype (default date)",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort direction: asc or desc (default desc)",
+                        "name": "sort_dir",
                         "in": "query"
                     },
                     {
@@ -621,41 +630,6 @@
                     "type": "number"
                 },
                 "wins": {
-                    "type": "integer"
-                }
-            }
-        },
-        "apidocs.MatchupsResponse": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/apidocs.MatchupStat"
-                    }
-                },
-                "next_page": {
-                    "type": "integer"
-                },
-                "next_url": {
-                    "type": "string"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "page_size": {
-                    "type": "integer"
-                },
-                "prev_page": {
-                    "type": "integer"
-                },
-                "prev_url": {
-                    "type": "string"
-                },
-                "total": {
-                    "type": "integer"
-                },
-                "total_pages": {
                     "type": "integer"
                 }
             }

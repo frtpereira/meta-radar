@@ -72,6 +72,9 @@ export async function getTournaments(options: {
     dateFrom?: string;
     dateTo?: string;
     winnerArchetype?: string;
+    eventName?: string;
+    sortBy?: string;
+    sortDir?: "asc" | "desc";
     page?: number;
     pageSize?: number;
 }) {
@@ -92,6 +95,13 @@ export async function getTournaments(options: {
     }
     if (options.winnerArchetype) {
         params.set("winner_archetype", options.winnerArchetype);
+    }
+    if (options.eventName) {
+        params.set("event_name", options.eventName);
+    }
+    if (options.sortBy) {
+        params.set("sort_by", options.sortBy);
+        params.set("sort_dir", options.sortDir ?? "asc");
     }
     params.set("page", String(options.page ?? 1));
     params.set("page_size", String(options.pageSize ?? 20));
@@ -119,25 +129,11 @@ export async function getArchetypeCardStats(id: string) {
     return fetchJson<CardStat[]>(`/archetypes/${id}/card-stats`);
 }
 
-export interface MatchupPage {
-    total: number;
-    page: number;
-    page_size: number;
-    total_pages: number;
-    prev_page: number;
-    next_page: number;
-    prev_url?: string;
-    next_url?: string;
-    items: MatchupStat[];
-}
-
 export async function getMatchupStats(options: {
     metaId: string;
     archetypeId?: string;
     minMatches?: number;
     includeMirrors?: boolean;
-    page?: number;
-    pageSize?: number;
 }) {
     const params = new URLSearchParams();
 
@@ -152,8 +148,9 @@ export async function getMatchupStats(options: {
             options.includeMirrors ? "true" : "false",
         );
     }
-    params.set("page", String(options.page ?? 1));
-    params.set("page_size", String(options.pageSize ?? 20));
 
-    return fetchJson<MatchupPage>(`/matchups/stats?${params.toString()}`);
+    // Not paginated server-side: matchups_mv rows for one meta are bounded
+    // by archetype-pair count, small enough to sort/paginate client-side
+    // (see MatchupTable) without a refetch per sort/page change.
+    return fetchJson<MatchupStat[]>(`/matchups/stats?${params.toString()}`);
 }

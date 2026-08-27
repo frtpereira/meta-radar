@@ -1,7 +1,6 @@
-import type { ArchetypeStat, Meta } from "@/lib/types";
+import type { ArchetypeStat, Meta, MatchupStat } from "@/lib/types";
 
 import { getArchetypeStats, getMatchupStats, getMetas } from "@/lib/api";
-import Pagination from "@/components/pagination";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
 import MatchupTable from "./MatchupTable";
@@ -10,7 +9,6 @@ type SearchParams = {
     meta_id?: string;
     archetype_id?: string;
     min_matches?: string;
-    page?: string;
 };
 
 function EmptyState({ title, copy }: { title: string; copy: string }) {
@@ -103,34 +101,34 @@ export default async function MatchupsPage({
     const activeMeta =
         metas.find((meta) => meta.id === params.meta_id) ?? metas[0] ?? null;
 
-    const selectedArchetypeId = params.archetype_id ?? "";
     const parsedMinMatches = Number.parseInt(params.min_matches ?? "20", 10);
     const minMatches =
         Number.isFinite(parsedMinMatches) && parsedMinMatches > 0
             ? parsedMinMatches
             : 20;
-    const page = Number.parseInt(params.page ?? "1", 10) || 1;
-    const pageSize = 20;
 
-    const [archetypes, matchupPage] = activeMeta
-        ? await Promise.all([
-              getArchetypeStats(activeMeta.id).catch(
-                  () => [] as ArchetypeStat[],
-              ),
-              getMatchupStats({
-                  metaId: activeMeta.id,
-                  archetypeId: selectedArchetypeId || undefined,
-                  minMatches,
-                  page,
-                  pageSize,
-              }).catch(() => ({
-                  total: 0,
-                  page,
-                  page_size: pageSize,
-                  items: [],
-              })),
-          ])
-        : [[], { total: 0, page, page_size: pageSize, items: [] }];
+    const archetypes = activeMeta
+        ? await getArchetypeStats(activeMeta.id).catch(
+              () => [] as ArchetypeStat[],
+          )
+        : [];
+
+    // Default to the most-used archetype (archetypes is already sorted by
+    // deck_count DESC server-side) unless the URL explicitly picked one --
+    // including an explicit "All archetypes" (empty string) selection,
+    // which must not be overridden by this default.
+    const selectedArchetypeId =
+        params.archetype_id !== undefined
+            ? params.archetype_id
+            : (archetypes[0]?.id.toString() ?? "");
+
+    const matchupStats = activeMeta
+        ? await getMatchupStats({
+              metaId: activeMeta.id,
+              archetypeId: selectedArchetypeId || undefined,
+              minMatches,
+          }).catch(() => [] as MatchupStat[])
+        : [];
 
     const selectedArchetype =
         archetypes.find(
@@ -172,7 +170,7 @@ export default async function MatchupsPage({
                     }
                     headingMeta={
                         <span className="muted">
-                            {matchupPage.total.toLocaleString()} rows
+                            {matchupStats.length.toLocaleString()} rows
                         </span>
                     }
                 >
@@ -206,53 +204,11 @@ export default async function MatchupsPage({
                         </span>
                     }
                 >
-                    {matchupPage.items.length > 0 ? (
-                        <>
-                            <MatchupTable
-                                stats={matchupPage.items}
-                                selectedArchetypeId={selectedArchetypeId}
-                            />
-                            <div className="pagination">
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "8px",
-                                        marginTop: "12px",
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <span className="muted">
-                                        Page {matchupPage.page} of{" "}
-                                        {Math.max(
-                                            1,
-                                            Math.ceil(
-                                                matchupPage.total /
-                                                    matchupPage.page_size,
-                                            ),
-                                        )}
-                                    </span>
-                                </div>
-
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "8px",
-                                        marginTop: "8px",
-                                    }}
-                                >
-                                    <Pagination
-                                        page={matchupPage.page}
-                                        totalPages={Math.max(
-                                            1,
-                                            Math.ceil(
-                                                matchupPage.total /
-                                                    matchupPage.page_size,
-                                            ),
-                                        )}
-                                    />
-                                </div>
-                            </div>
-                        </>
+                    {matchupStats.length > 0 ? (
+                        <MatchupTable
+                            stats={matchupStats}
+                            selectedArchetypeId={selectedArchetypeId}
+                        />
                     ) : (
                         <EmptyState
                             title="No matchup stats found"

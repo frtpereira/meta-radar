@@ -12,6 +12,9 @@ type SearchParams = {
     date_from?: string;
     date_to?: string;
     winner_archetype?: string;
+    event_name?: string;
+    sort_by?: string;
+    sort_dir?: string;
     page?: string;
 };
 
@@ -33,6 +36,7 @@ function TournamentFilters({
     dateFrom,
     dateTo,
     winnerArchetype,
+    eventName,
 }: {
     metas: Meta[];
     activeMeta: Meta | null;
@@ -42,99 +46,122 @@ function TournamentFilters({
     dateFrom: string;
     dateTo: string;
     winnerArchetype: string;
+    eventName: string;
 }) {
     return (
-        <form className="selector selector--stack" method="get">
-            <div className="selector__field">
-                <p className="eyebrow">Meta</p>
-                <label className="sr-only" htmlFor="meta_id">
-                    Select meta
-                </label>
-                <select
-                    id="meta_id"
-                    name="meta_id"
-                    defaultValue={activeMeta?.id ?? ""}
-                >
-                    {metas.map((meta) => (
-                        <option key={meta.id} value={meta.id}>
-                            {meta.name}
-                        </option>
-                    ))}
-                </select>
+        <form
+            method="get"
+            style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+        >
+            <div className="selector selector--stack">
+                <div className="selector__field" style={{ flex: 1 }}>
+                    <p className="eyebrow">Event name</p>
+                    <label className="sr-only" htmlFor="event_name">
+                        Search event name
+                    </label>
+                    <input
+                        id="event_name"
+                        name="event_name"
+                        type="search"
+                        placeholder="Search events…"
+                        defaultValue={eventName}
+                        style={{ width: "100%", minWidth: "auto" }}
+                    />
+                </div>
+
+                <div className="selector__field">
+                    <p className="eyebrow">Meta</p>
+                    <label className="sr-only" htmlFor="meta_id">
+                        Select meta
+                    </label>
+                    <select
+                        id="meta_id"
+                        name="meta_id"
+                        defaultValue={activeMeta?.id ?? ""}
+                    >
+                        {metas.map((meta) => (
+                            <option key={meta.id} value={meta.id}>
+                                {meta.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="selector__field">
+                    <p className="eyebrow">Source</p>
+                    <label className="sr-only" htmlFor="source">
+                        Filter by source
+                    </label>
+                    <select id="source" name="source" defaultValue={source}>
+                        <option value="">All sources</option>
+                        <option value="online">Online</option>
+                        <option value="offline">In person</option>
+                    </select>
+                </div>
+
+                <div className="selector__field">
+                    <p className="eyebrow">Minimum players</p>
+                    <label className="sr-only" htmlFor="min_players">
+                        Minimum players
+                    </label>
+                    <input
+                        id="min_players"
+                        name="min_players"
+                        type="number"
+                        min={0}
+                        defaultValue={minPlayers}
+                    />
+                </div>
             </div>
 
-            <div className="selector__field">
-                <p className="eyebrow">Source</p>
-                <label className="sr-only" htmlFor="source">
-                    Filter by source
-                </label>
-                <select id="source" name="source" defaultValue={source}>
-                    <option value="">All sources</option>
-                    <option value="online">Online</option>
-                    <option value="offline">In person</option>
-                </select>
-            </div>
+            <div className="selector selector--stack">
+                <div className="selector__field">
+                    <p className="eyebrow">From date</p>
+                    <label className="sr-only" htmlFor="date_from">
+                        From date
+                    </label>
+                    <input
+                        id="date_from"
+                        name="date_from"
+                        type="date"
+                        defaultValue={dateFrom}
+                    />
+                </div>
 
-            <div className="selector__field">
-                <p className="eyebrow">Minimum players</p>
-                <label className="sr-only" htmlFor="min_players">
-                    Minimum players
-                </label>
-                <input
-                    id="min_players"
-                    name="min_players"
-                    type="number"
-                    min={0}
-                    defaultValue={minPlayers}
-                />
-            </div>
+                <div className="selector__field">
+                    <p className="eyebrow">To date</p>
+                    <label className="sr-only" htmlFor="date_to">
+                        To date
+                    </label>
+                    <input
+                        id="date_to"
+                        name="date_to"
+                        type="date"
+                        defaultValue={dateTo}
+                    />
+                </div>
 
-            <div className="selector__field">
-                <p className="eyebrow">From date</p>
-                <label className="sr-only" htmlFor="date_from">
-                    From date
-                </label>
-                <input
-                    id="date_from"
-                    name="date_from"
-                    type="date"
-                    defaultValue={dateFrom}
-                />
-            </div>
+                <div className="selector__field">
+                    <p className="eyebrow">Winner archetype</p>
+                    <label className="sr-only" htmlFor="winner_archetype">
+                        Filter by winner archetype
+                    </label>
+                    <select
+                        id="winner_archetype"
+                        name="winner_archetype"
+                        defaultValue={winnerArchetype}
+                    >
+                        <option value="">All archetypes</option>
+                        {archetypes.map((archetype) => (
+                            <option key={archetype.id} value={archetype.slug}>
+                                {archetype.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-            <div className="selector__field">
-                <p className="eyebrow">To date</p>
-                <label className="sr-only" htmlFor="date_to">
-                    To date
-                </label>
-                <input
-                    id="date_to"
-                    name="date_to"
-                    type="date"
-                    defaultValue={dateTo}
-                />
+                <button type="submit">Apply filters</button>
             </div>
-
-            <div className="selector__field">
-                <p className="eyebrow">Winner archetype</p>
-                <label className="sr-only" htmlFor="winner_archetype">
-                    Filter by winner archetype
-                </label>
-                <select
-                    id="winner_archetype"
-                    name="winner_archetype"
-                    defaultValue={winnerArchetype}
-                >
-                    <option value="">All archetypes</option>
-                    {archetypes.map((archetype) => (
-                        <option key={archetype.id} value={archetype.slug}>
-                            {archetype.name}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            <button type="submit">Apply filters</button>
         </form>
     );
 }
@@ -161,6 +188,9 @@ export default async function TournamentsPage({
     const dateFrom = params.date_from ?? "";
     const dateTo = params.date_to ?? "";
     const winnerArchetype = params.winner_archetype ?? "";
+    const eventName = params.event_name ?? "";
+    const sortBy = params.sort_by ?? "";
+    const sortDir = params.sort_dir === "asc" ? "asc" : "desc";
     const page = Number.parseInt(params.page ?? "1", 10) || 1;
     const pageSize = 20;
 
@@ -178,6 +208,9 @@ export default async function TournamentsPage({
               dateFrom: dateFrom || undefined,
               dateTo: dateTo || undefined,
               winnerArchetype: winnerArchetype || undefined,
+              eventName: eventName || undefined,
+              sortBy: sortBy || undefined,
+              sortDir,
               page,
               pageSize,
           }).catch(() => ({
@@ -248,6 +281,7 @@ export default async function TournamentsPage({
                             dateFrom={dateFrom}
                             dateTo={dateTo}
                             winnerArchetype={winnerArchetype}
+                            eventName={eventName}
                         />
                     ) : (
                         <EmptyState

@@ -53,24 +53,44 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// tournamentSortColumns whitelists the columns ListTournaments can sort by,
+// mapping the public sort_by value to a trusted SQL expression -- the
+// query string is never interpolated directly, so an unrecognized value
+// can't be used to inject arbitrary SQL.
+var tournamentSortColumns = map[string]string{
+	"date":             "t.date",
+	"players":          "t.players",
+	"winner_archetype": "w.archetype_name",
+}
+
 // ListTournaments supports ?min_players=32&format=STANDARD&meta_id=...&source=online|offline
-// &date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&winner_archetype=<slug>&page=1&page_size=20
+// &date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&winner_archetype=<slug>&event_name=<substring>
+// &sort_by=date|players|winner_archetype&sort_dir=asc|desc&page=1&page_size=20
 // so the frontend can drive the tournament search filters directly via
 // query params rather than filtering client-side. source, date_from, date_to,
-// and winner_archetype are all optional; an empty/absent value leaves that
-// filter out entirely. date_from/date_to are inclusive on both ends.
-// winner_archetype matches the slug of the archetype that took 1st place
-// (see the LATERAL join below), not the archetype's display name.
+// winner_archetype, event_name, and sort_by/sort_dir are all optional; an
+// empty/absent value leaves that filter/ordering out entirely.
+// date_from/date_to are inclusive on both ends. winner_archetype matches
+// the slug of the archetype that took 1st place (see the LATERAL join
+// below), not the archetype's display name. event_name matches
+// case-insensitively anywhere in the tournament name (SQL LIKE, not an
+// exact match). sort_by defaults to "date" (descending) when absent or
+// not in tournamentSortColumns; sorting by "winner_archetype" always adds
+// date (descending) as a secondary key, both to break ties between same-
+// archetype winners and to keep undecided winners (NULL) from scattering.
 // Results are paginated (see MatchupStats for the same page/page_size
 // convention) instead of the old flat LIMIT 200 array response.
 //
 // @Summary List tournaments
-// @Description Lists tournaments, optionally filtered by minimum player count, format, and meta.
+// @Description Lists tournaments, optionally filtered by minimum player count, format, meta, and event name, and sorted by date, players, or winner archetype.
 // @Tags tournaments
 // @Produce json
 // @Param min_players query int false "Minimum number of players"
 // @Param format query string false "Format code (e.g. STANDARD)"
 // @Param meta_id query string false "Meta UUID to filter by"
+// @Param event_name query string false "Case-insensitive substring match on the tournament name"
+// @Param sort_by query string false "Sort column: date, players, or winner_archetype (default date)"
+// @Param sort_dir query string false "Sort direction: asc or desc (default desc)"
 // @Param page query int false "Page number (default 1)"
 // @Param page_size query int false "Page size, max 100 (default 20)"
 // @Success 200 {object} apidocs.TournamentsResponse
@@ -114,6 +134,20 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	winnerArchetypeSlug := q.Get("winner_archetype")
+	eventName := q.Get("event_name")
+
+	orderColumn, ok := tournamentSortColumns[q.Get("sort_by")]
+	if !ok {
+		orderColumn = "t.date"
+	}
+	orderDir := "DESC"
+	if q.Get("sort_dir") == "asc" {
+		orderDir = "ASC"
+	}
+	orderClause := orderColumn + " " + orderDir
+	if orderColumn == "w.archetype_name" {
+		orderClause += " NULLS LAST, t.date DESC"
+	}
 
 	// pagination -- same page/page_size convention as MatchupStats
 	page := 1
@@ -151,15 +185,16 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		  AND ($4::boolean IS NULL OR t.is_online = $4)
 		  AND ($5::timestamptz IS NULL OR t.date >= $5)
 		  AND ($6::timestamptz IS NULL OR t.date <= $6)
-		  AND ($7 = '' OR w.archetype_slug = $7)`
+		  AND ($7 = '' OR w.archetype_slug = $7)
+		  AND ($8 = '' OR t.name ILIKE '%' || $8 || '%')`
 
 	var total int
-	if err := h.DB.QueryRow(ctx, countQuery, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug).Scan(&total); err != nil {
+	if err := h.DB.QueryRow(ctx, countQuery, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, eventName).Scan(&total); err != nil {
 		writeError(w, http.StatusInternalServerError, "counting tournaments: "+err.Error())
 		return
 	}
 
-	query := `
+	query := fmt.Sprintf(`
 		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
 		       w.archetype_name
 		FROM tournaments t
@@ -179,15 +214,17 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		  AND ($5::timestamptz IS NULL OR t.date >= $5)
 		  AND ($6::timestamptz IS NULL OR t.date <= $6)
 		  AND ($7 = '' OR w.archetype_slug = $7)
-		ORDER BY t.date DESC
-		LIMIT $8 OFFSET $9`
+		  AND ($8 = '' OR t.name ILIKE '%%' || $8 || '%%')
+		ORDER BY %s
+		LIMIT $9 OFFSET $10`, orderClause)
 
-	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, pageSize, offset)
+	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, eventName, pageSize, offset)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying tournaments: "+err.Error())
 		return
 	}
 	defer rows.Close()
+
 
 	tournaments := []models.Tournament{}
 	for rows.Next() {
@@ -596,16 +633,14 @@ func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
 // rows since a 50/50 rate carries no information either way.
 //
 // @Summary Archetype matchup stats
-// @Description Returns paginated, directional archetype-vs-archetype matchup results for a meta.
+// @Description Returns directional archetype-vs-archetype matchup results for a meta. Not paginated -- matchups_mv rows for one meta are bounded by archetype-pair count, small enough for the frontend to sort/paginate client-side.
 // @Tags matchups
 // @Produce json
 // @Param meta_id query string true "Meta UUID"
 // @Param min_matches query int false "Minimum number of matches required to include a matchup (default 20)"
 // @Param archetype_id query string false "Filter to matchups involving this archetype ID"
 // @Param include_mirrors query bool false "Include mirror matchups (default true)"
-// @Param page query int false "Page number (default 1)"
-// @Param page_size query int false "Page size, max 100 (default 20)"
-// @Success 200 {object} apidocs.MatchupsResponse
+// @Success 200 {array} apidocs.MatchupStat
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /api/matchups/stats [get]
@@ -634,27 +669,8 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	// mirrors are included by default; only an explicit "false" excludes them
 	includeMirrors := q.Get("include_mirrors") != "false"
 
-	// pagination
-	page := 1
-	if v := q.Get("page"); v != "" {
-		if p, err := strconv.Atoi(v); err == nil && p > 0 {
-			page = p
-		}
-	}
-	pageSize := 20
-	// allow explicit page_size but cap it to 100
-	if v := q.Get("page_size"); v != "" {
-		if ps, err := strconv.Atoi(v); err == nil && ps > 0 {
-			if ps > 100 {
-				ps = 100
-			}
-			pageSize = ps
-		}
-	}
-	offset := (page - 1) * pageSize
-
 	// try cache first if redis configured
-	cacheKey := fmt.Sprintf("matchups:%s:%s:%d:%t:%d:%d", metaID, archetypeID, minMatches, includeMirrors, page, pageSize)
+	cacheKey := fmt.Sprintf("matchups:%s:%s:%d:%t", metaID, archetypeID, minMatches, includeMirrors)
 	if h.Redis != nil {
 		if data, err := h.Redis.Get(ctx, cacheKey).Bytes(); err == nil {
 			w.Header().Set("Content-Type", "application/json")
@@ -662,19 +678,6 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write(data)
 			return
 		}
-	}
-
-	countQuery := `
-		SELECT COUNT(*) FROM matchups_mv
-		WHERE meta_id = $1::uuid
-		  AND ($2 = '' OR archetype_id = NULLIF($2,'')::bigint OR opponent_archetype_id = NULLIF($2,'')::bigint)
-		  AND ($3 OR archetype_id <> opponent_archetype_id)
-		  AND matches >= $4
-	`
-	var total int
-	if err := h.DB.QueryRow(ctx, countQuery, metaID, archetypeID, includeMirrors, minMatches).Scan(&total); err != nil {
-		writeError(w, http.StatusInternalServerError, "counting matchups: "+err.Error())
-		return
 	}
 
 	query := `
@@ -687,10 +690,9 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 		  AND ($3 OR archetype_id <> opponent_archetype_id)
 		  AND matches >= $4
 		ORDER BY matches DESC, archetype_name ASC, opponent_name ASC
-		LIMIT $5 OFFSET $6
 	`
 
-	rows, err := h.DB.Query(ctx, query, metaID, archetypeID, includeMirrors, minMatches, pageSize, offset)
+	rows, err := h.DB.Query(ctx, query, metaID, archetypeID, includeMirrors, minMatches)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying matchup stats: "+err.Error())
 		return
@@ -730,49 +732,7 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 		stats = append(stats, s)
 	}
 
-	// marshal response object and set cache if available
-	// compute pagination helpers
-	totalPages := 1
-	if total > 0 {
-		totalPages = (total + pageSize - 1) / pageSize
-	}
-	prevPage := 0
-	if page > 1 {
-		prevPage = page - 1
-	}
-	nextPage := 0
-	if page < totalPages {
-		nextPage = page + 1
-	}
-
-	// construct relative next/prev URLs
-	basePath := r.URL.Path
-	q = r.URL.Query()
-	prevURLStr := ""
-	if prevPage > 0 {
-		q.Set("page", strconv.Itoa(prevPage))
-		prevURLStr = basePath + "?" + q.Encode()
-		q.Set("page", strconv.Itoa(page))
-	}
-	nextURLStr := ""
-	if nextPage > 0 {
-		q.Set("page", strconv.Itoa(nextPage))
-		nextURLStr = basePath + "?" + q.Encode()
-		q.Set("page", strconv.Itoa(page))
-	}
-
-	respObj := map[string]any{
-		"total":       total,
-		"page":        page,
-		"page_size":   pageSize,
-		"total_pages": totalPages,
-		"prev_page":   prevPage,
-		"next_page":   nextPage,
-		"prev_url":    prevURLStr,
-		"next_url":    nextURLStr,
-		"items":       stats,
-	}
-	b, err := json.Marshal(respObj)
+	b, err := json.Marshal(stats)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "marshalling response: "+err.Error())
 		return
