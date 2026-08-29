@@ -20,7 +20,7 @@ func (m argMatcher) Match(v interface{}) bool {
 	return m(v)
 }
 
-func newMockDB(t *testing.T) pgxmock.PgxPoolIface {
+func newMockDB(t testing.TB) pgxmock.PgxPoolIface {
 	t.Helper()
 	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)

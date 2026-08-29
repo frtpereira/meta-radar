@@ -150,6 +150,36 @@ npx --prefix frontend playwright install
 npx --prefix frontend playwright test
 ```
 
+Performance tests
+
+Both API layers have lightweight performance tests: Go benchmarks for the
+backend REST handlers, and Playwright checks for the frontend's API calls
+and page loads. Neither requires a real Postgres/Redis instance -- the
+backend benchmarks reuse the `pgxmock` mock already used by the handler
+unit tests, and the frontend checks run against the same mock API server
+used by the E2E suite (`tests/mock-api-server.mjs`).
+
+1. Backend handler benchmarks (`go test -bench`):
+
+```bash
+cd backend
+go test ./internal/api/... -run=^$ -bench=. -benchmem
+```
+
+`-run=^$` skips the regular unit tests so only the `Benchmark*` functions
+run; `-benchmem` reports allocations per request alongside ns/op.
+
+2. Frontend API/page performance checks (Playwright):
+
+```bash
+npx --prefix frontend playwright test tests/performance.spec.ts
+```
+
+This asserts that each `/api/*` endpoint responds within a fixed time
+budget and that key pages finish loading within a fixed budget, using the
+Playwright config's mock API server and dev server (see "Frontend E2E
+tests" above for one-time browser setup).
+
 Notes
 
 - Use `npm --prefix frontend install --legacy-peer-deps` when you see
