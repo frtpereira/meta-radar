@@ -118,26 +118,26 @@ export default async function Home({
                     <TopStatCard
                         label="Metas tracked"
                         value={metas.length.toLocaleString()}
-                        detail="Pulled from the backend metas table."
+                        detail="Pick a meta to see its live tournaments and archetypes."
                     />
                     <TopStatCard
                         label="Recent tournaments"
                         value={liveTournaments.length.toLocaleString()}
-                        detail="Filtered to 32+ player events for the selected meta."
+                        detail="Latest 32+ player events for the selected meta."
                     />
                     <TopStatCard
                         label="Top archetype"
                         value={topArchetype?.name ?? "—"}
                         detail={
                             topArchetype
-                                ? `${topArchetype.deck_count} decklists in meta`
+                                ? `${topArchetype.deck_count} decklists in the selected meta`
                                 : "No archetype data yet."
                         }
                     />
                     <TopStatCard
                         label="Matchup layer"
                         value="Next"
-                        detail="Reserved for the archetype-vs-archetype view."
+                        detail="Ready for the archetype-vs-archetype view."
                     />
                 </section>
 
