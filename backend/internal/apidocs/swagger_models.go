@@ -108,3 +108,34 @@ type CardStat struct {
 	ModalCount        int                `json:"modal_count"`
 	CountDistribution map[string]float64 `json:"count_distribution"`
 }
+
+type PlayerHistoryRow struct {
+	TournamentID  string    `json:"tournament_id"`
+	EventName     string    `json:"event_name"`
+	Date          time.Time `json:"date"`
+	Players       int       `json:"players"`
+	Placement     int       `json:"placement"`
+	DecklistID    *int64    `json:"decklist_id,omitempty"`
+	ArchetypeID   *int64    `json:"archetype_id,omitempty"`
+	ArchetypeName *string   `json:"archetype_name,omitempty"`
+	ArchetypeSlug *string   `json:"archetype_slug,omitempty"`
+}
+
+type PlayerDetail struct {
+	ID      string             `json:"id"`
+	Name    string             `json:"name"`
+	History []PlayerHistoryRow `json:"history"`
+}
+
+type DecklistDetail struct {
+	ID             int64         `json:"id"`
+	TournamentID   string        `json:"tournament_id"`
+	TournamentName string        `json:"tournament_name"`
+	Date           time.Time     `json:"date"`
+	PlayerID       string        `json:"player_id"`
+	PlayerName     string        `json:"player_name"`
+	ArchetypeID    *int64        `json:"archetype_id,omitempty"`
+	ArchetypeName  *string       `json:"archetype_name,omitempty"`
+	ArchetypeSlug  *string       `json:"archetype_slug,omitempty"`
+	Cards          []models.Card `json:"cards"`
+}

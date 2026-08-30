@@ -639,6 +639,166 @@ func TestArchetypeCardStats(t *testing.T) {
 	})
 }
 
+func TestPlayerDetail(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		when := time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC)
+		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
+			WithArgs("Ash").
+			WillReturnRows(pgxmock.NewRows([]string{"id", "name"}).AddRow("p1", "Ash Ketchum"))
+		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.date, t\.players.*FROM standings s`).
+			WithArgs("p1").
+			WillReturnRows(
+				pgxmock.NewRows([]string{"id", "name", "date", "players", "standing", "decklist_id", "archetype_id", "archetype_name", "archetype_slug"}).
+					AddRow("t1", "Regional", when, 256, 1, ptrInt64(10), ptrInt64(20), ptrString("Dragapult ex"), ptrString("dragapult-ex")).
+					AddRow("t2", "League Cup", when, 32, 0, nil, nil, nil, nil),
+			)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/players/Ash", nil), "nickname", "Ash")
+		rr := httptest.NewRecorder()
+		h.PlayerDetail(rr, req)
+
+		type historyRow struct {
+			TournamentID  string  `json:"tournament_id"`
+			EventName     string  `json:"event_name"`
+			Placement     int     `json:"placement"`
+			DecklistID    *int64  `json:"decklist_id"`
+			ArchetypeName *string `json:"archetype_name"`
+		}
+		resp := decodeBody[struct {
+			ID      string       `json:"id"`
+			Name    string       `json:"name"`
+			History []historyRow `json:"history"`
+		}](t, rr)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "p1", resp.ID)
+		assert.Equal(t, "Ash Ketchum", resp.Name)
+		require.Len(t, resp.History, 2)
+		assert.Equal(t, "t1", resp.History[0].TournamentID)
+		assert.Equal(t, "Regional", resp.History[0].EventName)
+		assert.Equal(t, 1, resp.History[0].Placement)
+		assert.Equal(t, int64(10), *resp.History[0].DecklistID)
+		assert.Equal(t, "Dragapult ex", *resp.History[0].ArchetypeName)
+		assert.Nil(t, resp.History[1].DecklistID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
+			WithArgs("missing").WillReturnError(pgx.ErrNoRows)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/players/missing", nil), "nickname", "missing")
+		rr := httptest.NewRecorder()
+		h.PlayerDetail(rr, req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Contains(t, rr.Body.String(), "player not found")
+	})
+
+	t.Run("player query error", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
+			WithArgs("Ash").WillReturnError(assert.AnError)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/players/Ash", nil), "nickname", "Ash")
+		rr := httptest.NewRecorder()
+		h.PlayerDetail(rr, req)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Contains(t, rr.Body.String(), "querying player")
+	})
+
+	t.Run("history query error", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
+			WithArgs("Ash").
+			WillReturnRows(pgxmock.NewRows([]string{"id", "name"}).AddRow("p1", "Ash Ketchum"))
+		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.date, t\.players.*FROM standings s`).
+			WithArgs("p1").WillReturnError(assert.AnError)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/players/Ash", nil), "nickname", "Ash")
+		rr := httptest.NewRecorder()
+		h.PlayerDetail(rr, req)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Contains(t, rr.Body.String(), "querying player history")
+	})
+}
+
+func TestDecklistDetail(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		when := time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC)
+		cardsJSON := []byte(`[{"name":"Charizard ex","set":"OBF","number":"125","count":3,"category":"pokemon"}]`)
+		mock.ExpectQuery(`(?s)SELECT d\.id, d\.tournament_id, d\.player_id.*FROM decklists d`).
+			WithArgs("10").
+			WillReturnRows(
+				pgxmock.NewRows([]string{"id", "tournament_id", "player_id", "name", "archetype_id", "name", "slug", "cards", "name", "date"}).
+					AddRow(int64(10), "t1", "p1", "Ash Ketchum", ptrInt64(20), ptrString("Charizard ex"), ptrString("charizard-ex"), cardsJSON, "Regional", when),
+			)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/decklists/10", nil), "id", "10")
+		rr := httptest.NewRecorder()
+		h.DecklistDetail(rr, req)
+
+		resp := decodeBody[struct {
+			ID             int64         `json:"id"`
+			TournamentID   string        `json:"tournament_id"`
+			TournamentName string        `json:"tournament_name"`
+			PlayerName     string        `json:"player_name"`
+			ArchetypeName  *string       `json:"archetype_name"`
+			Cards          []models.Card `json:"cards"`
+		}](t, rr)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, int64(10), resp.ID)
+		assert.Equal(t, "t1", resp.TournamentID)
+		assert.Equal(t, "Regional", resp.TournamentName)
+		assert.Equal(t, "Ash Ketchum", resp.PlayerName)
+		assert.Equal(t, "Charizard ex", *resp.ArchetypeName)
+		require.Len(t, resp.Cards, 1)
+		assert.Equal(t, "Charizard ex", resp.Cards[0].Name)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`(?s)SELECT d\.id, d\.tournament_id, d\.player_id.*FROM decklists d`).
+			WithArgs("missing").WillReturnError(pgx.ErrNoRows)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/decklists/missing", nil), "id", "missing")
+		rr := httptest.NewRecorder()
+		h.DecklistDetail(rr, req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Contains(t, rr.Body.String(), "decklist not found")
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`(?s)SELECT d\.id, d\.tournament_id, d\.player_id.*FROM decklists d`).
+			WithArgs("10").WillReturnError(assert.AnError)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/decklists/10", nil), "id", "10")
+		rr := httptest.NewRecorder()
+		h.DecklistDetail(rr, req)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Contains(t, rr.Body.String(), "querying decklist")
+	})
+}
+
 func TestLimitlessWebhook(t *testing.T) {
 	t.Run("malformed json", func(t *testing.T) {
 		h := &Handler{}

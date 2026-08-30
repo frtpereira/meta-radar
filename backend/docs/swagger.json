@@ -187,6 +187,53 @@
                 }
             }
         },
+        "/api/decklists/{id}": {
+            "get": {
+                "description": "Returns a single decklist's cards plus its player, tournament, and archetype context.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "decklists"
+                ],
+                "summary": "Get decklist detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Decklist ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/apidocs.DecklistDetail"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/matchups/stats": {
             "get": {
                 "description": "Returns directional archetype-vs-archetype matchup results for a meta. Not paginated -- matchups_mv rows for one meta are bounded by archetype-pair count, small enough for the frontend to sort/paginate client-side.",
@@ -272,6 +319,53 @@
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/models.Meta"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/players/{nickname}": {
+            "get": {
+                "description": "Looks up a player by nickname and returns their tournament history (placement, event, date, players, archetype, decklist).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "players"
+                ],
+                "summary": "Get player detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Player nickname",
+                        "name": "nickname",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/apidocs.PlayerDetail"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
@@ -605,6 +699,44 @@
                 }
             }
         },
+        "apidocs.DecklistDetail": {
+            "type": "object",
+            "properties": {
+                "archetype_id": {
+                    "type": "integer"
+                },
+                "archetype_name": {
+                    "type": "string"
+                },
+                "archetype_slug": {
+                    "type": "string"
+                },
+                "cards": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Card"
+                    }
+                },
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "player_id": {
+                    "type": "string"
+                },
+                "player_name": {
+                    "type": "string"
+                },
+                "tournament_id": {
+                    "type": "string"
+                },
+                "tournament_name": {
+                    "type": "string"
+                }
+            }
+        },
         "apidocs.MatchupStat": {
             "type": "object",
             "properties": {
@@ -631,6 +763,55 @@
                 },
                 "wins": {
                     "type": "integer"
+                }
+            }
+        },
+        "apidocs.PlayerDetail": {
+            "type": "object",
+            "properties": {
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/apidocs.PlayerHistoryRow"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "apidocs.PlayerHistoryRow": {
+            "type": "object",
+            "properties": {
+                "archetype_id": {
+                    "type": "integer"
+                },
+                "archetype_name": {
+                    "type": "string"
+                },
+                "archetype_slug": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "decklist_id": {
+                    "type": "integer"
+                },
+                "event_name": {
+                    "type": "string"
+                },
+                "placement": {
+                    "type": "integer"
+                },
+                "players": {
+                    "type": "integer"
+                },
+                "tournament_id": {
+                    "type": "string"
                 }
             }
         },

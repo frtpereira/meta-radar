@@ -44,6 +44,8 @@ func NewRouter(pool HandlerDB, syncer *ingest.Syncer, webhookSecret string, redi
 		r.Get("/archetypes/{id}", h.ArchetypeDetail)
 		r.Get("/archetypes/{id}/variants", h.ArchetypeVariants)
 		r.Get("/archetypes/{id}/card-stats", h.ArchetypeCardStats)
+		r.Get("/players/{nickname}", h.PlayerDetail)
+		r.Get("/decklists/{id}", h.DecklistDetail)
 		r.Post("/webhooks/limitless", h.LimitlessWebhook)
 	})
 

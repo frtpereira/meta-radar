@@ -225,7 +225,6 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-
 	tournaments := []models.Tournament{}
 	for rows.Next() {
 		var t models.Tournament
@@ -916,6 +915,152 @@ func (h *Handler) ArchetypeCardStats(w http.ResponseWriter, r *http.Request) {
 	})
 
 	writeJSON(w, http.StatusOK, result)
+}
+
+// PlayerDetail looks up a player by nickname (case-insensitive exact match
+// on players.name, since that's the only handle a user searching the
+// Players page has) and returns their full tournament history: one row per
+// standings entry, newest first, with everything the Players page's table
+// needs (placement, event name, date, player count, their own archetype,
+// and the decklist behind that finish, if any).
+//
+// @Summary Get player detail
+// @Description Looks up a player by nickname and returns their tournament history (placement, event, date, players, archetype, decklist).
+// @Tags players
+// @Produce json
+// @Param nickname path string true "Player nickname"
+// @Success 200 {object} apidocs.PlayerDetail
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/players/{nickname} [get]
+func (h *Handler) PlayerDetail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	nickname := chi.URLParam(r, "nickname")
+
+	var playerID, playerName string
+	err := h.DB.QueryRow(ctx,
+		`SELECT id, name FROM players WHERE lower(name) = lower($1)`, nickname,
+	).Scan(&playerID, &playerName)
+	if err == pgx.ErrNoRows {
+		writeError(w, http.StatusNotFound, "player not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying player: "+err.Error())
+		return
+	}
+
+	rows, err := h.DB.Query(ctx, `
+		SELECT t.id, t.name, t.date, t.players,
+		       s.standing, s.decklist_id,
+		       a.id, a.name, a.slug
+		FROM standings s
+		JOIN tournaments t ON t.id = s.tournament_id
+		LEFT JOIN decklists d ON d.id = s.decklist_id
+		LEFT JOIN archetypes a ON a.id = d.archetype_id
+		WHERE s.player_id = $1
+		ORDER BY t.date DESC`, playerID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying player history: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	type historyRow struct {
+		TournamentID  string    `json:"tournament_id"`
+		EventName     string    `json:"event_name"`
+		Date          time.Time `json:"date"`
+		Players       int       `json:"players"`
+		Placement     int       `json:"placement"`
+		DecklistID    *int64    `json:"decklist_id,omitempty"`
+		ArchetypeID   *int64    `json:"archetype_id,omitempty"`
+		ArchetypeName *string   `json:"archetype_name,omitempty"`
+		ArchetypeSlug *string   `json:"archetype_slug,omitempty"`
+	}
+
+	history := []historyRow{}
+	for rows.Next() {
+		var hRow historyRow
+		if err := rows.Scan(&hRow.TournamentID, &hRow.EventName, &hRow.Date, &hRow.Players,
+			&hRow.Placement, &hRow.DecklistID,
+			&hRow.ArchetypeID, &hRow.ArchetypeName, &hRow.ArchetypeSlug); err != nil {
+			writeError(w, http.StatusInternalServerError, "scanning history: "+err.Error())
+			return
+		}
+		history = append(history, hRow)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"id":      playerID,
+		"name":    playerName,
+		"history": history,
+	})
+}
+
+// DecklistDetail returns a single decklist -- the exact cards a player ran
+// at a specific tournament -- plus enough context (player, tournament,
+// archetype) to render a standalone decklist page.
+//
+// @Summary Get decklist detail
+// @Description Returns a single decklist's cards plus its player, tournament, and archetype context.
+// @Tags decklists
+// @Produce json
+// @Param id path string true "Decklist ID"
+// @Success 200 {object} apidocs.DecklistDetail
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/decklists/{id} [get]
+func (h *Handler) DecklistDetail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := chi.URLParam(r, "id")
+
+	var (
+		d              models.Decklist
+		playerName     string
+		archetypeName  *string
+		archetypeSlug  *string
+		tournamentID   string
+		tournamentName string
+		date           time.Time
+		cardsJSON      []byte
+	)
+	err := h.DB.QueryRow(ctx, `
+		SELECT d.id, d.tournament_id, d.player_id, p.name, d.archetype_id, a.name, a.slug,
+		       d.cards, t.name, t.date
+		FROM decklists d
+		JOIN players p ON p.id = d.player_id
+		LEFT JOIN archetypes a ON a.id = d.archetype_id
+		JOIN tournaments t ON t.id = d.tournament_id
+		WHERE d.id = $1`, id,
+	).Scan(&d.ID, &tournamentID, &d.PlayerID, &playerName, &d.ArchetypeID, &archetypeName, &archetypeSlug,
+		&cardsJSON, &tournamentName, &date)
+	if err == pgx.ErrNoRows {
+		writeError(w, http.StatusNotFound, "decklist not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying decklist: "+err.Error())
+		return
+	}
+
+	var cards []models.Card
+	if len(cardsJSON) > 0 {
+		_ = json.Unmarshal(cardsJSON, &cards)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"id":              d.ID,
+		"tournament_id":   tournamentID,
+		"tournament_name": tournamentName,
+		"date":            date,
+		"player_id":       d.PlayerID,
+		"player_name":     playerName,
+		"archetype_id":    d.ArchetypeID,
+		"archetype_name":  archetypeName,
+		"archetype_slug":  archetypeSlug,
+		"cards":           cards,
+	})
 }
 
 // a sync for that single tournament. Limitless calls this synchronously and
