@@ -273,6 +273,7 @@ export default async function DecklistDetailPage({
                             archetypeId={archetype.id}
                             label="Best against"
                             variant="good"
+                            metaId={resolvedMetaId}
                         />
                     </Card>
 
@@ -300,6 +301,7 @@ export default async function DecklistDetailPage({
                             archetypeId={archetype.id}
                             label="Worst against"
                             variant="bad"
+                            metaId={resolvedMetaId}
                         />
                     </Card>
                 </section>

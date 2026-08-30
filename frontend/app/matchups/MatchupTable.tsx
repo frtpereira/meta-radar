@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { MatchupStat } from "@/lib/types";
 import Table from "@/components/table";
 import InfoTooltip from "@/components/info-tooltip";
@@ -38,10 +39,15 @@ function WinRateBadge({ value }: { value: number | null }) {
 export default function MatchupTable({
     stats,
     selectedArchetypeId,
+    metaId,
 }: {
     stats: MatchupStat[];
     selectedArchetypeId: string;
+    metaId?: string;
 }) {
+    const decklistHref = (id: number | string) =>
+        `/decklists/${id}${metaId ? `?meta_id=${metaId}` : ""}`;
+
     const columns = [
         {
             key: "primary",
@@ -57,7 +63,19 @@ export default function MatchupTable({
                 const primary = selectedIsArchetype
                     ? stat.archetype
                     : stat.opponent;
-                return <div className="table-title">{primary.name}</div>;
+                return (
+                    // Every row in this column shows the same archetype
+                    // (the one selected in the filters above), so it isn't
+                    // a per-row navigational link in the usual sense --
+                    // deliberately unstyled on hover, unlike other
+                    // table-link columns.
+                    <Link
+                        className="table-link--plain"
+                        href={decklistHref(primary.id)}
+                    >
+                        <div className="table-title">{primary.name}</div>
+                    </Link>
+                );
             },
         },
         {
@@ -69,7 +87,14 @@ export default function MatchupTable({
                 const secondary = selectedIsArchetype
                     ? stat.opponent
                     : stat.archetype;
-                return <div className="table-title">{secondary.name}</div>;
+                return (
+                    <Link
+                        className="table-link"
+                        href={decklistHref(secondary.id)}
+                    >
+                        <div className="table-title">{secondary.name}</div>
+                    </Link>
+                );
             },
             sortValue: (stat: MatchupStat) => {
                 const selectedIsArchetype =

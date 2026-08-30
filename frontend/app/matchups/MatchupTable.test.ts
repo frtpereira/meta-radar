@@ -77,4 +77,27 @@ describe("MatchupTable", () => {
             within(rows[1]).getAllByRole("cell")[3].querySelector("span"),
         ).toHaveStyle({ color: "var(--accent-2)", fontWeight: "600" });
     });
+
+    it("links archetype and opponent cells to their decklist pages", () => {
+        render(
+            React.createElement(MatchupTable, {
+                selectedArchetypeId: "1",
+                metaId: "meta-1",
+                stats: [makeMatchup(1, 2, 24, 14, 8, 2, 0.636, 0.583)],
+            }),
+        );
+
+        const row = within(screen.getByRole("table")).getAllByRole("row")[1];
+        const cells = within(row).getAllByRole("cell");
+
+        expect(within(cells[0]).getByRole("link")).toHaveAttribute(
+            "href",
+            "/decklists/1?meta_id=meta-1",
+        );
+        expect(within(cells[1]).getByRole("link")).toHaveAttribute(
+            "href",
+            "/decklists/2?meta_id=meta-1",
+        );
+    });
 });
+

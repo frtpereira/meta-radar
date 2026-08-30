@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Table from "@/components/table";
 import type { CardStat, MatchupStat } from "@/lib/types";
 
@@ -263,11 +264,13 @@ export function MatchupMiniTable({
     archetypeId,
     label,
     variant,
+    metaId,
 }: {
     stats: MatchupStat[];
     archetypeId: number;
     label: string;
     variant: "good" | "bad";
+    metaId?: string;
 }) {
     const colorFn = (wr: number | null) => {
         if (wr === null) {
@@ -297,7 +300,14 @@ export function MatchupMiniTable({
                     String(s.archetype.id) === String(archetypeId)
                         ? s.opponent
                         : s.archetype;
-                return <div className="table-title">{opp.name}</div>;
+                return (
+                    <Link
+                        className="table-link"
+                        href={`/decklists/${opp.id}${metaId ? `?meta_id=${metaId}` : ""}`}
+                    >
+                        <div className="table-title">{opp.name}</div>
+                    </Link>
+                );
             },
         },
         {

@@ -208,6 +208,7 @@ export default async function MatchupsPage({
                         <MatchupTable
                             stats={matchupStats}
                             selectedArchetypeId={selectedArchetypeId}
+                            metaId={activeMeta?.id}
                         />
                     ) : (
                         <EmptyState
