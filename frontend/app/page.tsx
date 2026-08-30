@@ -13,8 +13,8 @@ type SearchParams = {
 // Static placeholder until the next set's release date is confirmed and
 // wired up to a real data source; update this by hand each set cycle.
 const NEXT_SET_RELEASE = {
-    name: "Mega Brilliance",
-    date: "2026-11-07",
+    name: "30th Anniversary",
+    date: "2026-09-16",
 };
 
 function formatCardDate(value: string) {
