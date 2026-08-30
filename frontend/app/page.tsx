@@ -10,6 +10,30 @@ type SearchParams = {
     meta_id?: string;
 };
 
+// Static placeholder until the next set's release date is confirmed and
+// wired up to a real data source; update this by hand each set cycle.
+const NEXT_SET_RELEASE = {
+    name: "Mega Brilliance",
+    date: "2026-11-07",
+};
+
+function formatCardDate(value: string) {
+    return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+    }).format(new Date(value));
+}
+
+function formatCardPercent(value: number | null) {
+    if (value === null) {
+        return null;
+    }
+
+    return `${Math.round(value * 1000) / 10}%`;
+}
+
 function TopStatCard({
     label,
     value,
@@ -92,8 +116,25 @@ export default async function Home({
           ])
         : [{ items: [] as Tournament[] }, [] as ArchetypeStat[]];
 
-    const topArchetype = archetypes[0] ?? null;
+    // Archetype stats come back sorted by deck_count DESC (see backend
+    // ArchetypeStats handler), so the first entry is already the top played
+    // deck; the top win rate deck needs a separate pass since win rate and
+    // play count don't necessarily move together.
+    const topPlayedArchetype = archetypes[0] ?? null;
+    const topWinRateArchetype = archetypes.reduce<ArchetypeStat | null>(
+        (best, current) => {
+            if (current.win_rate === null) {
+                return best;
+            }
+            if (best === null || current.win_rate > (best.win_rate ?? -1)) {
+                return current;
+            }
+            return best;
+        },
+        null,
+    );
     const liveTournaments = tournamentPage.items;
+    const latestTournament = liveTournaments[0] ?? null;
 
     return (
         <main className="page">
@@ -116,28 +157,36 @@ export default async function Home({
 
                 <section className="grid grid--summary">
                     <TopStatCard
-                        label="Metas tracked"
-                        value={metas.length.toLocaleString()}
-                        detail="Pulled from the backend metas table."
-                    />
-                    <TopStatCard
-                        label="Recent tournaments"
-                        value={liveTournaments.length.toLocaleString()}
-                        detail="Filtered to 32+ player events for the selected meta."
-                    />
-                    <TopStatCard
-                        label="Top archetype"
-                        value={topArchetype?.name ?? "—"}
+                        label="Top win rate deck"
+                        value={topWinRateArchetype?.name ?? "—"}
                         detail={
-                            topArchetype
-                                ? `${topArchetype.deck_count} decklists in meta`
+                            topWinRateArchetype
+                                ? `${formatCardPercent(topWinRateArchetype.win_rate) ?? "—"} win rate across ${topWinRateArchetype.matches.toLocaleString()} matches`
                                 : "No archetype data yet."
                         }
                     />
                     <TopStatCard
-                        label="Matchup layer"
-                        value="Next"
-                        detail="Reserved for the archetype-vs-archetype view."
+                        label="Top played deck"
+                        value={topPlayedArchetype?.name ?? "—"}
+                        detail={
+                            topPlayedArchetype
+                                ? `${topPlayedArchetype.deck_count.toLocaleString()} decklists in meta`
+                                : "No archetype data yet."
+                        }
+                    />
+                    <TopStatCard
+                        label="Latest Doom tournament"
+                        value={latestTournament?.name ?? "—"}
+                        detail={
+                            latestTournament
+                                ? `${formatCardDate(latestTournament.date)} · ${latestTournament.players.toLocaleString()} players`
+                                : "No tournaments synced yet."
+                        }
+                    />
+                    <TopStatCard
+                        label="Next set release"
+                        value={NEXT_SET_RELEASE.name}
+                        detail={formatCardDate(NEXT_SET_RELEASE.date)}
                     />
                 </section>
 

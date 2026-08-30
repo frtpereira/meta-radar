@@ -13,6 +13,11 @@ test("homepage renders the dashboard for the default meta", async ({ page }) => 
     await expect(page.getByText("Worlds 2026").first()).toBeVisible();
     await expect(page.getByText("Worlds Warmup Regional")).toBeVisible();
     await expect(page.getByText("Charizard ex").first()).toBeVisible();
+
+    await expect(page.getByText("Top win rate deck")).toBeVisible();
+    await expect(page.getByText("Top played deck")).toBeVisible();
+    await expect(page.getByText("Latest Doom tournament")).toBeVisible();
+    await expect(page.getByText("Next set release")).toBeVisible();
 });
 
 test("homepage handles a meta with no synced data", async ({ page }) => {
