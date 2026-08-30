@@ -3,8 +3,10 @@ import type {
     ArchetypeStat,
     ArchetypeVariant,
     CardStat,
+    DecklistDetail,
     MatchupStat,
     Meta,
+    PlayerDetail,
     Tournament,
     TournamentDetail,
 } from "@/lib/types";
@@ -127,6 +129,16 @@ export async function getArchetypeVariants(id: string) {
 
 export async function getArchetypeCardStats(id: string) {
     return fetchJson<CardStat[]>(`/archetypes/${id}/card-stats`);
+}
+
+export async function getPlayer(nickname: string) {
+    return fetchJson<PlayerDetail>(
+        `/players/${encodeURIComponent(nickname)}`,
+    );
+}
+
+export async function getDecklist(id: string) {
+    return fetchJson<DecklistDetail>(`/decklists/${id}`);
 }
 
 export async function getMatchupStats(options: {

@@ -9,6 +9,7 @@ const NAV_LINKS = [
     { href: "/tournaments", label: "Events" },
     { href: "/decklists", label: "Decks" },
     { href: "/matchups", label: "Matchups" },
+    { href: "/players", label: "Players" },
 ];
 
 export function NavigationBar() {

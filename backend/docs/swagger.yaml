@@ -81,6 +81,31 @@ definitions:
       total_decklists:
         type: integer
     type: object
+  apidocs.DecklistDetail:
+    properties:
+      archetype_id:
+        type: integer
+      archetype_name:
+        type: string
+      archetype_slug:
+        type: string
+      cards:
+        items:
+          $ref: '#/definitions/models.Card'
+        type: array
+      date:
+        type: string
+      id:
+        type: integer
+      player_id:
+        type: string
+      player_name:
+        type: string
+      tournament_id:
+        type: string
+      tournament_name:
+        type: string
+    type: object
   apidocs.MatchupStat:
     properties:
       archetype:
@@ -99,6 +124,38 @@ definitions:
         type: number
       wins:
         type: integer
+    type: object
+  apidocs.PlayerDetail:
+    properties:
+      history:
+        items:
+          $ref: '#/definitions/apidocs.PlayerHistoryRow'
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  apidocs.PlayerHistoryRow:
+    properties:
+      archetype_id:
+        type: integer
+      archetype_name:
+        type: string
+      archetype_slug:
+        type: string
+      date:
+        type: string
+      decklist_id:
+        type: integer
+      event_name:
+        type: string
+      placement:
+        type: integer
+      players:
+        type: integer
+      tournament_id:
+        type: string
     type: object
   apidocs.StandingRow:
     properties:
@@ -370,6 +427,38 @@ paths:
       summary: Archetype stats for a meta
       tags:
       - archetypes
+  /api/decklists/{id}:
+    get:
+      description: Returns a single decklist's cards plus its player, tournament,
+        and archetype context.
+      parameters:
+      - description: Decklist ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apidocs.DecklistDetail'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get decklist detail
+      tags:
+      - decklists
   /api/matchups/stats:
     get:
       description: Returns directional archetype-vs-archetype matchup results for
@@ -439,6 +528,38 @@ paths:
       summary: List metas
       tags:
       - metas
+  /api/players/{nickname}:
+    get:
+      description: Looks up a player by nickname and returns their tournament history
+        (placement, event, date, players, archetype, decklist).
+      parameters:
+      - description: Player nickname
+        in: path
+        name: nickname
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apidocs.PlayerDetail'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get player detail
+      tags:
+      - players
   /api/tournaments:
     get:
       description: Lists tournaments, optionally filtered by minimum player count,

@@ -35,6 +35,8 @@ func TestNewRouterRoutesAndMiddleware(t *testing.T) {
 		"GET /api/archetypes/{id}",
 		"GET /api/archetypes/{id}/variants",
 		"GET /api/archetypes/{id}/card-stats",
+		"GET /api/players/{nickname}",
+		"GET /api/decklists/{id}",
 		"POST /api/webhooks/limitless",
 	})
 

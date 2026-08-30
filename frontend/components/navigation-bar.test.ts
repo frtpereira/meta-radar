@@ -41,6 +41,8 @@ describe("NavigationBar", () => {
         ["/decklists/42", "Decks"],
         ["/matchups", "Matchups"],
         ["/matchups/overview", "Matchups"],
+        ["/players", "Players"],
+        ["/players/Ash", "Players"],
     ])(
         "marks %s as current for the %s nav item",
         (pathname, currentLabel) => {

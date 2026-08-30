@@ -4,8 +4,10 @@ import {
     getArchetypeDetail,
     getArchetypeStats,
     getArchetypeVariants,
+    getDecklist,
     getMatchupStats,
     getMetas,
+    getPlayer,
     getTournament,
     getTournaments,
 } from "./api";
@@ -179,6 +181,53 @@ const successCases = [
                 win_rate: 0.63,
             },
         ],
+    },
+    {
+        name: "getPlayer",
+        call: () => getPlayer("Ash Ketchum"),
+        expectedPath: "/players/Ash%20Ketchum",
+        payload: {
+            id: "p-ash",
+            name: "Ash Ketchum",
+            history: [
+                {
+                    tournament_id: "tour-1",
+                    event_name: "League Cup",
+                    date: "2026-02-03",
+                    players: 64,
+                    placement: 1,
+                    decklist_id: 101,
+                    archetype_id: 1,
+                    archetype_name: "Charizard",
+                    archetype_slug: "charizard",
+                },
+            ],
+        },
+    },
+    {
+        name: "getDecklist",
+        call: () => getDecklist("101"),
+        expectedPath: "/decklists/101",
+        payload: {
+            id: 101,
+            tournament_id: "tour-1",
+            tournament_name: "League Cup",
+            date: "2026-02-03",
+            player_id: "p-ash",
+            player_name: "Ash Ketchum",
+            archetype_id: 1,
+            archetype_name: "Charizard",
+            archetype_slug: "charizard",
+            cards: [
+                {
+                    name: "Charmander",
+                    set: "PAF",
+                    number: "7",
+                    count: 4,
+                    category: "pokemon",
+                },
+            ],
+        },
     },
 ] as const;
 
