@@ -29,7 +29,11 @@ function defaultSortValue<T>(row: T, key: string): SortValue {
         : null;
 }
 
-function compareValues(a: SortValue, b: SortValue) {
+function compareValues(a: SortValue, b: SortValue, direction: 1 | -1) {
+    // Null/undefined values (e.g. mirror matchups with no win rate) have no
+    // meaningful order relative to each other or to real values, so they
+    // should always sort last regardless of the direction being applied to
+    // the rest of the column -- don't let `direction` flip them to the front.
     if (a === null || a === undefined) {
         return b === null || b === undefined ? 0 : 1;
     }
@@ -38,10 +42,13 @@ function compareValues(a: SortValue, b: SortValue) {
     }
 
     if (typeof a === "number" && typeof b === "number") {
-        return a - b;
+        return (a - b) * direction;
     }
 
-    return String(a).localeCompare(String(b), undefined, { numeric: true });
+    return (
+        String(a).localeCompare(String(b), undefined, { numeric: true }) *
+        direction
+    );
 }
 
 export default function Table<T>({
@@ -90,8 +97,8 @@ export default function Table<T>({
             column.sortValue ?? ((row: T) => defaultSortValue(row, column.key));
         const direction = sort.direction === "asc" ? 1 : -1;
 
-        return [...rows].sort(
-            (a, b) => compareValues(getValue(a), getValue(b)) * direction,
+        return [...rows].sort((a, b) =>
+            compareValues(getValue(a), getValue(b), direction),
         );
     }, [rows, sort, columns, isControlled]);
 

@@ -187,7 +187,7 @@ describe("Table", () => {
             expect(firstColumnValues()).toEqual(["A", "C", "B"]);
         });
 
-        it("keeps null/undefined sortValue results grouped at the end of the direction being applied", async () => {
+        it("keeps null/undefined sortValue results grouped at the end regardless of sort direction", async () => {
             const user = userEvent.setup();
             render(
                 React.createElement(
@@ -216,10 +216,9 @@ describe("Table", () => {
             await user.click(scoreSortButton);
             expect(firstColumnValues()).toEqual(["C", "A", "B"]);
 
-            // Descending: reversing the ascending comparison also flips
-            // where the nulls land, so they end up first.
+            // Descending: nulls still sort last, not first.
             await user.click(scoreSortButton);
-            expect(firstColumnValues()).toEqual(["B", "A", "C"]);
+            expect(firstColumnValues()).toEqual(["A", "C", "B"]);
         });
 
         it("does not render a sort button and ignores clicks for a column marked sortable: false", async () => {
