@@ -95,17 +95,14 @@ export function TopArchetypesTable({
                 {
                     key: "archetype",
                     label: "Archetype",
-                    render: (stat: ArchetypeStat) =>
-                        activeMetaId ? (
-                            <Link
-                                className="table-link"
-                                href={`/matchups?meta_id=${activeMetaId}&archetype_id=${stat.id}`}
-                            >
-                                <div className="table-title">{stat.name}</div>
-                            </Link>
-                        ) : (
+                    render: (stat: ArchetypeStat) => (
+                        <Link
+                            className="table-link"
+                            href={`/decklists/${stat.id}${activeMetaId ? `?meta_id=${activeMetaId}` : ""}`}
+                        >
                             <div className="table-title">{stat.name}</div>
-                        ),
+                        </Link>
+                    ),
                 },
                 {
                     key: "decks",

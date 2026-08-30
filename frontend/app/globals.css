@@ -619,6 +619,10 @@ th .info-tooltip:focus {
     text-underline-offset: 3px;
 }
 
+.table-link--plain {
+    display: block;
+}
+
 .badge {
     display: inline-flex;
     align-items: center;
