@@ -3,6 +3,7 @@ import type { ArchetypeStat, Meta, MatchupStat } from "@/lib/types";
 import { getArchetypeStats, getMatchupStats, getMetas } from "@/lib/api";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
+import FilterForm from "@/components/filter-form";
 import MatchupTable from "./MatchupTable";
 
 type SearchParams = {
@@ -34,7 +35,7 @@ function MatchupFilters({
     minMatches: number;
 }) {
     return (
-        <form className="selector selector--stack" method="get">
+        <FilterForm className="selector selector--stack">
             <div className="selector__field">
                 <p className="eyebrow">Meta</p>
                 <label className="sr-only" htmlFor="meta_id">
@@ -61,9 +62,14 @@ function MatchupFilters({
                 <select
                     id="archetype_id"
                     name="archetype_id"
-                    defaultValue={selectedArchetypeId}
+                    // "all" (rather than "") so an explicit "All archetypes"
+                    // choice still submits a non-empty value -- otherwise it
+                    // would be indistinguishable from the field being absent
+                    // from the URL, which instead defaults to the top
+                    // archetype (see selectedArchetypeId below).
+                    defaultValue={selectedArchetypeId || "all"}
                 >
-                    <option value="">All archetypes</option>
+                    <option value="all">All archetypes</option>
                     {archetypes.map((archetype) => (
                         <option key={archetype.id} value={archetype.id}>
                             {archetype.name}
@@ -87,7 +93,7 @@ function MatchupFilters({
             </div>
 
             <button type="submit">Load matchups</button>
-        </form>
+        </FilterForm>
     );
 }
 
@@ -115,12 +121,14 @@ export default async function MatchupsPage({
 
     // Default to the most-used archetype (archetypes is already sorted by
     // deck_count DESC server-side) unless the URL explicitly picked one --
-    // including an explicit "All archetypes" (empty string) selection,
-    // which must not be overridden by this default.
+    // including an explicit "All archetypes" ("all") selection, which must
+    // not be overridden by this default.
     const selectedArchetypeId =
-        params.archetype_id !== undefined
-            ? params.archetype_id
-            : (archetypes[0]?.id.toString() ?? "");
+        params.archetype_id === "all"
+            ? ""
+            : params.archetype_id !== undefined
+              ? params.archetype_id
+              : (archetypes[0]?.id.toString() ?? "");
 
     const matchupStats = activeMeta
         ? await getMatchupStats({
