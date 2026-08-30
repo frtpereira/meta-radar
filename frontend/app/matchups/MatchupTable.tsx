@@ -19,6 +19,22 @@ function formatPercent(value: number | null) {
     return `${Math.round(value * 1000) / 10}%`;
 }
 
+function WinRateBadge({ value }: { value: number | null }) {
+    if (value === null) {
+        return <span className="muted">—</span>;
+    }
+
+    const pct = Math.round(value * 1000) / 10;
+    const color =
+        pct >= 55
+            ? "var(--success)"
+            : pct >= 48
+              ? "var(--accent)"
+              : "var(--accent-2)";
+
+    return <span style={{ color, fontWeight: 600 }}>{pct}%</span>;
+}
+
 export default function MatchupTable({
     stats,
     selectedArchetypeId,
@@ -64,38 +80,38 @@ export default function MatchupTable({
             },
         },
         {
-            key: "record",
-            label: "Record",
-            // The displayed W-L-T string depends on perspective/mirror
-            // status and isn't a single meaningful sort key, so leave this
-            // column unsortable.
-            sortable: false,
-            render: (stat: MatchupStat) => {
-                // W-L is meaningless for a mirror: both sides are the same
-                // archetype, so wins and losses are equal by definition.
-                const isMirror = stat.archetype.id === stat.opponent.id;
-                if (isMirror) {
-                    return `${stat.ties} ties`;
-                }
-
-                const selectedIsArchetype =
-                    String(stat.archetype.id) === String(selectedArchetypeId);
-                const displayedWins = selectedIsArchetype
-                    ? stat.wins
-                    : stat.losses;
-                const displayedLosses = selectedIsArchetype
-                    ? stat.losses
-                    : stat.wins;
-                const displayedTies = stat.ties;
-                return `${displayedWins}-${displayedLosses}-${displayedTies}`;
-            },
-        },
-        {
             key: "matches",
             label: "Matches",
             sortDescFirst: true,
             render: (stat: MatchupStat) => stat.matches.toLocaleString(),
             sortValue: (stat: MatchupStat) => stat.matches,
+        },
+        {
+            key: "win_rate",
+            label: "Win rate",
+            sortDescFirst: true,
+            render: (stat: MatchupStat) => {
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                // win_rate is null for mirrors (see backend) -- trust that
+                // instead of recomputing from wins/losses, which are equal
+                // for a mirror and would otherwise render a bogus 50%.
+                const displayedWinRate =
+                    stat.win_rate === null
+                        ? null
+                        : selectedIsArchetype
+                          ? stat.win_rate
+                          : 1 - stat.win_rate;
+                return <WinRateBadge value={displayedWinRate} />;
+            },
+            sortValue: (stat: MatchupStat) => {
+                if (stat.win_rate === null) {
+                    return null;
+                }
+                const selectedIsArchetype =
+                    String(stat.archetype.id) === String(selectedArchetypeId);
+                return selectedIsArchetype ? stat.win_rate : 1 - stat.win_rate;
+            },
         },
         {
             key: "score_rate",
@@ -135,30 +151,30 @@ export default function MatchupTable({
             },
         },
         {
-            key: "win_rate",
-            label: "Win rate",
-            sortDescFirst: true,
+            key: "record",
+            label: "Record",
+            // The displayed W-L-T string depends on perspective/mirror
+            // status and isn't a single meaningful sort key, so leave this
+            // column unsortable.
+            sortable: false,
             render: (stat: MatchupStat) => {
-                const selectedIsArchetype =
-                    String(stat.archetype.id) === String(selectedArchetypeId);
-                // win_rate is null for mirrors (see backend) -- trust that
-                // instead of recomputing from wins/losses, which are equal
-                // for a mirror and would otherwise render a bogus 50%.
-                const displayedWinRate =
-                    stat.win_rate === null
-                        ? null
-                        : selectedIsArchetype
-                          ? stat.win_rate
-                          : 1 - stat.win_rate;
-                return formatPercent(displayedWinRate);
-            },
-            sortValue: (stat: MatchupStat) => {
-                if (stat.win_rate === null) {
-                    return null;
+                // W-L is meaningless for a mirror: both sides are the same
+                // archetype, so wins and losses are equal by definition.
+                const isMirror = stat.archetype.id === stat.opponent.id;
+                if (isMirror) {
+                    return `${stat.ties} ties`;
                 }
+
                 const selectedIsArchetype =
                     String(stat.archetype.id) === String(selectedArchetypeId);
-                return selectedIsArchetype ? stat.win_rate : 1 - stat.win_rate;
+                const displayedWins = selectedIsArchetype
+                    ? stat.wins
+                    : stat.losses;
+                const displayedLosses = selectedIsArchetype
+                    ? stat.losses
+                    : stat.wins;
+                const displayedTies = stat.ties;
+                return `${displayedWins}-${displayedLosses}-${displayedTies}`;
             },
         },
     ];
