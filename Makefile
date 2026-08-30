@@ -17,17 +17,14 @@ logs:
 psql:
 	$(DOCKER_COMPOSE) exec postgres psql -U app -d pokemontcg
 
+frontend:
+	cd frontend && npm run build && npm run start
+
 frontend-install:
 	cd frontend && npm install
 
 frontend-dev:
 	cd frontend && npm run dev
-
-frontend-dev-host:
-	cd frontend && npm run dev:host
-
-frontend-build:
-	cd frontend && npm run build
 
 tidy:
 	cd backend && go mod tidy
