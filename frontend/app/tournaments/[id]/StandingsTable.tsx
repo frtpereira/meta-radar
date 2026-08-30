@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Table from "@/components/table";
 import type { TournamentStanding } from "@/lib/types";
 
@@ -30,7 +31,12 @@ export default function StandingsTable({
                     key: "player",
                     label: "Player",
                     render: (r: TournamentStanding) => (
-                        <div className="table-title">{r.player_name}</div>
+                        <Link
+                            className="table-link"
+                            href={`/players/${encodeURIComponent(r.player_name)}`}
+                        >
+                            <div className="table-title">{r.player_name}</div>
+                        </Link>
                     ),
                     sortValue: (r: TournamentStanding) => r.player_name,
                 },
