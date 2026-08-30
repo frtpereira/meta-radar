@@ -10,12 +10,17 @@ type SearchParams = {
     meta_id?: string;
 };
 
-// Static placeholder until the next set's release date is confirmed and
-// wired up to a real data source; update this by hand each set cycle.
-const NEXT_SET_RELEASE = {
-    name: "30th Anniversary",
-    date: "2026-09-16",
-};
+// Static placeholders until each set's release date is confirmed and
+// wired up to a real data source; update these by hand each set cycle.
+// Ordered soonest-first.
+const NEXT_SET_RELEASES = [
+    { name: "30th Anniversary", date: "2026-09-16" },
+    { name: "Delta Reign", date: "2026-11-06" },
+];
+
+// Minimum sample size before an archetype's win rate is considered stable
+// enough to surface as the homepage's "top win-rate deck".
+const MIN_MATCHES_FOR_TOP_WIN_RATE = 50;
 
 function formatCardDate(value: string) {
     return new Intl.DateTimeFormat("en-US", {
@@ -48,6 +53,30 @@ function TopStatCard({
             <p className="eyebrow">{label}</p>
             <p className="stat-value">{value}</p>
             <p className="muted">{detail}</p>
+        </Card>
+    );
+}
+
+function UpcomingSetsCard({
+    label,
+    releases,
+}: {
+    label: string;
+    releases: { name: string; date: string }[];
+}) {
+    const [primary, ...rest] = releases;
+
+    return (
+        <Card className="card--tight">
+            <p className="eyebrow">{label}</p>
+            <p className="stat-value">{primary.name}</p>
+            <p className="muted">{formatCardDate(primary.date)}</p>
+            {rest.map((release) => (
+                <div key={release.name} className="stat-release-next">
+                    <p className="stat-value stat-value--sm">{release.name}</p>
+                    <p className="muted">{formatCardDate(release.date)}</p>
+                </div>
+            ))}
         </Card>
     );
 }
@@ -112,14 +141,18 @@ export default async function Home({
               }).catch(() => ({ items: [] as Tournament[] }))
             : Promise.resolve({ items: [] as Tournament[] }),
         activeMeta
-            ? getArchetypeStats(activeMeta.id).catch(() => [] as ArchetypeStat[])
+            ? getArchetypeStats(activeMeta.id).catch(
+                  () => [] as ArchetypeStat[],
+              )
             : Promise.resolve([] as ArchetypeStat[]),
-        // "Doom" is the name of the tournament organizer, not the meta, so
-        // this is a separate, meta-independent lookup for the organizer's
-        // most recent event (no min player floor, since Doom's events don't
-        // necessarily hit the 32+ threshold used for the events table below).
+        // "Doom" tournaments are identified by having "Doom" somewhere in
+        // the tournament name, not by meta, so this is a separate,
+        // meta-independent lookup for the most recent one (no min player
+        // floor, since Doom's events don't necessarily hit the 32+
+        // threshold used for the events table below). The card surfaces the
+        // winning archetype, not the tournament name itself.
         getTournaments({
-            organizerName: "DOOM",
+            eventName: "DOOM",
             minPlayers: 0,
             sortBy: "date",
             sortDir: "desc",
@@ -131,11 +164,16 @@ export default async function Home({
     // Archetype stats come back sorted by deck_count DESC (see backend
     // ArchetypeStats handler), so the first entry is already the top played
     // deck; the top win rate deck needs a separate pass since win rate and
-    // play count don't necessarily move together.
+    // play count don't necessarily move together. Archetypes with a small
+    // sample size are excluded so a lucky small deck doesn't outrank a
+    // proven high-volume one.
     const topPlayedArchetype = archetypes[0] ?? null;
     const topWinRateArchetype = archetypes.reduce<ArchetypeStat | null>(
         (best, current) => {
-            if (current.win_rate === null) {
+            if (
+                current.win_rate === null ||
+                current.matches < MIN_MATCHES_FOR_TOP_WIN_RATE
+            ) {
                 return best;
             }
             if (best === null || current.win_rate > (best.win_rate ?? -1)) {
@@ -173,8 +211,8 @@ export default async function Home({
                         value={topWinRateArchetype?.name ?? "—"}
                         detail={
                             topWinRateArchetype
-                                ? `${formatCardPercent(topWinRateArchetype.win_rate) ?? "—"} win rate across ${topWinRateArchetype.matches.toLocaleString()} matches`
-                                : "No archetype data yet."
+                                ? `${formatCardPercent(topWinRateArchetype.win_rate) ?? "—"} win-rate across ${topWinRateArchetype.matches.toLocaleString()} matches`
+                                : `No archetype with ${MIN_MATCHES_FOR_TOP_WIN_RATE}+ matches yet.`
                         }
                     />
                     <TopStatCard
@@ -187,18 +225,17 @@ export default async function Home({
                         }
                     />
                     <TopStatCard
-                        label="Latest Doom tournament"
-                        value={latestTournament?.name ?? "—"}
+                        label="Latest Doom winner"
+                        value={latestTournament?.winner_archetype ?? "—"}
                         detail={
                             latestTournament
-                                ? `${formatCardDate(latestTournament.date)} · ${latestTournament.players.toLocaleString()} players`
-                                : "No Doom-organized tournaments synced yet."
+                                ? `${latestTournament.players} players · ${formatCardDate(latestTournament.date)}`
+                                : "No Doom tournaments synced yet."
                         }
                     />
-                    <TopStatCard
-                        label="Next set release"
-                        value={NEXT_SET_RELEASE.name}
-                        detail={formatCardDate(NEXT_SET_RELEASE.date)}
+                    <UpcomingSetsCard
+                        label="Upcoming set releases"
+                        releases={NEXT_SET_RELEASES}
                     />
                 </section>
 

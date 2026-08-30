@@ -100,10 +100,10 @@ const tournaments = Array.from({ length: 25 }, (_, index) => ({
     winner_archetype: archetypeNames[index % 6],
 }));
 
-// Doom-organized events don't necessarily hit the 32+ player floor used
-// for the "Recent Tournaments" table, so keep this one below that
-// threshold to exercise the homepage's separate, unfiltered lookup for
-// the organizer's latest event.
+// Tournaments with "Doom" in their name don't necessarily hit the 32+
+// player floor used for the "Recent Tournaments" table, so keep this one
+// below that threshold to exercise the homepage's separate, unfiltered
+// lookup for the most recent tournament matching that name.
 tournaments.push({
     id: "tour-doom-01",
     name: "Doom's Local Cup",
@@ -379,6 +379,13 @@ const server = http.createServer((req, res) => {
                 (tournament.organizer_name ?? "")
                     .toLowerCase()
                     .includes(organizerName.toLowerCase()),
+            );
+        }
+
+        const eventName = searchParams.get("event_name");
+        if (eventName) {
+            items = items.filter((tournament) =>
+                tournament.name.toLowerCase().includes(eventName.toLowerCase()),
             );
         }
 

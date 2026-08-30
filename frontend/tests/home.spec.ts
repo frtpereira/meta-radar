@@ -15,10 +15,13 @@ test("homepage renders the dashboard for the default meta", async ({ page }) => 
     await expect(page.getByText("Charizard ex").first()).toBeVisible();
 
     await expect(page.getByText("Top win rate deck")).toBeVisible();
+    await expect(page.getByText("Lost Box").first()).toBeVisible();
     await expect(page.getByText("Top played deck")).toBeVisible();
-    await expect(page.getByText("Latest Doom tournament")).toBeVisible();
+    await expect(page.getByText("Latest Doom winner")).toBeVisible();
     await expect(page.getByText("Doom's Local Cup")).toBeVisible();
-    await expect(page.getByText("Next set release")).toBeVisible();
+    await expect(page.getByText("Upcoming set releases")).toBeVisible();
+    await expect(page.getByText("30th Anniversary")).toBeVisible();
+    await expect(page.getByText("Delta Reign")).toBeVisible();
 });
 
 test("homepage handles a meta with no synced data", async ({ page }) => {
