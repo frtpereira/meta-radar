@@ -37,4 +37,20 @@ test("player detail page lists tournament history and links to a decklist", asyn
 test("unknown player nickname shows the not-found page", async ({ page }) => {
     const response = await page.goto("/players/Nobody");
     expect(response?.status()).toBe(404);
+
+    await expect(
+        page.getByRole("heading", { name: "Player not found" }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole("link", { name: "← Search another player" }),
+    ).toBeVisible();
+});
+
+test("unknown decklist id shows the not-found page", async ({ page }) => {
+    const response = await page.goto("/players/Ash Ketchum/decklist/999999");
+    expect(response?.status()).toBe(404);
+
+    await expect(
+        page.getByRole("heading", { name: "Player not found" }),
+    ).toBeVisible();
 });
