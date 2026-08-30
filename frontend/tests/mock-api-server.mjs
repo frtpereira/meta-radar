@@ -100,6 +100,25 @@ const tournaments = Array.from({ length: 25 }, (_, index) => ({
     winner_archetype: archetypeNames[index % 6],
 }));
 
+// Doom-organized events don't necessarily hit the 32+ player floor used
+// for the "Recent Tournaments" table, so keep this one below that
+// threshold to exercise the homepage's separate, unfiltered lookup for
+// the organizer's latest event.
+tournaments.push({
+    id: "tour-doom-01",
+    name: "Doom's Local Cup",
+    game: "pokemon",
+    format_code: "STD",
+    meta_id: "meta-2026",
+    meta_name: "Worlds 2026",
+    date: "2026-06-01",
+    players: 16,
+    is_online: false,
+    has_decklists: true,
+    organizer_name: "Doom",
+    winner_archetype: archetypeNames[0],
+});
+
 const standingsByTournamentId = {
     "tour-01": [
         {
@@ -351,6 +370,15 @@ const server = http.createServer((req, res) => {
         if (winnerArchetype) {
             items = items.filter(
                 (tournament) => slugify(tournament.winner_archetype ?? "") === winnerArchetype,
+            );
+        }
+
+        const organizerName = searchParams.get("organizer_name");
+        if (organizerName) {
+            items = items.filter((tournament) =>
+                (tournament.organizer_name ?? "")
+                    .toLowerCase()
+                    .includes(organizerName.toLowerCase()),
             );
         }
 

@@ -75,6 +75,7 @@ export async function getTournaments(options: {
     dateTo?: string;
     winnerArchetype?: string;
     eventName?: string;
+    organizerName?: string;
     sortBy?: string;
     sortDir?: "asc" | "desc";
     page?: number;
@@ -100,6 +101,9 @@ export async function getTournaments(options: {
     }
     if (options.eventName) {
         params.set("event_name", options.eventName);
+    }
+    if (options.organizerName) {
+        params.set("organizer_name", options.organizerName);
     }
     if (options.sortBy) {
         params.set("sort_by", options.sortBy);
