@@ -108,3 +108,34 @@ export interface MatchupStat {
     score_rate: number | null;
     win_rate: number | null;
 }
+
+export interface PlayerHistoryEntry {
+    tournament_id: string;
+    event_name: string;
+    date: string;
+    players: number;
+    placement: number;
+    decklist_id: number | null;
+    archetype_id: number | null;
+    archetype_name: string | null;
+    archetype_slug: string | null;
+}
+
+export interface PlayerDetail {
+    id: string;
+    name: string;
+    history: PlayerHistoryEntry[];
+}
+
+export interface DecklistDetail {
+    id: number;
+    tournament_id: string;
+    tournament_name: string;
+    date: string;
+    player_id: string;
+    player_name: string;
+    archetype_id: number | null;
+    archetype_name: string | null;
+    archetype_slug: string | null;
+    cards: Card[];
+}

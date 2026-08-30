@@ -142,6 +142,63 @@ const standingsByTournamentId = {
     "tour-02": [],
 };
 
+const playersByNickname = new Map([
+    [
+        "ash ketchum",
+        {
+            id: "p-ash",
+            name: "Ash Ketchum",
+            history: [
+                {
+                    tournament_id: "tour-01",
+                    event_name: "Worlds Warmup Regional",
+                    date: "2026-05-01",
+                    players: 32,
+                    placement: 1,
+                    decklist_id: 101,
+                    archetype_id: 1,
+                    archetype_name: "Charizard ex",
+                    archetype_slug: "charizard-ex",
+                },
+                {
+                    tournament_id: "tour-02",
+                    event_name: "Tournament 02",
+                    date: "2026-05-02",
+                    players: 36,
+                    placement: 0,
+                    decklist_id: null,
+                    archetype_id: null,
+                    archetype_name: null,
+                    archetype_slug: null,
+                },
+            ],
+        },
+    ],
+]);
+
+const decklistsById = new Map([
+    [
+        101,
+        {
+            id: 101,
+            tournament_id: "tour-01",
+            tournament_name: "Worlds Warmup Regional",
+            date: "2026-05-01",
+            player_id: "p-ash",
+            player_name: "Ash Ketchum",
+            archetype_id: 1,
+            archetype_name: "Charizard ex",
+            archetype_slug: "charizard-ex",
+            cards: [
+                { name: "Charmander", set: "PAF", number: "7", count: 4, category: "pokemon" },
+                { name: "Charizard ex", set: "OBF", number: "125", count: 3, category: "pokemon" },
+                { name: "Rare Candy", set: "SVI", number: "191", count: 4, category: "trainer" },
+                { name: "Fire Energy", set: "SVE", number: "2", count: 6, category: "energy" },
+            ],
+        },
+    ],
+]);
+
 const cardStatsByArchetypeId = {
     "1": [
         {
@@ -375,6 +432,24 @@ const server = http.createServer((req, res) => {
         items = items.filter((stat) => stat.matches >= minMatches);
 
         return sendJson(res, 200, paginate(items, searchParams));
+    }
+
+    if (pathname.startsWith("/api/players/")) {
+        const nickname = decodeURIComponent(pathname.split("/").pop());
+        const player = playersByNickname.get(nickname.toLowerCase());
+        if (!player) {
+            return sendJson(res, 404, { message: "Player not found" });
+        }
+        return sendJson(res, 200, player);
+    }
+
+    if (pathname.startsWith("/api/decklists/")) {
+        const id = Number(pathname.split("/").pop());
+        const decklist = decklistsById.get(id);
+        if (!decklist) {
+            return sendJson(res, 404, { message: "Decklist not found" });
+        }
+        return sendJson(res, 200, decklist);
     }
 
     if (pathname.startsWith("/api/archetypes/")) {
