@@ -3,6 +3,7 @@ import { getArchetypeStats, getMetas, getTournaments } from "@/lib/api";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
 import Pagination from "@/components/pagination";
+import FilterForm from "@/components/filter-form";
 import TournamentsTable from "./TournamentsTable";
 
 type SearchParams = {
@@ -49,8 +50,7 @@ function TournamentFilters({
     eventName: string;
 }) {
     return (
-        <form
-            method="get"
+        <FilterForm
             style={{ display: "flex", flexDirection: "column", gap: "14px" }}
         >
             <div className="selector selector--stack">
@@ -162,7 +162,7 @@ function TournamentFilters({
 
                 <button type="submit">Apply filters</button>
             </div>
-        </form>
+        </FilterForm>
     );
 }
 
