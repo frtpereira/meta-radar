@@ -65,16 +65,19 @@ var tournamentSortColumns = map[string]string{
 
 // ListTournaments supports ?min_players=32&format=STANDARD&meta_id=...&source=online|offline
 // &date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&winner_archetype=<slug>&event_name=<substring>
-// &sort_by=date|players|winner_archetype&sort_dir=asc|desc&page=1&page_size=20
+// &organizer_name=<substring>&sort_by=date|players|winner_archetype&sort_dir=asc|desc
+// &page=1&page_size=20
 // so the frontend can drive the tournament search filters directly via
 // query params rather than filtering client-side. source, date_from, date_to,
-// winner_archetype, event_name, and sort_by/sort_dir are all optional; an
-// empty/absent value leaves that filter/ordering out entirely.
+// winner_archetype, event_name, organizer_name, and sort_by/sort_dir are all
+// optional; an empty/absent value leaves that filter/ordering out entirely.
 // date_from/date_to are inclusive on both ends. winner_archetype matches
 // the slug of the archetype that took 1st place (see the LATERAL join
 // below), not the archetype's display name. event_name matches
 // case-insensitively anywhere in the tournament name (SQL LIKE, not an
-// exact match). sort_by defaults to "date" (descending) when absent or
+// exact match), and organizer_name does the same against the organizer's
+// name (e.g. organizer_name=DOOM to find tournaments run by "Doom").
+// sort_by defaults to "date" (descending) when absent or
 // not in tournamentSortColumns; sorting by "winner_archetype" always adds
 // date (descending) as a secondary key, both to break ties between same-
 // archetype winners and to keep undecided winners (NULL) from scattering.
@@ -82,13 +85,14 @@ var tournamentSortColumns = map[string]string{
 // convention) instead of the old flat LIMIT 200 array response.
 //
 // @Summary List tournaments
-// @Description Lists tournaments, optionally filtered by minimum player count, format, meta, and event name, and sorted by date, players, or winner archetype.
+// @Description Lists tournaments, optionally filtered by minimum player count, format, meta, event name, and organizer name, and sorted by date, players, or winner archetype.
 // @Tags tournaments
 // @Produce json
 // @Param min_players query int false "Minimum number of players"
 // @Param format query string false "Format code (e.g. STANDARD)"
 // @Param meta_id query string false "Meta UUID to filter by"
 // @Param event_name query string false "Case-insensitive substring match on the tournament name"
+// @Param organizer_name query string false "Case-insensitive substring match on the organizer name"
 // @Param sort_by query string false "Sort column: date, players, or winner_archetype (default date)"
 // @Param sort_dir query string false "Sort direction: asc or desc (default desc)"
 // @Param page query int false "Page number (default 1)"
@@ -135,6 +139,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 
 	winnerArchetypeSlug := q.Get("winner_archetype")
 	eventName := q.Get("event_name")
+	organizerName := q.Get("organizer_name")
 
 	orderColumn, ok := tournamentSortColumns[q.Get("sort_by")]
 	if !ok {
@@ -186,10 +191,11 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		  AND ($5::timestamptz IS NULL OR t.date >= $5)
 		  AND ($6::timestamptz IS NULL OR t.date <= $6)
 		  AND ($7 = '' OR w.archetype_slug = $7)
-		  AND ($8 = '' OR t.name ILIKE '%' || $8 || '%')`
+		  AND ($8 = '' OR t.name ILIKE '%' || $8 || '%')
+		  AND ($9 = '' OR t.organizer_name ILIKE '%' || $9 || '%')`
 
 	var total int
-	if err := h.DB.QueryRow(ctx, countQuery, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, eventName).Scan(&total); err != nil {
+	if err := h.DB.QueryRow(ctx, countQuery, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, eventName, organizerName).Scan(&total); err != nil {
 		writeError(w, http.StatusInternalServerError, "counting tournaments: "+err.Error())
 		return
 	}
@@ -215,10 +221,11 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		  AND ($6::timestamptz IS NULL OR t.date <= $6)
 		  AND ($7 = '' OR w.archetype_slug = $7)
 		  AND ($8 = '' OR t.name ILIKE '%%' || $8 || '%%')
+		  AND ($9 = '' OR t.organizer_name ILIKE '%%' || $9 || '%%')
 		ORDER BY %s
-		LIMIT $9 OFFSET $10`, orderClause)
+		LIMIT $10 OFFSET $11`, orderClause)
 
-	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, eventName, pageSize, offset)
+	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, eventName, organizerName, pageSize, offset)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying tournaments: "+err.Error())
 		return

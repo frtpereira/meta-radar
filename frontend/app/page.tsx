@@ -102,19 +102,31 @@ export default async function Home({
     const activeMeta =
         metas.find((meta) => meta.id === params.meta_id) ?? metas[0] ?? null;
 
-    const [tournamentPage, archetypes] = activeMeta
-        ? await Promise.all([
-              getTournaments({
+    const [tournamentPage, archetypes, doomTournamentPage] = await Promise.all([
+        activeMeta
+            ? getTournaments({
                   metaId: activeMeta.id,
                   minPlayers: 32,
                   page: 1,
                   pageSize: 8,
-              }).catch(() => ({ items: [] as Tournament[] })),
-              getArchetypeStats(activeMeta.id).catch(
-                  () => [] as ArchetypeStat[],
-              ),
-          ])
-        : [{ items: [] as Tournament[] }, [] as ArchetypeStat[]];
+              }).catch(() => ({ items: [] as Tournament[] }))
+            : Promise.resolve({ items: [] as Tournament[] }),
+        activeMeta
+            ? getArchetypeStats(activeMeta.id).catch(() => [] as ArchetypeStat[])
+            : Promise.resolve([] as ArchetypeStat[]),
+        // "Doom" is the name of the tournament organizer, not the meta, so
+        // this is a separate, meta-independent lookup for the organizer's
+        // most recent event (no min player floor, since Doom's events don't
+        // necessarily hit the 32+ threshold used for the events table below).
+        getTournaments({
+            organizerName: "DOOM",
+            minPlayers: 0,
+            sortBy: "date",
+            sortDir: "desc",
+            page: 1,
+            pageSize: 1,
+        }).catch(() => ({ items: [] as Tournament[] })),
+    ]);
 
     // Archetype stats come back sorted by deck_count DESC (see backend
     // ArchetypeStats handler), so the first entry is already the top played
@@ -134,7 +146,7 @@ export default async function Home({
         null,
     );
     const liveTournaments = tournamentPage.items;
-    const latestTournament = liveTournaments[0] ?? null;
+    const latestTournament = doomTournamentPage.items[0] ?? null;
 
     return (
         <main className="page">
@@ -180,7 +192,7 @@ export default async function Home({
                         detail={
                             latestTournament
                                 ? `${formatCardDate(latestTournament.date)} · ${latestTournament.players.toLocaleString()} players`
-                                : "No tournaments synced yet."
+                                : "No Doom-organized tournaments synced yet."
                         }
                     />
                     <TopStatCard

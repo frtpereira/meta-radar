@@ -17,6 +17,7 @@ test("homepage renders the dashboard for the default meta", async ({ page }) => 
     await expect(page.getByText("Top win rate deck")).toBeVisible();
     await expect(page.getByText("Top played deck")).toBeVisible();
     await expect(page.getByText("Latest Doom tournament")).toBeVisible();
+    await expect(page.getByText("Doom's Local Cup")).toBeVisible();
     await expect(page.getByText("Next set release")).toBeVisible();
 });
 

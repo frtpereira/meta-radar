@@ -337,12 +337,13 @@ describe("api fetch helpers", () => {
             dateFrom: "2026-03-01",
             dateTo: "2026-03-31",
             winnerArchetype: "charizard",
+            organizerName: "DOOM",
             page: 3,
             pageSize: 50,
         });
 
         expect(fetchMock).toHaveBeenCalledWith(
-            `${API_BASE}/tournaments?min_players=64&meta_id=meta-1&source=online&date_from=2026-03-01&date_to=2026-03-31&winner_archetype=charizard&page=3&page_size=50`,
+            `${API_BASE}/tournaments?min_players=64&meta_id=meta-1&source=online&date_from=2026-03-01&date_to=2026-03-31&winner_archetype=charizard&organizer_name=DOOM&page=3&page_size=50`,
             { cache: "no-store" },
         );
     });
