@@ -10,10 +10,12 @@ function CardCategoryTable({ cards }: { cards: Card[] }) {
     return (
         <Table
             sortable={false}
+            tableClassName="table--compact"
             columns={[
                 {
                     key: "count",
                     label: "Count",
+                    className: "col-count",
                     render: (c: Card) => (
                         <span
                             style={{
@@ -66,7 +68,7 @@ export function DecklistCategory({
     if (cards.length === 0) return null;
 
     return (
-        <div style={{ marginTop: 24 }}>
+        <div>
             <p
                 className="eyebrow"
                 style={{

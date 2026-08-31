@@ -90,9 +90,20 @@ export default async function PlayerDecklistPage({
                         </>
                     }
                 >
-                    <DecklistCategory label="Pokémon" cards={pokemonCards} />
-                    <DecklistCategory label="Trainer" cards={trainerCards} />
-                    <DecklistCategory label="Energy" cards={energyCards} />
+                    <div className="grid grid--three">
+                        <DecklistCategory
+                            label="Pokémon"
+                            cards={pokemonCards}
+                        />
+                        <DecklistCategory
+                            label="Trainer"
+                            cards={trainerCards}
+                        />
+                        <DecklistCategory
+                            label="Energy"
+                            cards={energyCards}
+                        />
+                    </div>
                 </Card>
             </div>
         </main>
