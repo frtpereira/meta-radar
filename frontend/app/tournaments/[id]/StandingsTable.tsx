@@ -56,6 +56,22 @@ export default function StandingsTable({
                         `${r.wins}-${r.losses}-${r.ties}`,
                     sortValue: (r: TournamentStanding) => r.wins - r.losses,
                 },
+                {
+                    key: "decklist",
+                    label: "Decklist",
+                    sortable: false,
+                    render: (r: TournamentStanding) =>
+                        r.decklist_id !== null ? (
+                            <Link
+                                className="button"
+                                href={`/players/${encodeURIComponent(r.player_name)}/decklist/${r.decklist_id}`}
+                            >
+                                View decklist
+                            </Link>
+                        ) : (
+                            <span className="muted tiny">—</span>
+                        ),
+                },
             ]}
             rows={standings}
         />

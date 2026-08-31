@@ -44,6 +44,18 @@ test("standings rows link to a player's profile page", async ({ page }) => {
     await expect(page.getByRole("heading", { name: "Ash Ketchum" })).toBeVisible();
 });
 
+test("standings rows link to the player's decklist", async ({ page }) => {
+    await page.goto("/tournaments/tour-01");
+
+    await page
+        .getByRole("row", { name: /Ash Ketchum/ })
+        .getByRole("link", { name: "View decklist" })
+        .click();
+
+    await expect(page).toHaveURL(/\/players\/Ash%20Ketchum\/decklist\/101$/);
+    await expect(page.getByRole("heading", { name: "Charizard ex" })).toBeVisible();
+});
+
 test("tournaments page shows empty and server-error fallback states", async ({ page }) => {
     await page.goto("/tournaments?meta_id=meta-empty");
     await expect(page.getByText("No tournaments found")).toBeVisible();
