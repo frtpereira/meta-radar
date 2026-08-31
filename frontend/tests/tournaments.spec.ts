@@ -24,6 +24,33 @@ test("tournaments page renders results and paginates between pages", async ({ pa
     await expect(page.getByText("Page 1 of 2")).toBeVisible();
 });
 
+test("sorts client-side, without a page reload, when a filtered result fits on one page", async ({ page }) => {
+    await page.goto("/tournaments?min_players=100");
+
+    await expect(page.getByText("Page 1 of 1")).toBeVisible();
+
+    const eventHeader = page.getByRole("columnheader", { name: "Event" });
+    await expect(eventHeader.getByRole("button")).toBeVisible();
+
+    function firstEventName() {
+        return page
+            .locator("tbody tr")
+            .first()
+            .locator(".table-title")
+            .innerText();
+    }
+
+    expect(await firstEventName()).toBe("Tournament 18");
+
+    await eventHeader.getByRole("button").click();
+    await expect(page).not.toHaveURL(/sort_by/);
+    expect(await firstEventName()).toBe("Tournament 18");
+
+    await eventHeader.getByRole("button").click();
+    await expect(page).not.toHaveURL(/sort_by/);
+    expect(await firstEventName()).toBe("Tournament 25");
+});
+
 test("tournament rows link to a standings detail page", async ({ page }) => {
     await page.goto("/tournaments");
 
