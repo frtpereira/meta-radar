@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi)
 
-.PHONY: up upd down logs psql frontend-install frontend-dev frontend-dev-host frontend-build tidy migrate ingest-once seed-meta resync cluster inspect swagger-gen
+.PHONY: up upd down logs psql frontend frontend-dev frontend-install tidy swagger-gen migrate ingest-once seed-meta resync cluster inspect tunnel
 
 up:
 	$(DOCKER_COMPOSE) up --build
@@ -20,11 +20,11 @@ psql:
 frontend:
 	cd frontend && npm run build && npm run start
 
-frontend-install:
-	cd frontend && npm install
-
 frontend-dev:
 	cd frontend && npm run dev
+
+frontend-install:
+	cd frontend && npm install
 
 tidy:
 	cd backend && go mod tidy
@@ -76,3 +76,18 @@ cluster:
 inspect:
 	$(DOCKER_COMPOSE) build ingest
 	$(DOCKER_COMPOSE) run --rm --entrypoint inspect ingest --tournament=$(ID) $(if $(PAIRINGS),--pairings)
+
+# Run a Cloudflare Tunnel connector using the token from .env
+# (CLOUDFLARE_TUNNEL_TOKEN, copy from .env.example). Requires the
+# `cloudflared` CLI: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+tunnel:
+	@if [ ! -f .env ]; then \
+		echo "Missing .env - copy .env.example to .env and set CLOUDFLARE_TUNNEL_TOKEN" >&2; \
+		exit 1; \
+	fi
+	@set -a && . ./.env && set +a && \
+	if [ -z "$$CLOUDFLARE_TUNNEL_TOKEN" ]; then \
+		echo "CLOUDFLARE_TUNNEL_TOKEN is not set in .env" >&2; \
+		exit 1; \
+	fi && \
+	cloudflared tunnel run --token "$$CLOUDFLARE_TUNNEL_TOKEN"
