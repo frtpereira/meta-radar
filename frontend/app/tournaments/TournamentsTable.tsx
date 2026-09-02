@@ -21,17 +21,22 @@ function formatDate(value: string) {
 
 export default function TournamentsTable({
     tournaments,
+    totalPages,
 }: {
     tournaments: Tournament[];
+    // Whether the filtered/searched result set fits on a single page. When
+    // it does, `tournaments` already contains every matching row, so sorting
+    // can happen entirely on the client (and can cover columns outside the
+    // server-side sort whitelist). Otherwise `tournaments` is only ever the
+    // current page, so sorting has to stay server-side: reordering it
+    // locally could never sort the full result set.
+    totalPages: number;
 }) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const isSinglePage = totalPages <= 1;
 
-    // Sorting is server-side (see ListTournaments): `tournaments` is only
-    // ever the current page, so reordering it locally could never sort
-    // the full result set -- clicking a header re-fetches with the new
-    // sort_by/sort_dir instead of reordering what's already on screen.
     const sortByParam = searchParams?.get("sort_by") ?? "";
     const sortDirParam =
         searchParams?.get("sort_dir") === "asc" ? "asc" : "desc";
@@ -66,8 +71,11 @@ export default function TournamentsTable({
         {
             key: "event",
             label: "Event",
-            // Name isn't in the server-side sort whitelist.
-            sortable: false,
+            // Name isn't in the server-side sort whitelist, but it can
+            // still be sorted client-side when the whole result set fits
+            // on one page.
+            sortable: isSinglePage,
+            sortValue: (t: Tournament) => t.name,
             render: (t: Tournament) => (
                 <Link className="table-link" href={`/tournaments/${t.id}`}>
                     <div className="table-title">{t.name}</div>
@@ -88,8 +96,10 @@ export default function TournamentsTable({
         {
             key: "source",
             label: "Source",
-            // Online/in-person isn't in the server-side sort whitelist.
-            sortable: false,
+            // Online/in-person isn't in the server-side sort whitelist, but
+            // it can still be sorted client-side on a single page.
+            sortable: isSinglePage,
+            sortValue: (t: Tournament) => (t.is_online ? 1 : 0),
             render: (t: Tournament) => (
                 <span className={`badge ${t.is_online ? "badge--online" : ""}`}>
                     {t.is_online ? "Online" : "In person"}
@@ -101,7 +111,8 @@ export default function TournamentsTable({
             label: "Winner archetype",
             // A winner's archetype changes meaning across rows (some are
             // decisive, some default to whoever placed first with no
-            // clean tiebreak) and isn't a useful global sort key.
+            // clean tiebreak) and isn't a useful global sort key, so this
+            // stays unsortable regardless of pagination.
             sortable: false,
             render: (t: Tournament) =>
                 t.winner_archetype ?? (
@@ -114,8 +125,8 @@ export default function TournamentsTable({
         <Table
             columns={columns}
             rows={tournaments}
-            sortState={sortState}
-            onSortChange={handleSortChange}
+            sortState={isSinglePage ? undefined : sortState}
+            onSortChange={isSinglePage ? undefined : handleSortChange}
         />
     );
 }

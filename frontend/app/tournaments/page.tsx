@@ -306,7 +306,10 @@ export default async function TournamentsPage({
                 >
                     {tournaments.length > 0 ? (
                         <>
-                            <TournamentsTable tournaments={tournaments} />
+                            <TournamentsTable
+                                tournaments={tournaments}
+                                totalPages={totalPages}
+                            />
                             <div className="pagination">
                                 <div
                                     style={{
