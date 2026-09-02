@@ -72,7 +72,7 @@ export default async function DecklistsPage({
             <div className="shell">
                 <Hero
                     eyebrow="Meta Radar — Archetypes"
-                    title="Deck Archetype Explorer"
+                    title="Archetype Explorer"
                     lede="Browse every archetype in the meta. Open one to see its
                         deck skeleton, optional tech choices, and head-to-head
                         matchup summary."
