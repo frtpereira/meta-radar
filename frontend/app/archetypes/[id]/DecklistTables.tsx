@@ -161,9 +161,7 @@ export function SkeletonCategory({
         {
             key: "dist",
             label: "Count distribution",
-            render: (c: CardStat) => (
-                <CountDist dist={c.count_distribution} />
-            ),
+            render: (c: CardStat) => <CountDist dist={c.count_distribution} />,
             sortable: false,
         },
     ];
@@ -223,9 +221,7 @@ export function OptionalCardsTable({ cards }: { cards: CardStat[] }) {
                 {
                     key: "usage",
                     label: "Usage",
-                    render: (c: CardStat) => (
-                        <PresenceBar value={c.presence} />
-                    ),
+                    render: (c: CardStat) => <PresenceBar value={c.presence} />,
                     sortValue: (c: CardStat) => c.presence,
                 },
                 {
@@ -303,7 +299,7 @@ export function MatchupMiniTable({
                 return (
                     <Link
                         className="table-link"
-                        href={`/decklists/${opp.id}${metaId ? `?meta_id=${metaId}` : ""}`}
+                        href={`/archetypes/${opp.id}${metaId ? `?meta_id=${metaId}` : ""}`}
                     >
                         <div className="table-title">{opp.name}</div>
                     </Link>
@@ -352,9 +348,7 @@ export function MatchupMiniTable({
             key: "matches",
             label: "Matches",
             render: (s: MatchupStat) => (
-                <span className="muted tiny">
-                    {s.matches.toLocaleString()}
-                </span>
+                <span className="muted tiny">{s.matches.toLocaleString()}</span>
             ),
         },
     ];

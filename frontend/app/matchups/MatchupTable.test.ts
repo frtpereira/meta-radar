@@ -39,9 +39,7 @@ describe("MatchupTable", () => {
         render(
             React.createElement(MatchupTable, {
                 selectedArchetypeId: "1",
-                stats: [
-                    makeMatchup(1, 2, 24, 14, 8, 2, 0.636, 0.583),
-                ],
+                stats: [makeMatchup(1, 2, 24, 14, 8, 2, 0.636, 0.583)],
             }),
         );
 
@@ -68,7 +66,9 @@ describe("MatchupTable", () => {
             }),
         );
 
-        const rows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+        const rows = within(screen.getByRole("table"))
+            .getAllByRole("row")
+            .slice(1);
 
         expect(
             within(rows[0]).getAllByRole("cell")[3].querySelector("span"),
@@ -92,12 +92,11 @@ describe("MatchupTable", () => {
 
         expect(within(cells[0]).getByRole("link")).toHaveAttribute(
             "href",
-            "/decklists/1?meta_id=meta-1",
+            "/archetypes/1?meta_id=meta-1",
         );
         expect(within(cells[1]).getByRole("link")).toHaveAttribute(
             "href",
-            "/decklists/2?meta_id=meta-1",
+            "/archetypes/2?meta_id=meta-1",
         );
     });
 });
-

@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("main navigation moves between pages and marks the current route", async ({ page }) => {
+test("main navigation moves between pages and marks the current route", async ({
+    page,
+}) => {
     await page.goto("/");
 
     const nav = page.getByRole("navigation", { name: "Main" });
@@ -16,9 +18,9 @@ test("main navigation moves between pages and marks the current route", async ({
         "page",
     );
 
-    await nav.getByRole("link", { name: "Decks" }).click();
-    await expect(page).toHaveURL(/\/decklists$/);
-    await expect(nav.getByRole("link", { name: "Decks" })).toHaveAttribute(
+    await nav.getByRole("link", { name: "Archetypes" }).click();
+    await expect(page).toHaveURL(/\/archetypes$/);
+    await expect(nav.getByRole("link", { name: "Archetypes" })).toHaveAttribute(
         "aria-current",
         "page",
     );
@@ -31,7 +33,9 @@ test("main navigation moves between pages and marks the current route", async ({
     );
 });
 
-test("theme toggle persists the chosen theme across reloads", async ({ page }) => {
+test("theme toggle persists the chosen theme across reloads", async ({
+    page,
+}) => {
     await page.goto("/");
 
     const root = page.locator("html");

@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const NAV_LINKS = [
     { href: "/", label: "Home" },
     { href: "/tournaments", label: "Events" },
-    { href: "/decklists", label: "Decks" },
+    { href: "/archetypes", label: "Archetypes" },
     { href: "/matchups", label: "Matchups" },
     { href: "/players", label: "Players" },
 ];

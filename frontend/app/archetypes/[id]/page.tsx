@@ -135,7 +135,7 @@ export default async function DecklistDetailPage({
                 {/* breadcrumb */}
                 <div style={{ marginBottom: 16 }}>
                     <Link
-                        href={`/decklists${resolvedMetaId ? `?meta_id=${resolvedMetaId}` : ""}`}
+                        href={`/archetypes${resolvedMetaId ? `?meta_id=${resolvedMetaId}` : ""}`}
                         className="button"
                         style={{ display: "inline-flex" }}
                     >

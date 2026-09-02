@@ -68,9 +68,12 @@ export default async function PlayerDecklistPage({
                     lede={`${decklist.player_name}'s decklist from ${decklist.tournament_name} on ${formatDate(decklist.date)}.`}
                     meta={
                         <>
-                            <span className="pill">
-                                {totalCards} cards
-                            </span>
+                            <Link
+                                href={`/players/${decklist.player_name}`}
+                                className="pill"
+                            >
+                                {decklist.player_name}
+                            </Link>
                             <Link
                                 href={`/tournaments/${decklist.tournament_id}`}
                                 className="pill pill--soft"
@@ -99,10 +102,7 @@ export default async function PlayerDecklistPage({
                             label="Trainer"
                             cards={trainerCards}
                         />
-                        <DecklistCategory
-                            label="Energy"
-                            cards={energyCards}
-                        />
+                        <DecklistCategory label="Energy" cards={energyCards} />
                     </div>
                 </Card>
             </div>

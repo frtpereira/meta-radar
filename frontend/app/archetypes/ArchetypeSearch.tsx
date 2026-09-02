@@ -53,7 +53,7 @@ function ArchetypesTable({
             render: (s: ArchetypeStat) => (
                 <Link
                     className="table-link"
-                    href={`/decklists/${s.id}?meta_id=${metaId}`}
+                    href={`/archetypes/${s.id}?meta_id=${metaId}`}
                 >
                     <div className="table-title">{s.name}</div>
                 </Link>

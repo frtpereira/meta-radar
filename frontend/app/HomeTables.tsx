@@ -98,7 +98,7 @@ export function TopArchetypesTable({
                     render: (stat: ArchetypeStat) => (
                         <Link
                             className="table-link"
-                            href={`/decklists/${stat.id}${activeMetaId ? `?meta_id=${activeMetaId}` : ""}`}
+                            href={`/archetypes/${stat.id}${activeMetaId ? `?meta_id=${activeMetaId}` : ""}`}
                         >
                             <div className="table-title">{stat.name}</div>
                         </Link>
@@ -107,8 +107,7 @@ export function TopArchetypesTable({
                 {
                     key: "decks",
                     label: "Decks",
-                    render: (s: ArchetypeStat) =>
-                        s.deck_count.toLocaleString(),
+                    render: (s: ArchetypeStat) => s.deck_count.toLocaleString(),
                 },
                 {
                     key: "avg",

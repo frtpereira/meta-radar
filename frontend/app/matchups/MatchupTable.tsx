@@ -46,7 +46,7 @@ export default function MatchupTable({
     metaId?: string;
 }) {
     const decklistHref = (id: number | string) =>
-        `/decklists/${id}${metaId ? `?meta_id=${metaId}` : ""}`;
+        `/archetypes/${id}${metaId ? `?meta_id=${metaId}` : ""}`;
 
     const columns = [
         {
