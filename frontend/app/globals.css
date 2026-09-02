@@ -28,6 +28,9 @@
     --ambient-1: rgba(255, 209, 102, 0.12);
     --ambient-2: rgba(255, 127, 80, 0.12);
     --nav-bg: rgba(6, 12, 22, 0.78);
+    --button-from: var(--accent);
+    --button-to: var(--accent-2);
+    --button-text: #111;
     --body-bg:
         radial-gradient(
             circle at top left,
@@ -49,30 +52,33 @@
    at all. */
 @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) {
-        --bg: #f6f7fb;
-        --bg-soft: rgba(255, 255, 255, 0.7);
-        --card: rgba(255, 255, 255, 0.9);
-        --card-strong: rgba(255, 255, 255, 0.98);
-        --line: rgba(15, 23, 42, 0.1);
-        --line-strong: rgba(15, 23, 42, 0.18);
-        --text: #12172b;
-        --muted: #5b6478;
+        --bg: #f1efe9;
+        --bg-soft: rgba(241, 239, 233, 0.7);
+        --card: rgba(250, 249, 245, 0.92);
+        --card-strong: rgba(250, 249, 245, 0.98);
+        --line: rgba(35, 32, 25, 0.1);
+        --line-strong: rgba(35, 32, 25, 0.18);
+        --text: #262421;
+        --muted: #635f57;
         --accent: #c9860a;
         --accent-2: #d85a2c;
         --accent-3: #1f7fb8;
         --success: #16a34a;
-        --overlay-faint: rgba(15, 23, 42, 0.02);
-        --overlay-soft: rgba(15, 23, 42, 0.04);
-        --overlay-mid: rgba(15, 23, 42, 0.05);
-        --overlay-med: rgba(15, 23, 42, 0.08);
-        --shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
-        --card-end: rgba(255, 255, 255, 0.75);
+        --overlay-faint: rgba(35, 32, 25, 0.02);
+        --overlay-soft: rgba(35, 32, 25, 0.04);
+        --overlay-mid: rgba(35, 32, 25, 0.05);
+        --overlay-med: rgba(35, 32, 25, 0.08);
+        --shadow: 0 30px 80px rgba(35, 32, 25, 0.12);
+        --card-end: rgba(244, 242, 236, 0.78);
         --badge-online-text: #15803d;
         --badge-online-border: rgba(21, 128, 61, 0.3);
         --badge-online-bg: rgba(21, 128, 61, 0.08);
         --ambient-1: rgba(201, 134, 10, 0.1);
         --ambient-2: rgba(216, 90, 44, 0.1);
-        --nav-bg: rgba(255, 255, 255, 0.78);
+        --nav-bg: rgba(250, 249, 245, 0.82);
+        --button-from: #2f6f9e;
+        --button-to: #1f5c8a;
+        --button-text: #f6f7fb;
         --body-bg:
             radial-gradient(
                 circle at top left,
@@ -84,7 +90,7 @@
                 rgba(31, 127, 184, 0.08),
                 transparent 24%
             ),
-            linear-gradient(180deg, #ffffff 0%, #f6f7fb 45%, #eef1f8 100%);
+            linear-gradient(180deg, #f8f6f1 0%, #f1efe9 45%, #e8e5dd 100%);
         color-scheme: light;
     }
 }
@@ -93,30 +99,33 @@
    media-query rule above but declared after it, so it always wins the tie —
    letting a manual pick override the system preference in either direction. */
 :root[data-theme="light"] {
-    --bg: #f6f7fb;
-    --bg-soft: rgba(255, 255, 255, 0.7);
-    --card: rgba(255, 255, 255, 0.9);
-    --card-strong: rgba(255, 255, 255, 0.98);
-    --line: rgba(15, 23, 42, 0.1);
-    --line-strong: rgba(15, 23, 42, 0.18);
-    --text: #12172b;
-    --muted: #5b6478;
+    --bg: #f1efe9;
+    --bg-soft: rgba(241, 239, 233, 0.7);
+    --card: rgba(250, 249, 245, 0.92);
+    --card-strong: rgba(250, 249, 245, 0.98);
+    --line: rgba(35, 32, 25, 0.1);
+    --line-strong: rgba(35, 32, 25, 0.18);
+    --text: #262421;
+    --muted: #635f57;
     --accent: #c9860a;
     --accent-2: #d85a2c;
     --accent-3: #1f7fb8;
     --success: #16a34a;
-    --overlay-faint: rgba(15, 23, 42, 0.02);
-    --overlay-soft: rgba(15, 23, 42, 0.04);
-    --overlay-mid: rgba(15, 23, 42, 0.05);
-    --overlay-med: rgba(15, 23, 42, 0.08);
-    --shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
-    --card-end: rgba(255, 255, 255, 0.75);
+    --overlay-faint: rgba(35, 32, 25, 0.02);
+    --overlay-soft: rgba(35, 32, 25, 0.04);
+    --overlay-mid: rgba(35, 32, 25, 0.05);
+    --overlay-med: rgba(35, 32, 25, 0.08);
+    --shadow: 0 30px 80px rgba(35, 32, 25, 0.12);
+    --card-end: rgba(244, 242, 236, 0.78);
     --badge-online-text: #15803d;
     --badge-online-border: rgba(21, 128, 61, 0.3);
     --badge-online-bg: rgba(21, 128, 61, 0.08);
     --ambient-1: rgba(201, 134, 10, 0.1);
     --ambient-2: rgba(216, 90, 44, 0.1);
-    --nav-bg: rgba(255, 255, 255, 0.78);
+    --nav-bg: rgba(250, 249, 245, 0.82);
+    --button-from: #2f6f9e;
+    --button-to: #1f5c8a;
+    --button-text: #f6f7fb;
     --body-bg:
         radial-gradient(
             circle at top left,
@@ -128,7 +137,7 @@
             rgba(31, 127, 184, 0.08),
             transparent 24%
         ),
-        linear-gradient(180deg, #ffffff 0%, #f6f7fb 45%, #eef1f8 100%);
+        linear-gradient(180deg, #f8f6f1 0%, #f1efe9 45%, #e8e5dd 100%);
     color-scheme: light;
 }
 
@@ -447,8 +456,8 @@ p {
 
 .selector button {
     padding: 0 18px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    color: #111;
+    background: linear-gradient(135deg, var(--button-from), var(--button-to));
+    color: var(--button-text);
     font-weight: 700;
     cursor: pointer;
 }
@@ -474,8 +483,8 @@ p {
 }
 
 .button--active {
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    color: #111 !important;
+    background: linear-gradient(135deg, var(--button-from), var(--button-to));
+    color: var(--button-text) !important;
     border-color: transparent;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
