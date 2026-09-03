@@ -30,3 +30,20 @@ test("homepage handles a meta with no synced data", async ({ page }) => {
     await expect(page.getByText("No tournaments found")).toBeVisible();
     await expect(page.getByText("No archetype stats yet")).toBeVisible();
 });
+
+test("homepage tables don't overflow horizontally at common desktop widths", async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto("/");
+
+    await expect(page.getByText("Worlds Warmup Regional")).toBeVisible();
+
+    const overflowCounts = await page
+        .locator(".table-wrap")
+        .evaluateAll((els) =>
+            els.filter((el) => el.scrollWidth > el.clientWidth).length,
+        );
+
+    expect(overflowCounts).toBe(0);
+});
