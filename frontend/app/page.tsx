@@ -199,8 +199,8 @@ export default async function Home({
                         then jump into directional matchup results."
                     meta={
                         <>
-                            <span className="pill">PBL+ Metas</span>
-                            <span className="pill pill--soft">[WIP]</span>
+                            <span className="pill">PBL+ Tracked</span>
+                            <span className="pill pill--soft">v1.0.1</span>
                         </>
                     }
                 />

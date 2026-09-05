@@ -24,7 +24,7 @@ export function Footer() {
                     ))}
                 </nav>
                 <p className="site-footer__copyright">
-                    © {currentYear} Meta Radar. All rights reserved.
+                    © {currentYear} Meta Radar
                 </p>
             </div>
         </footer>
