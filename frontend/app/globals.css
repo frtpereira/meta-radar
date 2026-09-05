@@ -746,3 +746,68 @@ th .info-tooltip:focus {
         min-width: 100%;
     }
 }
+
+/* Article and prose content styling */
+article {
+    max-width: 800px;
+    line-height: 1.7;
+}
+
+article h1 {
+    margin-bottom: 24px;
+}
+
+article h2 {
+    margin-top: 32px;
+    margin-bottom: 16px;
+}
+
+article h3 {
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+article p {
+    margin-bottom: 16px;
+    line-height: 1.8;
+    color: var(--text);
+}
+
+article p + p {
+    margin-top: -8px;
+}
+
+article ul,
+article ol {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+article li {
+    margin-bottom: 12px;
+    line-height: 1.8;
+}
+
+article a {
+    color: var(--accent-3);
+    text-decoration: underline;
+    transition: color 120ms ease, opacity 120ms ease;
+}
+
+article a:hover,
+article a:focus-visible {
+    color: var(--accent);
+    text-decoration-thickness: 2px;
+}
+
+article strong {
+    font-weight: 600;
+    color: var(--text);
+}
+
+article em {
+    color: var(--muted);
+    font-style: italic;
+}
