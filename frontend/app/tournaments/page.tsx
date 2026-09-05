@@ -160,7 +160,12 @@ function TournamentFilters({
                     </select>
                 </div>
 
-                <button type="submit">Apply filters</button>
+                <div className="selector__field">
+                    <p className="eyebrow selector__field-spacer" aria-hidden="true">
+                        Apply
+                    </p>
+                    <button type="submit">Apply</button>
+                </div>
             </div>
         </FilterForm>
     );
