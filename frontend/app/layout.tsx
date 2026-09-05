@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { NavigationBar } from "@/components/navigation-bar";
+import { Footer } from "@/components/footer";
 
 // @ts-ignore -- Next.js handles global CSS imports at build time.
 import "./globals.css";
@@ -42,6 +43,7 @@ export default function RootLayout({
             <body>
                 <NavigationBar />
                 {children}
+                <Footer />
             </body>
         </html>
     );

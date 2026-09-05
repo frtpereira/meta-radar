@@ -811,3 +811,66 @@ article em {
     color: var(--muted);
     font-style: italic;
 }
+
+/* Footer styling */
+.site-footer {
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid var(--line);
+    background: var(--bg-soft);
+    backdrop-filter: blur(14px);
+    margin-top: 64px;
+}
+
+.site-footer__inner {
+    width: min(1200px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 32px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    text-align: center;
+}
+
+.site-footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+}
+
+.site-footer__links a {
+    color: var(--muted);
+    transition: color 120ms ease;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.site-footer__links a:hover,
+.site-footer__links a:focus-visible {
+    color: var(--accent-3);
+}
+
+.site-footer__copyright {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+@media (max-width: 720px) {
+    .site-footer__inner {
+        width: min(100% - 20px, 1200px);
+        padding: 20px 0;
+    }
+
+    .site-footer__links {
+        gap: 8px;
+    }
+
+    .site-footer__links a {
+        font-size: 0.8rem;
+        padding: 4px 6px;
+    }
+}
