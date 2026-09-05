@@ -553,8 +553,9 @@ p {
 table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 560px;
+    min-width: 300px;
     background: var(--overlay-soft);
+    font-size: 0.88rem;
 }
 
 .table--compact {
@@ -563,13 +564,13 @@ table {
 
 th,
 td {
-    padding: 14px 16px;
+    padding: 10px 12px;
     text-align: left;
     border-bottom: 1px solid var(--overlay-med);
 }
 
 th {
-    font-size: 0.76rem;
+    font-size: 0.72rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
