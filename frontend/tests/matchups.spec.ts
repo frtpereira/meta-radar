@@ -9,7 +9,7 @@ test("matchups page renders stats and supports filter interactions", async ({ pa
 
     await expect(page.getByRole("heading", { name: "Matchup Analysis" })).toBeVisible();
     await page.getByLabel("Filter by archetype").selectOption("1");
-    await page.getByRole("button", { name: "Load matchups" }).click();
+    await page.getByRole("button", { name: "Apply" }).click();
 
     await expect(page).toHaveURL(/archetype_id=1/);
     await expect(page.getByRole("heading", { name: "Matchup Analysis" })).toBeVisible();

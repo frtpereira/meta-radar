@@ -456,6 +456,7 @@ p {
 
 .selector button {
     padding: 0 18px;
+    min-width: 140px;
     background: linear-gradient(135deg, var(--button-from), var(--button-to));
     color: var(--button-text);
     font-weight: 700;
@@ -499,13 +500,24 @@ p {
 }
 
 .selector--stack {
-    align-items: center;
+    /* Align by the bottom edge of each field so buttons line up with the
+       select/input boxes on the same row instead of the row's full
+       height. */
+    align-items: end;
 }
 
 .selector__field {
     display: flex;
     flex-direction: column;
     gap: 0;
+}
+
+/* Reserves the same space as a field's `.eyebrow` label above a button so
+   that, when a row mixes labeled fields with an action button, every
+   select/input/button bottom lines up -- and stays lined up the same way
+   across every filter row. */
+.selector__field-spacer {
+    visibility: hidden;
 }
 
 .selector__toggle {

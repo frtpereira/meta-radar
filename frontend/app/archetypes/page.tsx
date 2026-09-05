@@ -43,7 +43,7 @@ function MetaSelector({
                     ))}
                 </select>
             </div>
-            <button type="submit">Load meta</button>
+            <button type="submit">Apply</button>
         </form>
     );
 }

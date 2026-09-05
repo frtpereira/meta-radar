@@ -92,7 +92,12 @@ function MatchupFilters({
                 />
             </div>
 
-            <button type="submit">Load matchups</button>
+            <div className="selector__field">
+                <p className="eyebrow selector__field-spacer" aria-hidden="true">
+                    Apply
+                </p>
+                <button type="submit">Apply</button>
+            </div>
         </FilterForm>
     );
 }
