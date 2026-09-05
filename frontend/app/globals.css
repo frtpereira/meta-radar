@@ -745,3 +745,131 @@ th .info-tooltip:focus {
         min-width: 100%;
     }
 }
+
+/* Article and prose content styling */
+article {
+    max-width: 800px;
+    line-height: 1.7;
+}
+
+article h1 {
+    margin-bottom: 24px;
+}
+
+article h2 {
+    margin-top: 32px;
+    margin-bottom: 16px;
+}
+
+article h3 {
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+article p {
+    margin-bottom: 16px;
+    line-height: 1.8;
+    color: var(--text);
+}
+
+article p + p {
+    margin-top: -8px;
+}
+
+article ul,
+article ol {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+article li {
+    margin-bottom: 12px;
+    line-height: 1.8;
+}
+
+article a {
+    color: var(--accent-3);
+    text-decoration: underline;
+    transition: color 120ms ease, opacity 120ms ease;
+}
+
+article a:hover,
+article a:focus-visible {
+    color: var(--accent);
+    text-decoration-thickness: 2px;
+}
+
+article strong {
+    font-weight: 600;
+    color: var(--text);
+}
+
+article em {
+    color: var(--muted);
+    font-style: italic;
+}
+
+/* Footer styling */
+.site-footer {
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid var(--line);
+    background: var(--bg-soft);
+    backdrop-filter: blur(14px);
+    margin-top: 64px;
+}
+
+.site-footer__inner {
+    width: min(1200px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 32px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    text-align: center;
+}
+
+.site-footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+}
+
+.site-footer__links a {
+    color: var(--muted);
+    transition: color 120ms ease;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.site-footer__links a:hover,
+.site-footer__links a:focus-visible {
+    color: var(--accent-3);
+}
+
+.site-footer__copyright {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+@media (max-width: 720px) {
+    .site-footer__inner {
+        width: min(100% - 20px, 1200px);
+        padding: 20px 0;
+    }
+
+    .site-footer__links {
+        gap: 8px;
+    }
+
+    .site-footer__links a {
+        font-size: 0.8rem;
+        padding: 4px 6px;
+    }
+}
