@@ -399,6 +399,20 @@ func TestArchetypeStats(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 		assert.Contains(t, rr.Body.String(), "querying archetype stats")
 	})
+
+	t.Run("always filters out the catch-all Other archetype", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`(?s)WITH sides AS.*WHERE a\.meta_id = \$1::uuid AND a\.name <> 'Other'.*ORDER BY deck_count DESC`).WithArgs("meta-1").WillReturnRows(
+			pgxmock.NewRows([]string{"id", "name", "slug", "deck_count", "avg_standing", "drop_count", "matches", "wins", "losses", "ties", "score_rate", "win_rate", "archetype_icons"}),
+		)
+
+		h := &Handler{DB: mock}
+		rr := httptest.NewRecorder()
+		h.ArchetypeStats(rr, httptest.NewRequest(http.MethodGet, "/api/archetypes/stats?meta_id=meta-1", nil))
+		assert.Equal(t, http.StatusOK, rr.Code)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 func TestArchetypeDetail(t *testing.T) {

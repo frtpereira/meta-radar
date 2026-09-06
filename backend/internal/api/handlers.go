@@ -443,6 +443,10 @@ func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 // pairings for this meta's tournaments (needs `make migrate` + a resync
 // for anything synced before pairings existed) -- see README.
 //
+// The catch-all "Other" archetype (Limitless's bucket for decks it
+// couldn't cluster into a named archetype) is always excluded -- it's
+// not a real archetype and isn't useful in a per-archetype breakdown.
+//
 // @Summary Archetype stats for a meta
 // @Description Returns per-archetype play counts, average standing, and win/score rates for a given meta.
 // @Tags archetypes
@@ -497,7 +501,7 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 		JOIN decklists d ON d.archetype_id = a.id
 		LEFT JOIN standings s ON s.decklist_id = d.id
 		LEFT JOIN match_stats ms ON ms.archetype_id = a.id
-				WHERE a.meta_id = $1::uuid
+				WHERE a.meta_id = $1::uuid AND a.name <> 'Other'
 		GROUP BY a.id, a.name, a.slug, ms.matches, ms.wins, ms.losses, ms.ties
 		ORDER BY deck_count DESC`
 
