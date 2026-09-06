@@ -67,7 +67,7 @@ export default function StandingsTable({
                         r.decklist_id !== null ? (
                             <Link
                                 className="button"
-                                href={`/players/${encodeURIComponent(r.player_name)}/decklist/${r.decklist_id}`}
+                                href={`/decklists/${r.decklist_id}`}
                             >
                                 View decklist
                             </Link>

@@ -38,7 +38,9 @@ export default function PlayerHistoryTable({
                     render: (r: PlayerHistoryEntry) =>
                         formatPlacement(r.placement),
                     sortValue: (r: PlayerHistoryEntry) =>
-                        r.placement === 0 ? Number.MAX_SAFE_INTEGER : r.placement,
+                        r.placement === 0
+                            ? Number.MAX_SAFE_INTEGER
+                            : r.placement,
                 },
                 {
                     key: "event",
@@ -82,7 +84,7 @@ export default function PlayerHistoryTable({
                         r.decklist_id !== null ? (
                             <Link
                                 className="button"
-                                href={`/players/${encodeURIComponent(nickname)}/decklist/${r.decklist_id}`}
+                                href={`/decklists/${r.decklist_id}`}
                             >
                                 View decklist
                             </Link>
