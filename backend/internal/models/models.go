@@ -23,6 +23,11 @@ type Tournament struct {
 	HasDecklists    bool      `json:"has_decklists"`
 	OrganizerName   *string   `json:"organizer_name,omitempty"`
 	WinnerArchetype *string   `json:"winner_archetype,omitempty"`
+	// WinnerArchetypeIcons holds the ordered pokemon-icon slugs for the
+	// winner's archetype (see archetype_icons table), so the frontend can
+	// render icons instead of the archetype name. Nil when the winner has
+	// no archetype or no curated icons.
+	WinnerArchetypeIcons []string `json:"winner_archetype_icons,omitempty"`
 }
 
 type Archetype struct {
@@ -57,4 +62,32 @@ type Standing struct {
 	Losses       int    `json:"losses"`
 	Ties         int    `json:"ties"`
 	DecklistID   *int64 `json:"decklist_id,omitempty"`
+}
+
+// PokemonIcon is one entry in our self-hosted icon registry (see
+// db/migrations/0006_pokemon_icons.sql and fetch_pokemon_icons.py). Slug
+// matches the icon's base filename in our R2 bucket.
+type PokemonIcon struct {
+	Slug       string    `json:"slug"`
+	R2Key      string    `json:"r2_key"`
+	Gen        *int      `json:"gen,omitempty"`
+	ResolvedAt time.Time `json:"resolved_at"`
+}
+
+// CardPokemonIcon maps a card's exact printed name to the Pokémon icon
+// slug it should render as. Curated, not derived -- see the migration
+// comment for why a plain string transform isn't reliable here.
+type CardPokemonIcon struct {
+	CardName    string `json:"card_name"`
+	PokemonSlug string `json:"pokemon_slug"`
+}
+
+// ArchetypeIcon links an archetype to one of the icon(s) that represent
+// it, in display order. An archetype can have more than one (e.g.
+// dual-attacker builds), so this is a separate row per icon rather than
+// a column on Archetype.
+type ArchetypeIcon struct {
+	ArchetypeID  int64  `json:"archetype_id"`
+	PokemonSlug  string `json:"pokemon_slug"`
+	DisplayOrder int    `json:"display_order"`
 }

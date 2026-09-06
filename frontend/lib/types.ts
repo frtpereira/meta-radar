@@ -19,6 +19,7 @@ export interface Tournament {
     has_decklists: boolean;
     organizer_name: string | null;
     winner_archetype: string | null;
+    winner_archetype_icons: string[] | null;
 }
 
 export interface ArchetypeStat {
@@ -34,6 +35,7 @@ export interface ArchetypeStat {
     ties: number;
     score_rate: number | null;
     win_rate: number | null;
+    archetype_icons: string[] | null;
 }
 
 export interface TournamentStanding {
@@ -47,6 +49,7 @@ export interface TournamentStanding {
     archetype_id: number | null;
     archetype_name: string | null;
     archetype_slug: string | null;
+    archetype_icons: string[] | null;
 }
 
 export interface TournamentDetail extends Tournament {
@@ -75,6 +78,7 @@ export interface ArchetypeDetail {
     core_cards: Card[] | null;
     core_threshold: number | null;
     core_computed_at: string | null;
+    archetype_icons: string[] | null;
 }
 
 export interface ArchetypeVariant {
@@ -137,5 +141,6 @@ export interface DecklistDetail {
     archetype_id: number | null;
     archetype_name: string | null;
     archetype_slug: string | null;
+    archetype_icons: string[] | null;
     cards: Card[];
 }

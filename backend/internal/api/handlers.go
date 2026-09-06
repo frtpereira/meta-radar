@@ -43,6 +43,17 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
+// Each query below embeds a correlated scalar subquery -- e.g.
+// "(SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM
+// archetype_icons ai WHERE ai.archetype_id = a.id) AS archetype_icons" --
+// to aggregate an archetype's icon slugs (see
+// db/migrations/0006_pokemon_icons.sql) in display order. It's a subquery
+// rather than a join so it can be dropped into an existing SELECT list
+// without disturbing that query's own JOINs/GROUP BY -- ARRAY_AGG over a
+// correlated subquery with no matching rows returns NULL, which scans into
+// a nil []string, so callers don't need to special-case archetypes (or a
+// NULL archetype_id) with no icons.
+
 // @Summary Health check
 // @Description Reports whether the API is up.
 // @Tags health
@@ -202,11 +213,13 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 
 	query := fmt.Sprintf(`
 		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
-		       w.archetype_name
+		       w.archetype_name, w.archetype_icons
 		FROM tournaments t
 		LEFT JOIN metas m ON m.id = t.meta_id
 		LEFT JOIN LATERAL (
-			SELECT a.name AS archetype_name, a.slug AS archetype_slug
+			SELECT a.name AS archetype_name, a.slug AS archetype_slug,
+			       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order)
+			        FROM archetype_icons ai WHERE ai.archetype_id = a.id) AS archetype_icons
 			FROM standings s
 			JOIN decklists d ON d.id = s.decklist_id
 			JOIN archetypes a ON a.id = d.archetype_id
@@ -235,7 +248,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	tournaments := []models.Tournament{}
 	for rows.Next() {
 		var t models.Tournament
-		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype, &t.WinnerArchetypeIcons); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning tournament: "+err.Error())
 			return
 		}
@@ -322,7 +335,8 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 	query := `
 		SELECT s.standing, s.wins, s.losses, s.ties,
 		       p.id, p.name,
-		       d.id, a.id, a.name, a.slug
+		       d.id, a.id, a.name, a.slug,
+		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = a.id) AS archetype_icons
 		FROM standings s
 		JOIN players p ON p.id = s.player_id
 		LEFT JOIN decklists d ON d.id = s.decklist_id
@@ -340,16 +354,17 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type standingRow struct {
-		Standing      int     `json:"standing"`
-		Wins          int     `json:"wins"`
-		Losses        int     `json:"losses"`
-		Ties          int     `json:"ties"`
-		PlayerID      string  `json:"player_id"`
-		PlayerName    string  `json:"player_name"`
-		DecklistID    *int64  `json:"decklist_id,omitempty"`
-		ArchetypeID   *int64  `json:"archetype_id,omitempty"`
-		ArchetypeName *string `json:"archetype_name,omitempty"`
-		ArchetypeSlug *string `json:"archetype_slug,omitempty"`
+		Standing       int      `json:"standing"`
+		Wins           int      `json:"wins"`
+		Losses         int      `json:"losses"`
+		Ties           int      `json:"ties"`
+		PlayerID       string   `json:"player_id"`
+		PlayerName     string   `json:"player_name"`
+		DecklistID     *int64   `json:"decklist_id,omitempty"`
+		ArchetypeID    *int64   `json:"archetype_id,omitempty"`
+		ArchetypeName  *string  `json:"archetype_name,omitempty"`
+		ArchetypeSlug  *string  `json:"archetype_slug,omitempty"`
+		ArchetypeIcons []string `json:"archetype_icons,omitempty"`
 	}
 
 	standings := []standingRow{}
@@ -357,7 +372,7 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 		var s standingRow
 		if err := rows.Scan(&s.Standing, &s.Wins, &s.Losses, &s.Ties,
 			&s.PlayerID, &s.PlayerName,
-			&s.DecklistID, &s.ArchetypeID, &s.ArchetypeName, &s.ArchetypeSlug); err != nil {
+			&s.DecklistID, &s.ArchetypeID, &s.ArchetypeName, &s.ArchetypeSlug, &s.ArchetypeIcons); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning standing: "+err.Error())
 			return
 		}
@@ -471,7 +486,8 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 		       CASE WHEN COALESCE(ms.matches, 0) = 0 THEN NULL
 		            ELSE (COALESCE(ms.wins, 0) + 0.5 * COALESCE(ms.ties, 0)) / COALESCE(ms.matches, 0)::float8 END AS score_rate,
 		       CASE WHEN COALESCE(ms.wins, 0) + COALESCE(ms.losses, 0) = 0 THEN NULL
-		            ELSE COALESCE(ms.wins, 0)::float8 / (COALESCE(ms.wins, 0) + COALESCE(ms.losses, 0))::float8 END AS win_rate
+		            ELSE COALESCE(ms.wins, 0)::float8 / (COALESCE(ms.wins, 0) + COALESCE(ms.losses, 0))::float8 END AS win_rate,
+		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = a.id) AS archetype_icons
 		FROM archetypes a
 		JOIN decklists d ON d.archetype_id = a.id
 		LEFT JOIN standings s ON s.decklist_id = d.id
@@ -488,25 +504,26 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type archetypeStat struct {
-		ID          int64    `json:"id"`
-		Name        string   `json:"name"`
-		Slug        string   `json:"slug"`
-		DeckCount   int      `json:"deck_count"`
-		AvgStanding *float64 `json:"avg_standing"`
-		DropCount   int      `json:"drop_count"`
-		Matches     int      `json:"matches"`
-		Wins        int      `json:"wins"`
-		Losses      int      `json:"losses"`
-		Ties        int      `json:"ties"`
-		ScoreRate   *float64 `json:"score_rate"`
-		WinRate     *float64 `json:"win_rate"`
+		ID             int64    `json:"id"`
+		Name           string   `json:"name"`
+		Slug           string   `json:"slug"`
+		DeckCount      int      `json:"deck_count"`
+		AvgStanding    *float64 `json:"avg_standing"`
+		DropCount      int      `json:"drop_count"`
+		Matches        int      `json:"matches"`
+		Wins           int      `json:"wins"`
+		Losses         int      `json:"losses"`
+		Ties           int      `json:"ties"`
+		ScoreRate      *float64 `json:"score_rate"`
+		WinRate        *float64 `json:"win_rate"`
+		ArchetypeIcons []string `json:"archetype_icons,omitempty"`
 	}
 
 	stats := []archetypeStat{}
 	for rows.Next() {
 		var s archetypeStat
 		if err := rows.Scan(&s.ID, &s.Name, &s.Slug, &s.DeckCount, &s.AvgStanding, &s.DropCount,
-			&s.Matches, &s.Wins, &s.Losses, &s.Ties, &s.ScoreRate, &s.WinRate); err != nil {
+			&s.Matches, &s.Wins, &s.Losses, &s.Ties, &s.ScoreRate, &s.WinRate, &s.ArchetypeIcons); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning archetype stat: "+err.Error())
 			return
 		}
@@ -537,11 +554,13 @@ func (h *Handler) ArchetypeDetail(w http.ResponseWriter, r *http.Request) {
 		coreCardsJSON  []byte
 		coreThreshold  *float64
 		coreComputedAt *time.Time
+		archetypeIcons []string
 	)
 	err := h.DB.QueryRow(ctx, `
-		SELECT id, meta_id::text, name, slug, core_cards, core_threshold, core_computed_at
+		SELECT id, meta_id::text, name, slug, core_cards, core_threshold, core_computed_at,
+		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = archetypes.id) AS archetype_icons
 		FROM archetypes WHERE id = $1`, id,
-	).Scan(&a.ID, &a.MetaID, &a.Name, &a.Slug, &coreCardsJSON, &coreThreshold, &coreComputedAt)
+	).Scan(&a.ID, &a.MetaID, &a.Name, &a.Slug, &coreCardsJSON, &coreThreshold, &coreComputedAt, &archetypeIcons)
 	if err == pgx.ErrNoRows {
 		writeError(w, http.StatusNotFound, "archetype not found")
 		return
@@ -563,6 +582,7 @@ func (h *Handler) ArchetypeDetail(w http.ResponseWriter, r *http.Request) {
 		"slug":             a.Slug,
 		"core_cards":       coreCards,
 		"core_threshold":   coreThreshold,
+		"archetype_icons":  archetypeIcons,
 		"core_computed_at": coreComputedAt,
 	})
 }
@@ -1027,6 +1047,7 @@ func (h *Handler) DecklistDetail(w http.ResponseWriter, r *http.Request) {
 		playerName     string
 		archetypeName  *string
 		archetypeSlug  *string
+		archetypeIcons []string
 		tournamentID   string
 		tournamentName string
 		date           time.Time
@@ -1034,14 +1055,15 @@ func (h *Handler) DecklistDetail(w http.ResponseWriter, r *http.Request) {
 	)
 	err := h.DB.QueryRow(ctx, `
 		SELECT d.id, d.tournament_id, d.player_id, p.name, d.archetype_id, a.name, a.slug,
-		       d.cards, t.name, t.date
+		       d.cards, t.name, t.date,
+		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = a.id) AS archetype_icons
 		FROM decklists d
 		JOIN players p ON p.id = d.player_id
 		LEFT JOIN archetypes a ON a.id = d.archetype_id
 		JOIN tournaments t ON t.id = d.tournament_id
 		WHERE d.id = $1`, id,
 	).Scan(&d.ID, &tournamentID, &d.PlayerID, &playerName, &d.ArchetypeID, &archetypeName, &archetypeSlug,
-		&cardsJSON, &tournamentName, &date)
+		&cardsJSON, &tournamentName, &date, &archetypeIcons)
 	if err == pgx.ErrNoRows {
 		writeError(w, http.StatusNotFound, "decklist not found")
 		return
@@ -1066,6 +1088,7 @@ func (h *Handler) DecklistDetail(w http.ResponseWriter, r *http.Request) {
 		"archetype_id":    d.ArchetypeID,
 		"archetype_name":  archetypeName,
 		"archetype_slug":  archetypeSlug,
+		"archetype_icons": archetypeIcons,
 		"cards":           cards,
 	})
 }
