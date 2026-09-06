@@ -2,6 +2,10 @@ basePath: /
 definitions:
   apidocs.ArchetypeDetail:
     properties:
+      archetype_icons:
+        items:
+          type: string
+        type: array
       core_cards:
         items:
           $ref: '#/definitions/models.Card'
@@ -30,6 +34,10 @@ definitions:
     type: object
   apidocs.ArchetypeStat:
     properties:
+      archetype_icons:
+        items:
+          type: string
+        type: array
       avg_standing:
         type: number
       deck_count:
@@ -83,6 +91,10 @@ definitions:
     type: object
   apidocs.DecklistDetail:
     properties:
+      archetype_icons:
+        items:
+          type: string
+        type: array
       archetype_id:
         type: integer
       archetype_name:
@@ -159,6 +171,10 @@ definitions:
     type: object
   apidocs.StandingRow:
     properties:
+      archetype_icons:
+        items:
+          type: string
+        type: array
       archetype_id:
         type: integer
       archetype_name:
@@ -298,6 +314,15 @@ definitions:
         type: integer
       winner_archetype:
         type: string
+      winner_archetype_icons:
+        description: |-
+          WinnerArchetypeIcons holds the ordered pokemon-icon slugs for the
+          winner's archetype (see archetype_icons table), so the frontend can
+          render icons instead of the archetype name. Nil when the winner has
+          no archetype or no curated icons.
+        items:
+          type: string
+        type: array
     type: object
 info:
   contact: {}
@@ -563,7 +588,8 @@ paths:
   /api/tournaments:
     get:
       description: Lists tournaments, optionally filtered by minimum player count,
-        format, meta, and event name, and sorted by date, players, or winner archetype.
+        format, meta, event name, and organizer name, and sorted by date, players,
+        or winner archetype.
       parameters:
       - description: Minimum number of players
         in: query
@@ -580,6 +606,10 @@ paths:
       - description: Case-insensitive substring match on the tournament name
         in: query
         name: event_name
+        type: string
+      - description: Case-insensitive substring match on the organizer name
+        in: query
+        name: organizer_name
         type: string
       - description: 'Sort column: date, players, or winner_archetype (default date)'
         in: query

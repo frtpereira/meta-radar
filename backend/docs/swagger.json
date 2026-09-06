@@ -383,7 +383,7 @@
         },
         "/api/tournaments": {
             "get": {
-                "description": "Lists tournaments, optionally filtered by minimum player count, format, meta, and event name, and sorted by date, players, or winner archetype.",
+                "description": "Lists tournaments, optionally filtered by minimum player count, format, meta, event name, and organizer name, and sorted by date, players, or winner archetype.",
                 "produces": [
                     "application/json"
                 ],
@@ -414,6 +414,12 @@
                         "type": "string",
                         "description": "Case-insensitive substring match on the tournament name",
                         "name": "event_name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Case-insensitive substring match on the organizer name",
+                        "name": "organizer_name",
                         "in": "query"
                     },
                     {
@@ -579,6 +585,12 @@
         "apidocs.ArchetypeDetail": {
             "type": "object",
             "properties": {
+                "archetype_icons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "core_cards": {
                     "type": "array",
                     "items": {
@@ -622,6 +634,12 @@
         "apidocs.ArchetypeStat": {
             "type": "object",
             "properties": {
+                "archetype_icons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "avg_standing": {
                     "type": "number"
                 },
@@ -702,6 +720,12 @@
         "apidocs.DecklistDetail": {
             "type": "object",
             "properties": {
+                "archetype_icons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "archetype_id": {
                     "type": "integer"
                 },
@@ -818,6 +842,12 @@
         "apidocs.StandingRow": {
             "type": "object",
             "properties": {
+                "archetype_icons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "archetype_id": {
                     "type": "integer"
                 },
@@ -1028,6 +1058,13 @@
                 },
                 "winner_archetype": {
                     "type": "string"
+                },
+                "winner_archetype_icons": {
+                    "description": "WinnerArchetypeIcons holds the ordered pokemon-icon slugs for the\nwinner's archetype (see archetype_icons table), so the frontend can\nrender icons instead of the archetype name. Nil when the winner has\nno archetype or no curated icons.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         }

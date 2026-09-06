@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Table from "@/components/table";
+import ArchetypeIcons from "@/components/archetype-icons";
 import type { TournamentStanding } from "@/lib/types";
 
 // Table `columns` entries carry `render`/`sortValue` functions, and Table
@@ -43,10 +44,12 @@ export default function StandingsTable({
                 {
                     key: "archetype",
                     label: "Archetype",
-                    render: (r: TournamentStanding) =>
-                        r.archetype_name ?? (
-                            <span className="muted tiny">Unknown</span>
-                        ),
+                    render: (r: TournamentStanding) => (
+                        <ArchetypeIcons
+                            icons={r.archetype_icons}
+                            name={r.archetype_name ?? "Unknown"}
+                        />
+                    ),
                     sortValue: (r: TournamentStanding) => r.archetype_name,
                 },
                 {

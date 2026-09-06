@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ArchetypeStat } from "@/lib/types";
 import Table from "@/components/table";
 import InfoTooltip from "@/components/info-tooltip";
+import ArchetypeIcons from "@/components/archetype-icons";
 
 const PAGE_SIZE = 20;
 
@@ -55,7 +56,7 @@ function ArchetypesTable({
                     className="table-link"
                     href={`/archetypes/${s.id}?meta_id=${metaId}`}
                 >
-                    <div className="table-title">{s.name}</div>
+                    <ArchetypeIcons icons={s.archetype_icons} name={s.name} />
                 </Link>
             ),
             sortValue: (s: ArchetypeStat) => s.name,

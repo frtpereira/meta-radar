@@ -596,6 +596,60 @@ tbody tr:hover {
     font-weight: 700;
 }
 
+.archetype-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.archetype-icon {
+    border-radius: 4px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+.tooltip-trigger {
+    display: inline-flex;
+    cursor: help;
+}
+
+.tooltip-bubble {
+    position: fixed;
+    z-index: 1000;
+    transform: translate(-50%, calc(-100% - 10px));
+    background: var(--card-strong);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow);
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.tooltip-bubble::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--line-strong);
+}
+
+.tooltip-bubble::before {
+    content: "";
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--card-strong);
+}
+
 .col-count {
     width: 1%;
     white-space: nowrap;

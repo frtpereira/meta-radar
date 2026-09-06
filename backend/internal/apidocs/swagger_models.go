@@ -7,18 +7,19 @@ import (
 )
 
 type ArchetypeStat struct {
-	ID          int64    `json:"id"`
-	Name        string   `json:"name"`
-	Slug        string   `json:"slug"`
-	DeckCount   int      `json:"deck_count"`
-	AvgStanding *float64 `json:"avg_standing,omitempty"`
-	DropCount   int      `json:"drop_count"`
-	Matches     int      `json:"matches"`
-	Wins        int      `json:"wins"`
-	Losses      int      `json:"losses"`
-	Ties        int      `json:"ties"`
-	ScoreRate   *float64 `json:"score_rate,omitempty"`
-	WinRate     *float64 `json:"win_rate,omitempty"`
+	ID             int64    `json:"id"`
+	Name           string   `json:"name"`
+	Slug           string   `json:"slug"`
+	DeckCount      int      `json:"deck_count"`
+	AvgStanding    *float64 `json:"avg_standing,omitempty"`
+	DropCount      int      `json:"drop_count"`
+	Matches        int      `json:"matches"`
+	Wins           int      `json:"wins"`
+	Losses         int      `json:"losses"`
+	Ties           int      `json:"ties"`
+	ScoreRate      *float64 `json:"score_rate,omitempty"`
+	WinRate        *float64 `json:"win_rate,omitempty"`
+	ArchetypeIcons []string `json:"archetype_icons,omitempty"`
 }
 
 type ArchetypeDetail struct {
@@ -29,6 +30,7 @@ type ArchetypeDetail struct {
 	CoreCards      []models.Card `json:"core_cards"`
 	CoreThreshold  *float64      `json:"core_threshold,omitempty"`
 	CoreComputedAt *time.Time    `json:"core_computed_at,omitempty"`
+	ArchetypeIcons []string      `json:"archetype_icons,omitempty"`
 }
 
 type Variant struct {
@@ -40,16 +42,17 @@ type Variant struct {
 }
 
 type StandingRow struct {
-	Standing      int     `json:"standing"`
-	Wins          int     `json:"wins"`
-	Losses        int     `json:"losses"`
-	Ties          int     `json:"ties"`
-	PlayerID      string  `json:"player_id"`
-	PlayerName    string  `json:"player_name"`
-	DecklistID    *int64  `json:"decklist_id,omitempty"`
-	ArchetypeID   *int64  `json:"archetype_id,omitempty"`
-	ArchetypeName *string `json:"archetype_name,omitempty"`
-	ArchetypeSlug *string `json:"archetype_slug,omitempty"`
+	Standing       int      `json:"standing"`
+	Wins           int      `json:"wins"`
+	Losses         int      `json:"losses"`
+	Ties           int      `json:"ties"`
+	PlayerID       string   `json:"player_id"`
+	PlayerName     string   `json:"player_name"`
+	DecklistID     *int64   `json:"decklist_id,omitempty"`
+	ArchetypeID    *int64   `json:"archetype_id,omitempty"`
+	ArchetypeName  *string  `json:"archetype_name,omitempty"`
+	ArchetypeSlug  *string  `json:"archetype_slug,omitempty"`
+	ArchetypeIcons []string `json:"archetype_icons,omitempty"`
 }
 
 type TournamentDetail struct {
@@ -137,5 +140,6 @@ type DecklistDetail struct {
 	ArchetypeID    *int64        `json:"archetype_id,omitempty"`
 	ArchetypeName  *string       `json:"archetype_name,omitempty"`
 	ArchetypeSlug  *string       `json:"archetype_slug,omitempty"`
+	ArchetypeIcons []string      `json:"archetype_icons,omitempty"`
 	Cards          []models.Card `json:"cards"`
 }

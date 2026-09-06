@@ -28,6 +28,7 @@ function makeArchetype(id: number, name: string): ArchetypeStat {
         ties: 1,
         score_rate: 0.5,
         win_rate: 0.5,
+        archetype_icons: null,
     };
 }
 
@@ -53,13 +54,15 @@ describe("ArchetypeSearch", () => {
 
         expect(screen.getByText("25 archetypes")).toBeInTheDocument();
         expect(screen.getByText("Page 1 of 2")).toBeInTheDocument();
-        expect(screen.getByText("Archetype 01")).toBeInTheDocument();
-        expect(screen.queryByText("Late Game Dragon")).not.toBeInTheDocument();
+        expect(screen.getByAltText("Archetype 01")).toBeInTheDocument();
+        expect(
+            screen.queryByAltText("Late Game Dragon"),
+        ).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: "Next" }));
 
         expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
-        expect(screen.getByText("Late Game Dragon")).toBeInTheDocument();
+        expect(screen.getByAltText("Late Game Dragon")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Prev" })).toBeEnabled();
     });
 
@@ -79,7 +82,7 @@ describe("ArchetypeSearch", () => {
         );
 
         expect(screen.getByText("1 archetypes")).toBeInTheDocument();
-        expect(screen.getByText("Late Game Dragon")).toBeInTheDocument();
+        expect(screen.getByAltText("Late Game Dragon")).toBeInTheDocument();
         expect(screen.queryByText(/Page \d of \d/)).not.toBeInTheDocument();
         expect(
             screen.queryByRole("button", { name: "Next" }),

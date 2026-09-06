@@ -23,6 +23,11 @@ type Tournament struct {
 	HasDecklists    bool      `json:"has_decklists"`
 	OrganizerName   *string   `json:"organizer_name,omitempty"`
 	WinnerArchetype *string   `json:"winner_archetype,omitempty"`
+	// WinnerArchetypeIcons holds the ordered pokemon-icon slugs for the
+	// winner's archetype (see archetype_icons table), so the frontend can
+	// render icons instead of the archetype name. Nil when the winner has
+	// no archetype or no curated icons.
+	WinnerArchetypeIcons []string `json:"winner_archetype_icons,omitempty"`
 }
 
 type Archetype struct {
