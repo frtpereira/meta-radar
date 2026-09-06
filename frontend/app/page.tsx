@@ -200,7 +200,9 @@ export default async function Home({
                     meta={
                         <>
                             <span className="pill">PBL+ Tracked</span>
-                            <span className="pill pill--soft">v1.0.1</span>
+                            <span className="pill pill--soft">
+                                v1.0.2-alpha
+                            </span>
                         </>
                     }
                 />
