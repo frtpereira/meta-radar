@@ -102,6 +102,10 @@ const tournaments = Array.from({ length: 25 }, (_, index) => ({
     has_decklists: true,
     organizer_name: index === 0 ? "Celadon League" : `Organizer ${index + 1}`,
     winner_archetype: archetypeNames[index % 6],
+    // Mirrors archetypeStats: only exercise a curated icon for a couple of
+    // archetypes, leaving the rest null to hit the "unknown" fallback.
+    winner_archetype_icons:
+        index % 6 < 2 ? [slugify(archetypeNames[index % 6]).split("-")[0]] : null,
 }));
 
 // Tournaments with "Doom" in their name don't necessarily hit the 32+
@@ -121,6 +125,7 @@ tournaments.push({
     has_decklists: true,
     organizer_name: "Doom",
     winner_archetype: archetypeNames[0],
+    winner_archetype_icons: [slugify(archetypeNames[0]).split("-")[0]],
 });
 
 const standingsByTournamentId = {

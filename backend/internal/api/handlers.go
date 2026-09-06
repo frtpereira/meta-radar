@@ -213,11 +213,13 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 
 	query := fmt.Sprintf(`
 		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
-		       w.archetype_name
+		       w.archetype_name, w.archetype_icons
 		FROM tournaments t
 		LEFT JOIN metas m ON m.id = t.meta_id
 		LEFT JOIN LATERAL (
-			SELECT a.name AS archetype_name, a.slug AS archetype_slug
+			SELECT a.name AS archetype_name, a.slug AS archetype_slug,
+			       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order)
+			        FROM archetype_icons ai WHERE ai.archetype_id = a.id) AS archetype_icons
 			FROM standings s
 			JOIN decklists d ON d.id = s.decklist_id
 			JOIN archetypes a ON a.id = d.archetype_id
@@ -246,7 +248,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	tournaments := []models.Tournament{}
 	for rows.Next() {
 		var t models.Tournament
-		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype, &t.WinnerArchetypeIcons); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning tournament: "+err.Error())
 			return
 		}

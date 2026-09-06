@@ -1058,6 +1058,13 @@
                 },
                 "winner_archetype": {
                     "type": "string"
+                },
+                "winner_archetype_icons": {
+                    "description": "WinnerArchetypeIcons holds the ordered pokemon-icon slugs for the\nwinner's archetype (see archetype_icons table), so the frontend can\nrender icons instead of the archetype name. Nil when the winner has\nno archetype or no curated icons.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         }

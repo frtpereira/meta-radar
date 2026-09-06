@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Table, { type SortState } from "@/components/table";
+import ArchetypeIcons from "@/components/archetype-icons";
 import type { Tournament } from "@/lib/types";
 
 // Table `columns` entries carry `render`/`sortValue` functions, and Table
@@ -115,7 +116,12 @@ export default function TournamentsTable({
             // stays unsortable regardless of pagination.
             sortable: false,
             render: (t: Tournament) =>
-                t.winner_archetype ?? (
+                t.winner_archetype ? (
+                    <ArchetypeIcons
+                        icons={t.winner_archetype_icons}
+                        name={t.winner_archetype}
+                    />
+                ) : (
                     <span className="muted tiny">Unknown</span>
                 ),
         },
