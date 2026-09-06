@@ -141,6 +141,21 @@ func TestListTournaments(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	t.Run("always filters out tournaments with no decklists", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM tournaments t.*WHERE t\.has_decklists = true`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "").WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
+		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t.*WHERE t\.has_decklists = true`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id"}))
+
+		h := &Handler{DB: mock}
+		req := httptest.NewRequest(http.MethodGet, "/api/tournaments", nil)
+		rr := httptest.NewRecorder()
+		h.ListTournaments(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("sorts by an allowed column and direction", func(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()

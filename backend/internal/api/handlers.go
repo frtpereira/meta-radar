@@ -93,7 +93,9 @@ var tournamentSortColumns = map[string]string{
 // date (descending) as a secondary key, both to break ties between same-
 // archetype winners and to keep undecided winners (NULL) from scattering.
 // Results are paginated (see MatchupStats for the same page/page_size
-// convention) instead of the old flat LIMIT 200 array response.
+// convention) instead of the old flat LIMIT 200 array response. Tournaments
+// with no decklists recorded are always excluded (has_decklists = false),
+// since there's nothing archetype-related to show for them.
 //
 // @Summary List tournaments
 // @Description Lists tournaments, optionally filtered by minimum player count, format, meta, event name, and organizer name, and sorted by date, players, or winner archetype.
@@ -195,7 +197,8 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 			WHERE s.tournament_id = t.id AND s.standing = 1
 			LIMIT 1
 		) w ON true
-		WHERE t.players >= $1
+		WHERE t.has_decklists = true
+		  AND t.players >= $1
 		  AND ($2 = '' OR t.format_code = $2)
 		  AND ($3 = '' OR t.meta_id::text = $3)
 		  AND ($4::boolean IS NULL OR t.is_online = $4)
@@ -227,7 +230,8 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 			WHERE s.tournament_id = t.id AND s.standing = 1
 			LIMIT 1
 		) w ON true
-		WHERE t.players >= $1
+		WHERE t.has_decklists = true
+		  AND t.players >= $1
 		  AND ($2 = '' OR t.format_code = $2)
 		  AND ($3 = '' OR t.meta_id::text = $3)
 		  AND ($4::boolean IS NULL OR t.is_online = $4)
