@@ -13,7 +13,7 @@ import Tooltip from "@/components/tooltip";
 export default function ArchetypeIcons({
     icons,
     name,
-    size = 24,
+    size = 32,
 }: {
     icons: string[] | null | undefined;
     name: string;
