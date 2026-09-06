@@ -68,6 +68,9 @@ const archetypeStats = archetypeNames.map((name, index) => ({
     ties: index % 2,
     score_rate: 0.58 - index * 0.004,
     win_rate: 0.6 - index * 0.004,
+    // First couple archetypes have a curated icon; the rest are left
+    // null to exercise the frontend's "unknown.png" fallback path.
+    archetype_icons: index < 2 ? [slugify(name).split("-")[0]] : null,
 }));
 
 const archetypeById = new Map(
@@ -81,6 +84,7 @@ const archetypeById = new Map(
             core_cards: null,
             core_threshold: stat.id === 1 ? 0.7 : 0.65,
             core_computed_at: "2026-05-15T00:00:00Z",
+            archetype_icons: stat.archetype_icons,
         },
     ]),
 );
@@ -132,6 +136,7 @@ const standingsByTournamentId = {
             archetype_id: 1,
             archetype_name: "Charizard ex",
             archetype_slug: "charizard-ex",
+            archetype_icons: ["charizard"],
         },
         {
             standing: 2,
@@ -144,6 +149,7 @@ const standingsByTournamentId = {
             archetype_id: 2,
             archetype_name: "Gardevoir ex",
             archetype_slug: "gardevoir-ex",
+            archetype_icons: ["gardevoir"],
         },
         {
             standing: 3,
@@ -156,6 +162,7 @@ const standingsByTournamentId = {
             archetype_id: null,
             archetype_name: null,
             archetype_slug: null,
+            archetype_icons: null,
         },
     ],
     "tour-02": [],
@@ -208,6 +215,7 @@ const decklistsById = new Map([
             archetype_id: 1,
             archetype_name: "Charizard ex",
             archetype_slug: "charizard-ex",
+            archetype_icons: ["charizard"],
             cards: [
                 { name: "Charmander", set: "PAF", number: "7", count: 4, category: "pokemon" },
                 { name: "Charizard ex", set: "OBF", number: "125", count: 3, category: "pokemon" },

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Table from "@/components/table";
+import ArchetypeIcons from "@/components/archetype-icons";
 import type { ArchetypeStat, Tournament } from "@/lib/types";
 
 // Table `columns` entries carry `render`/`sortValue` functions, and Table
@@ -100,7 +101,10 @@ export function TopArchetypesTable({
                             className="table-link"
                             href={`/archetypes/${stat.id}${activeMetaId ? `?meta_id=${activeMetaId}` : ""}`}
                         >
-                            <div className="table-title">{stat.name}</div>
+                            <ArchetypeIcons
+                                icons={stat.archetype_icons}
+                                name={stat.name}
+                            />
                         </Link>
                     ),
                 },

@@ -596,6 +596,19 @@ tbody tr:hover {
     font-weight: 700;
 }
 
+.archetype-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: help;
+}
+
+.archetype-icon {
+    border-radius: 4px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
 .col-count {
     width: 1%;
     white-space: nowrap;

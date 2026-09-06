@@ -223,9 +223,9 @@ func TestTournamentDetail(t *testing.T) {
 				AddRow("t1", "Regional", "PTCG", "STANDARD", ptrString("meta-1"), ptrString("Meta"), when, 256, true, true, ptrString("League")),
 		)
 		mock.ExpectQuery(`(?s)SELECT s\.standing, s\.wins, s\.losses, s\.ties.*FROM standings s`).WithArgs("t1").WillReturnRows(
-			pgxmock.NewRows([]string{"standing", "wins", "losses", "ties", "player_id", "player_name", "decklist_id", "archetype_id", "archetype_name", "archetype_slug"}).
-				AddRow(1, 9, 1, 0, "p1", "Alice", ptrInt64(10), ptrInt64(20), ptrString("Dragapult ex"), ptrString("dragapult-ex")).
-				AddRow(0, 4, 3, 0, "p2", "Bob", nil, nil, nil, nil),
+			pgxmock.NewRows([]string{"standing", "wins", "losses", "ties", "player_id", "player_name", "decklist_id", "archetype_id", "archetype_name", "archetype_slug", "archetype_icons"}).
+				AddRow(1, 9, 1, 0, "p1", "Alice", ptrInt64(10), ptrInt64(20), ptrString("Dragapult ex"), ptrString("dragapult-ex"), []string{"dragapult"}).
+				AddRow(0, 4, 3, 0, "p2", "Bob", nil, nil, nil, nil, nil),
 		)
 
 		h := &Handler{DB: mock}
@@ -236,17 +236,19 @@ func TestTournamentDetail(t *testing.T) {
 		var resp struct {
 			ID        string `json:"id"`
 			Standings []struct {
-				PlayerID      string  `json:"player_id"`
-				DecklistID    *int64  `json:"decklist_id"`
-				ArchetypeName *string `json:"archetype_name"`
+				PlayerID       string   `json:"player_id"`
+				DecklistID     *int64   `json:"decklist_id"`
+				ArchetypeName  *string  `json:"archetype_name"`
+				ArchetypeIcons []string `json:"archetype_icons"`
 			} `json:"standings"`
 		}
 		resp = decodeBody[struct {
 			ID        string `json:"id"`
 			Standings []struct {
-				PlayerID      string  `json:"player_id"`
-				DecklistID    *int64  `json:"decklist_id"`
-				ArchetypeName *string `json:"archetype_name"`
+				PlayerID       string   `json:"player_id"`
+				DecklistID     *int64   `json:"decklist_id"`
+				ArchetypeName  *string  `json:"archetype_name"`
+				ArchetypeIcons []string `json:"archetype_icons"`
 			} `json:"standings"`
 		}](t, rr)
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -254,8 +256,10 @@ func TestTournamentDetail(t *testing.T) {
 		require.Len(t, resp.Standings, 2)
 		assert.Equal(t, "p1", resp.Standings[0].PlayerID)
 		assert.Equal(t, int64(10), *resp.Standings[0].DecklistID)
+		assert.Equal(t, []string{"dragapult"}, resp.Standings[0].ArchetypeIcons)
 		assert.Equal(t, "Bob", map[string]string{"Bob": "Bob"}["Bob"])
 		assert.Nil(t, resp.Standings[1].DecklistID)
+		assert.Empty(t, resp.Standings[1].ArchetypeIcons)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -343,27 +347,30 @@ func TestArchetypeStats(t *testing.T) {
 	mock := newMockDB(t)
 	defer mock.Close()
 	mock.ExpectQuery(`(?s)WITH sides AS.*ORDER BY deck_count DESC`).WithArgs("meta-1").WillReturnRows(
-		pgxmock.NewRows([]string{"id", "name", "slug", "deck_count", "avg_standing", "drop_count", "matches", "wins", "losses", "ties", "score_rate", "win_rate"}).
-			AddRow(int64(1), "Dragapult ex", "dragapult-ex", 12, ptrFloat64(3.5), 1, 20, 12, 6, 2, ptrFloat64(0.65), ptrFloat64(0.6667)),
+		pgxmock.NewRows([]string{"id", "name", "slug", "deck_count", "avg_standing", "drop_count", "matches", "wins", "losses", "ties", "score_rate", "win_rate", "archetype_icons"}).
+			AddRow(int64(1), "Dragapult ex", "dragapult-ex", 12, ptrFloat64(3.5), 1, 20, 12, 6, 2, ptrFloat64(0.65), ptrFloat64(0.6667), []string{"dragapult", "dusknoir"}),
 	)
 
 	h := &Handler{DB: mock}
 	rr := httptest.NewRecorder()
 	h.ArchetypeStats(rr, httptest.NewRequest(http.MethodGet, "/api/archetypes/stats?meta_id=meta-1", nil))
 	var resp []struct {
-		ID        int64    `json:"id"`
-		Avg       *float64 `json:"avg_standing"`
-		ScoreRate *float64 `json:"score_rate"`
+		ID             int64    `json:"id"`
+		Avg            *float64 `json:"avg_standing"`
+		ScoreRate      *float64 `json:"score_rate"`
+		ArchetypeIcons []string `json:"archetype_icons"`
 	}
 	resp = decodeBody[[]struct {
-		ID        int64    `json:"id"`
-		Avg       *float64 `json:"avg_standing"`
-		ScoreRate *float64 `json:"score_rate"`
+		ID             int64    `json:"id"`
+		Avg            *float64 `json:"avg_standing"`
+		ScoreRate      *float64 `json:"score_rate"`
+		ArchetypeIcons []string `json:"archetype_icons"`
 	}](t, rr)
 	require.Len(t, resp, 1)
 	assert.Equal(t, int64(1), resp[0].ID)
 	assert.InDelta(t, 3.5, *resp[0].Avg, 0.001)
 	assert.InDelta(t, 0.65, *resp[0].ScoreRate, 0.001)
+	assert.Equal(t, []string{"dragapult", "dusknoir"}, resp[0].ArchetypeIcons)
 
 	t.Run("query error", func(t *testing.T) {
 		mock := newMockDB(t)
@@ -384,9 +391,9 @@ func TestArchetypeDetail(t *testing.T) {
 		defer mock.Close()
 		computedAt := time.Date(2026, 3, 1, 10, 0, 0, 0, time.UTC)
 		coreCards, _ := json.Marshal([]models.Card{{Name: "Rare Candy", Count: 4, Category: "trainer"}})
-		mock.ExpectQuery(`SELECT id, meta_id::text, name, slug, core_cards, core_threshold, core_computed_at FROM archetypes WHERE id = \$1`).WithArgs("7").WillReturnRows(
-			pgxmock.NewRows([]string{"id", "meta_id", "name", "slug", "core_cards", "core_threshold", "core_computed_at"}).
-				AddRow(int64(7), "meta-1", "Dragapult ex", "dragapult-ex", coreCards, ptrFloat64(0.7), ptrTime(computedAt)),
+		mock.ExpectQuery(`(?s)SELECT id, meta_id::text, name, slug, core_cards, core_threshold, core_computed_at.*FROM archetypes WHERE id = \$1`).WithArgs("7").WillReturnRows(
+			pgxmock.NewRows([]string{"id", "meta_id", "name", "slug", "core_cards", "core_threshold", "core_computed_at", "archetype_icons"}).
+				AddRow(int64(7), "meta-1", "Dragapult ex", "dragapult-ex", coreCards, ptrFloat64(0.7), ptrTime(computedAt), []string{"dragapult"}),
 		)
 
 		h := &Handler{DB: mock}
@@ -395,25 +402,28 @@ func TestArchetypeDetail(t *testing.T) {
 		h.ArchetypeDetail(rr, req)
 
 		var resp struct {
-			ID            int64         `json:"id"`
-			CoreCards     []models.Card `json:"core_cards"`
-			CoreThreshold *float64      `json:"core_threshold"`
+			ID             int64         `json:"id"`
+			CoreCards      []models.Card `json:"core_cards"`
+			CoreThreshold  *float64      `json:"core_threshold"`
+			ArchetypeIcons []string      `json:"archetype_icons"`
 		}
 		resp = decodeBody[struct {
-			ID            int64         `json:"id"`
-			CoreCards     []models.Card `json:"core_cards"`
-			CoreThreshold *float64      `json:"core_threshold"`
+			ID             int64         `json:"id"`
+			CoreCards      []models.Card `json:"core_cards"`
+			CoreThreshold  *float64      `json:"core_threshold"`
+			ArchetypeIcons []string      `json:"archetype_icons"`
 		}](t, rr)
 		assert.Equal(t, int64(7), resp.ID)
 		require.Len(t, resp.CoreCards, 1)
 		assert.Equal(t, "Rare Candy", resp.CoreCards[0].Name)
 		assert.InDelta(t, 0.7, *resp.CoreThreshold, 0.001)
+		assert.Equal(t, []string{"dragapult"}, resp.ArchetypeIcons)
 	})
 
 	t.Run("not found", func(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
-		mock.ExpectQuery(`SELECT id, meta_id::text, name, slug, core_cards, core_threshold, core_computed_at FROM archetypes WHERE id = \$1`).WithArgs("404").WillReturnError(pgx.ErrNoRows)
+		mock.ExpectQuery(`(?s)SELECT id, meta_id::text, name, slug, core_cards, core_threshold, core_computed_at.*FROM archetypes WHERE id = \$1`).WithArgs("404").WillReturnError(pgx.ErrNoRows)
 
 		h := &Handler{DB: mock}
 		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/archetypes/404", nil), "id", "404")
@@ -741,8 +751,8 @@ func TestDecklistDetail(t *testing.T) {
 		mock.ExpectQuery(`(?s)SELECT d\.id, d\.tournament_id, d\.player_id.*FROM decklists d`).
 			WithArgs("10").
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "tournament_id", "player_id", "name", "archetype_id", "name", "slug", "cards", "name", "date"}).
-					AddRow(int64(10), "t1", "p1", "Ash Ketchum", ptrInt64(20), ptrString("Charizard ex"), ptrString("charizard-ex"), cardsJSON, "Regional", when),
+				pgxmock.NewRows([]string{"id", "tournament_id", "player_id", "name", "archetype_id", "name", "slug", "cards", "name", "date", "archetype_icons"}).
+					AddRow(int64(10), "t1", "p1", "Ash Ketchum", ptrInt64(20), ptrString("Charizard ex"), ptrString("charizard-ex"), cardsJSON, "Regional", when, []string{"charizard"}),
 			)
 
 		h := &Handler{DB: mock}
@@ -756,6 +766,7 @@ func TestDecklistDetail(t *testing.T) {
 			TournamentName string        `json:"tournament_name"`
 			PlayerName     string        `json:"player_name"`
 			ArchetypeName  *string       `json:"archetype_name"`
+			ArchetypeIcons []string      `json:"archetype_icons"`
 			Cards          []models.Card `json:"cards"`
 		}](t, rr)
 
@@ -765,6 +776,7 @@ func TestDecklistDetail(t *testing.T) {
 		assert.Equal(t, "Regional", resp.TournamentName)
 		assert.Equal(t, "Ash Ketchum", resp.PlayerName)
 		assert.Equal(t, "Charizard ex", *resp.ArchetypeName)
+		assert.Equal(t, []string{"charizard"}, resp.ArchetypeIcons)
 		require.Len(t, resp.Cards, 1)
 		assert.Equal(t, "Charizard ex", resp.Cards[0].Name)
 		require.NoError(t, mock.ExpectationsWereMet())

@@ -13,17 +13,17 @@ test("archetypes page paginates and filters archetypes in the browser", async ({
         page.getByRole("heading", { name: "Deck Archetype Explorer" }),
     ).toBeVisible();
     await expect(page.getByText("Page 1 of 2")).toBeVisible();
-    await expect(page.getByText("Late Game Dragon")).toHaveCount(0);
+    await expect(page.getByAltText("Late Game Dragon")).toHaveCount(0);
 
     await page.getByRole("button", { name: /^Next$/ }).click();
     await expect(page.getByText("Page 2 of 2")).toBeVisible();
-    await expect(page.getByText("Late Game Dragon")).toBeVisible();
+    await expect(page.getByAltText("Late Game Dragon")).toBeVisible();
 
     await page
         .getByRole("searchbox", { name: "Search archetypes" })
         .fill("late game");
     await expect(page.getByText("1 archetypes")).toBeVisible();
-    await expect(page.getByText("Late Game Dragon")).toBeVisible();
+    await expect(page.getByAltText("Late Game Dragon")).toBeVisible();
     await expect(page.getByText(/Page \d of \d/)).toHaveCount(0);
 });
 
