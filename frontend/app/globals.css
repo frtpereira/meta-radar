@@ -600,6 +600,7 @@ tbody tr:hover {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    cursor: pointer;
 }
 
 .archetype-icon {
