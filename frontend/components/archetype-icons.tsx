@@ -1,4 +1,5 @@
 import { archetypeIconUrl, UNKNOWN_ICON_SLUG } from "@/lib/icons";
+import Tooltip from "@/components/tooltip";
 
 // Renders an archetype's icon(s) in place of its name -- fixed dimensions
 // avoid layout shift while row images load, and `loading="lazy"` defers
@@ -6,10 +7,9 @@ import { archetypeIconUrl, UNKNOWN_ICON_SLUG } from "@/lib/icons";
 // `unknown` icon instead of a broken image when `icons` is empty/missing
 // (no curated icon mapping yet, or no archetype at all).
 //
-// Uses the native `title` attribute for the hover label (rather than a
-// custom tooltip bubble) to match InfoTooltip's convention -- it keeps
-// working inside the horizontally-scrolling table wrapper, where an
-// absolutely positioned bubble would risk being clipped.
+// Wrapped in `Tooltip` so hovering (or focusing) anywhere across the whole
+// icon group -- not just a single icon -- shows the deck name in a bubble
+// styled to match the rest of the site.
 export default function ArchetypeIcons({
     icons,
     name,
@@ -22,18 +22,20 @@ export default function ArchetypeIcons({
     const slugs = icons && icons.length > 0 ? icons : [UNKNOWN_ICON_SLUG];
 
     return (
-        <span className="archetype-icons" title={name}>
-            {slugs.map((slug, i) => (
-                <img
-                    key={`${slug}-${i}`}
-                    src={archetypeIconUrl(slug)}
-                    alt={name}
-                    width={size}
-                    height={size}
-                    loading="lazy"
-                    className="archetype-icon"
-                />
-            ))}
-        </span>
+        <Tooltip label={name}>
+            <span className="archetype-icons">
+                {slugs.map((slug, i) => (
+                    <img
+                        key={`${slug}-${i}`}
+                        src={archetypeIconUrl(slug)}
+                        alt={name}
+                        width={size}
+                        height={size}
+                        loading="lazy"
+                        className="archetype-icon"
+                    />
+                ))}
+            </span>
+        </Tooltip>
     );
 }
