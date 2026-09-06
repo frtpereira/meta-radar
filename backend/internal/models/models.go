@@ -28,6 +28,8 @@ type Tournament struct {
 	// render icons instead of the archetype name. Nil when the winner has
 	// no archetype or no curated icons.
 	WinnerArchetypeIcons []string `json:"winner_archetype_icons,omitempty"`
+	WinnerNickname       *string  `json:"winner_nickname,omitempty"`
+	WinnerDecklistID     *int64   `json:"winner_decklist_id,omitempty"`
 }
 
 type Archetype struct {

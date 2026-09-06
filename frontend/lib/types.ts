@@ -20,6 +20,8 @@ export interface Tournament {
     organizer_name: string | null;
     winner_archetype: string | null;
     winner_archetype_icons: string[] | null;
+    winner_nickname: string | null;
+    winner_decklist_id: number | null;
 }
 
 export interface ArchetypeStat {

@@ -109,18 +109,22 @@ export default function TournamentsTable({
         },
         {
             key: "winner_archetype",
-            label: "Winner archetype",
+            label: "Winner",
             // A winner's archetype changes meaning across rows (some are
             // decisive, some default to whoever placed first with no
             // clean tiebreak) and isn't a useful global sort key, so this
             // stays unsortable regardless of pagination.
             sortable: false,
             render: (t: Tournament) =>
-                t.winner_archetype ? (
-                    <ArchetypeIcons
-                        icons={t.winner_archetype_icons}
-                        name={t.winner_archetype}
-                    />
+                t.winner_archetype &&
+                t.winner_nickname &&
+                t.winner_decklist_id ? (
+                    <Link href={`/decklists/${t.winner_decklist_id}`}>
+                        <ArchetypeIcons
+                            icons={t.winner_archetype_icons}
+                            name={t.winner_archetype}
+                        />
+                    </Link>
                 ) : (
                     <span className="muted tiny">Unknown</span>
                 ),
