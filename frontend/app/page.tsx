@@ -209,7 +209,7 @@ export default async function Home({
 
                 <section className="grid grid--summary">
                     <TopStatCard
-                        label="Top win rate deck"
+                        label="highest winrate"
                         value={topWinRateArchetype?.name ?? "—"}
                         detail={
                             topWinRateArchetype
@@ -218,7 +218,7 @@ export default async function Home({
                         }
                     />
                     <TopStatCard
-                        label="Top played deck"
+                        label="most played"
                         value={topPlayedArchetype?.name ?? "—"}
                         detail={
                             topPlayedArchetype
