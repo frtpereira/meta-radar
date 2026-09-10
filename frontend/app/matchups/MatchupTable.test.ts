@@ -49,9 +49,9 @@ describe("MatchupTable", () => {
 
         expect(headers[0]).toHaveTextContent("Archetype");
         expect(headers[1]).toHaveTextContent("Opponent");
-        expect(headers[2]).toHaveTextContent("Matches");
-        expect(headers[3]).toHaveTextContent("Win rate");
-        expect(headers[4]).toHaveTextContent("Score rate");
+        expect(headers[2]).toHaveTextContent("Win rate");
+        expect(headers[3]).toHaveTextContent("Score rate");
+        expect(headers[4]).toHaveTextContent("Matches");
         expect(headers[5]).toHaveTextContent("Record");
     });
 

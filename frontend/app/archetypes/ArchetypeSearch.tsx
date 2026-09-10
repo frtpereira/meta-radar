@@ -62,13 +62,6 @@ function ArchetypesTable({
             sortValue: (s: ArchetypeStat) => s.name,
         },
         {
-            key: "decks",
-            label: "Decklists",
-            sortDescFirst: true,
-            render: (s: ArchetypeStat) => s.deck_count.toLocaleString(),
-            sortValue: (s: ArchetypeStat) => s.deck_count,
-        },
-        {
             key: "win_rate",
             label: "Win rate",
             sortDescFirst: true,
@@ -86,10 +79,24 @@ function ArchetypesTable({
             render: (s: ArchetypeStat) => formatPercent(s.score_rate),
         },
         {
-            key: "avg_standing",
-            label: "Avg standing",
-            render: (s: ArchetypeStat) => formatStanding(s.avg_standing),
+            key: "decks",
+            label: "Decklists",
+            sortDescFirst: true,
+            render: (s: ArchetypeStat) => s.deck_count.toLocaleString(),
+            sortValue: (s: ArchetypeStat) => s.deck_count,
         },
+        {
+            key: "matches",
+            label: "Matches",
+            sortDescFirst: true,
+            render: (s: ArchetypeStat) => s.matches.toLocaleString(),
+            sortValue: (s: ArchetypeStat) => s.matches,
+        },
+        // {
+        //     key: "avg_standing",
+        //     label: "Avg standing",
+        //     render: (s: ArchetypeStat) => formatStanding(s.avg_standing),
+        // },
         {
             key: "record",
             label: "Record",

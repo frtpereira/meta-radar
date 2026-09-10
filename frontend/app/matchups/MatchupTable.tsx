@@ -105,13 +105,6 @@ export default function MatchupTable({
             },
         },
         {
-            key: "matches",
-            label: "Matches",
-            sortDescFirst: true,
-            render: (stat: MatchupStat) => stat.matches.toLocaleString(),
-            sortValue: (stat: MatchupStat) => stat.matches,
-        },
-        {
             key: "win_rate",
             label: "Win rate",
             sortDescFirst: true,
@@ -174,6 +167,13 @@ export default function MatchupTable({
                     ? stat.score_rate
                     : 1 - stat.score_rate;
             },
+        },
+        {
+            key: "matches",
+            label: "Matches",
+            sortDescFirst: true,
+            render: (stat: MatchupStat) => stat.matches.toLocaleString(),
+            sortValue: (stat: MatchupStat) => stat.matches,
         },
         {
             key: "record",
