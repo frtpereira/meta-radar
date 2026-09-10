@@ -23,7 +23,10 @@ function setViewport(width: number, height: number) {
 describe("CardHoverPreview", () => {
     it("renders children unchanged when no imageUrl is available", () => {
         render(
-            React.createElement(CardHoverPreview, { name: "Test Card" }, "Test Card"),
+            React.createElement(CardHoverPreview, {
+                name: "Test Card",
+                children: "Test Card",
+            }),
         );
 
         expect(screen.getByText("Test Card")).toBeInTheDocument();
@@ -32,11 +35,11 @@ describe("CardHoverPreview", () => {
     it("positions the preview below and to the right of the cursor when there is room", async () => {
         setViewport(1200, 1200);
         render(
-            React.createElement(
-                CardHoverPreview,
-                { imageUrl: "/card.png", name: "Test Card" },
-                "Test Card",
-            ),
+            React.createElement(CardHoverPreview, {
+                imageUrl: "/card.png",
+                name: "Test Card",
+                children: "Test Card",
+            }),
         );
 
         fireEvent.mouseEnter(screen.getByText("Test Card"), {
@@ -52,11 +55,11 @@ describe("CardHoverPreview", () => {
     it("flips above the cursor when the preview would overflow the bottom of the viewport", async () => {
         setViewport(1200, 400);
         render(
-            React.createElement(
-                CardHoverPreview,
-                { imageUrl: "/card.png", name: "Test Card" },
-                "Test Card",
-            ),
+            React.createElement(CardHoverPreview, {
+                imageUrl: "/card.png",
+                name: "Test Card",
+                children: "Test Card",
+            }),
         );
 
         fireEvent.mouseEnter(screen.getByText("Test Card"), {
@@ -73,11 +76,11 @@ describe("CardHoverPreview", () => {
     it("flips to the left of the cursor when the preview would overflow the right of the viewport", async () => {
         setViewport(500, 1200);
         render(
-            React.createElement(
-                CardHoverPreview,
-                { imageUrl: "/card.png", name: "Test Card" },
-                "Test Card",
-            ),
+            React.createElement(CardHoverPreview, {
+                imageUrl: "/card.png",
+                name: "Test Card",
+                children: "Test Card",
+            }),
         );
 
         fireEvent.mouseEnter(screen.getByText("Test Card"), {
