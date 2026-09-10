@@ -5,9 +5,9 @@ Reads a sets file (default: sets.txt) describing which sizes to download
 and which sets/card-counts to fetch:
 
     xl,md
-    pbl,84
-    cri,86
-    por,88
+    pbl,100
+    cri,85
+    por,90
 
 The first line is the comma-separated list of sizes to download (one or
 more of XL, LG, MD, SM, XS -- XL is the standard, no-suffix image, e.g.
@@ -24,9 +24,11 @@ cards/<SET>/<LANGUAGE>/.
 With --write-db, each card also gets one row upserted into Postgres'
 card_images table (see db/migrations/0007_card_images.sql and
 0008_card_images_language.sql). image_url is stored as a path relative
-to our own R2 bucket (e.g. "PBL/PBL_080_R_EN.png"), not the upstream
-limitlesstcg CDN URL -- the frontend prefixes it with the bucket's base
-URL (lib/card-images.ts), same pattern as Pokémon icons (lib/icons.ts).
+to our own R2 bucket, nested by set then language (e.g.
+"PBL/EN/PBL_080_R_EN.png" -- see 0009_card_images_language_folder.sql),
+not the upstream limitlesstcg CDN URL -- the frontend prefixes it with
+the bucket's base URL (lib/card-images.ts), same pattern as Pokémon
+icons (lib/icons.ts).
 That table has no size column, so if multiple sizes are requested, only
 one canonical size's path is stored: XL if it was requested, otherwise
 the first size listed in the sets file. The other sizes still get
@@ -267,16 +269,17 @@ def upsert_card_image(
     conn.commit()
 
 
-def bucket_relative_path(set_code: str, filename: str) -> str:
+def bucket_relative_path(set_code: str, language: str, filename: str) -> str:
     """What actually gets stored in card_images.image_url: a path relative
-    to our own R2 bucket (e.g. "PBL/PBL_080_R_EN.png"), not the upstream
-    limitlesstcg CDN URL -- the frontend prefixes this with its own bucket
-    base URL (see lib/card-images.ts), the same way lib/icons.ts does for
-    Pokémon icons. This script does not upload the file to that bucket --
-    it only downloads locally and records where it *will* live once
-    uploaded (matching fetch_pokemon_icons.py's separate --upload-to-r2
-    step)."""
-    return f"{set_code}/{filename}"
+    to our own R2 bucket, nested by set then language (e.g.
+    "PBL/EN/PBL_080_R_EN.png" -- see 0009_card_images_language_folder.sql),
+    not the upstream limitlesstcg CDN URL. The frontend prefixes this with
+    its own bucket base URL (see lib/card-images.ts), the same way
+    lib/icons.ts does for Pokémon icons. This script does not upload the
+    file to that bucket -- it only downloads locally and records where it
+    *will* live once uploaded (matching fetch_pokemon_icons.py's separate
+    --upload-to-r2 step)."""
+    return f"{set_code}/{language}/{filename}"
 
 
 def download(
@@ -361,7 +364,7 @@ def fetch_card(
             db_filename = db_download_url.rsplit("/", 1)[-1]
             match = FILENAME_RE.match(db_filename)
             db_number = normalized_number(match.group("number"))
-            relative_path = bucket_relative_path(set_code, db_filename)
+            relative_path = bucket_relative_path(set_code, target_lang, db_filename)
             try:
                 upsert_card_image(
                     db_conn, set_code, db_number, target_lang, relative_path
