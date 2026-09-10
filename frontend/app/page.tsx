@@ -201,7 +201,7 @@ export default async function Home({
                         <>
                             <span className="pill">PBL+ Tracked</span>
                             <span className="pill pill--soft">
-                                v1.0.2-alpha
+                                v1.0.3-alpha
                             </span>
                         </>
                     }
