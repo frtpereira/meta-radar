@@ -62,6 +62,7 @@ interface MatchupDeck {
     id: number;
     name: string;
     slug: string;
+    icons: string[] | null;
 }
 
 export interface Card {
