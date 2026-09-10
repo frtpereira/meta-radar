@@ -760,6 +760,21 @@ th .info-tooltip:focus {
     background: var(--badge-online-bg);
 }
 
+.card-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 209, 102, 0.12);
+    border: 1px solid rgba(255, 209, 102, 0.3);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.85rem;
+    font-family: inherit;
+}
+
 .empty-state {
     padding: 18px 0 4px;
 }

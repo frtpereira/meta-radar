@@ -119,24 +119,7 @@ export function SkeletonCategory({
             key: "count",
             label: "Count",
             render: (c: CardStat) => (
-                <span
-                    style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        background: "rgba(255,209,102,0.12)",
-                        border: "1px solid rgba(255,209,102,0.3)",
-                        color: "var(--accent)",
-                        fontWeight: 700,
-                        fontSize: "0.85rem",
-                        fontFamily: "Georgia, serif",
-                    }}
-                >
-                    {c.modal_count}
-                </span>
+                <span className="card-count-badge">{c.modal_count}</span>
             ),
             sortValue: (c: CardStat) => c.modal_count,
         },
