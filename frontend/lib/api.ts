@@ -10,6 +10,7 @@ import type {
     Tournament,
     TournamentDetail,
 } from "@/lib/types";
+import { cardImageUrl } from "@/lib/card-images";
 
 const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
@@ -143,6 +144,39 @@ export async function getPlayer(nickname: string) {
 
 export async function getDecklist(id: string) {
     return fetchJson<DecklistDetail>(`/decklists/${id}`);
+}
+
+// Batch-resolves hover-preview art for a set of cards in one request,
+// keyed by "set:number" (see the card_images migration on the backend).
+// Cards missing a set/number, or ones the backend hasn't resolved an
+// image for yet, are simply absent from the result -- callers should
+// treat a missing key as "no preview available", not an error.
+//
+// The backend returns image_url as a path relative to our R2 bucket
+// (e.g. "PBL/PBL_080_R_EN.png"), not a full URL -- cardImageUrl() turns
+// it into one here, so every caller of getCardImages already gets a
+// ready-to-render <img src>.
+export async function getCardImages(
+    cards: { set?: string; number?: string }[],
+) {
+    const keys = Array.from(
+        new Set(
+            cards
+                .filter((c) => c.set && c.number)
+                .map((c) => `${c.set}:${c.number}`),
+        ),
+    );
+    if (keys.length === 0) {
+        return {} as Record<string, string>;
+    }
+
+    const paths = await fetchJson<Record<string, string>>(
+        `/card-images?cards=${encodeURIComponent(keys.join(","))}`,
+    );
+
+    return Object.fromEntries(
+        Object.entries(paths).map(([key, path]) => [key, cardImageUrl(path)]),
+    ) as Record<string, string>;
 }
 
 export async function getMatchupStats(options: {
