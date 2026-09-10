@@ -93,3 +93,15 @@ type ArchetypeIcon struct {
 	PokemonSlug  string `json:"pokemon_slug"`
 	DisplayOrder int    `json:"display_order"`
 }
+
+// CardImage is a resolved card-art URL for one print, keyed by its
+// (Set, Number) identity -- see db/migrations/0007_card_images.sql for
+// why this is a cached lookup rather than a URL built on the fly.
+type CardImage struct {
+	Set        string    `json:"set"`
+	Number     string    `json:"number"`
+	Language   string    `json:"language"`
+	ImageURL   string    `json:"image_url"`
+	Source     string    `json:"source"`
+	ResolvedAt time.Time `json:"resolved_at"`
+}
