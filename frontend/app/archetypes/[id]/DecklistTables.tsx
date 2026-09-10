@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Table from "@/components/table";
+import CardHoverPreview from "@/components/card-hover-preview";
 import type { CardStat, MatchupStat } from "@/lib/types";
 
 // Table `columns` entries carry `render`/`sortValue` functions, and Table
@@ -104,10 +105,12 @@ function CountDist({ dist }: { dist: Record<string, number> }) {
 export function SkeletonCategory({
     label,
     cards,
+    images,
 }: {
     label: string;
     cards: CardStat[];
     totalDecklists: number;
+    images: Record<string, string>;
 }) {
     if (cards.length === 0) return null;
 
@@ -142,7 +145,12 @@ export function SkeletonCategory({
             label: "Card",
             render: (c: CardStat) => (
                 <div>
-                    <div className="table-title">{c.name}</div>
+                    <CardHoverPreview
+                        imageUrl={images[`${c.set}:${c.number}`]}
+                        name={c.name}
+                    >
+                        <div className="table-title">{c.name}</div>
+                    </CardHoverPreview>
                     {c.set ? (
                         <div className="muted tiny">
                             {c.set}
@@ -183,7 +191,13 @@ export function SkeletonCategory({
     );
 }
 
-export function OptionalCardsTable({ cards }: { cards: CardStat[] }) {
+export function OptionalCardsTable({
+    cards,
+    images,
+}: {
+    cards: CardStat[];
+    images: Record<string, string>;
+}) {
     return (
         <Table
             columns={[
@@ -192,7 +206,12 @@ export function OptionalCardsTable({ cards }: { cards: CardStat[] }) {
                     label: "Card",
                     render: (c: CardStat) => (
                         <div>
-                            <div className="table-title">{c.name}</div>
+                            <CardHoverPreview
+                                imageUrl={images[`${c.set}:${c.number}`]}
+                                name={c.name}
+                            >
+                                <div className="table-title">{c.name}</div>
+                            </CardHoverPreview>
                             {c.set ? (
                                 <div className="muted tiny">
                                     {c.set}
