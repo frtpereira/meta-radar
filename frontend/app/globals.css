@@ -640,6 +640,24 @@ tbody tr:hover {
     border-top-color: var(--line-strong);
 }
 
+.card-preview-trigger {
+    display: inline-flex;
+    cursor: pointer;
+}
+
+.card-preview-image {
+    position: fixed;
+    z-index: 1000;
+    width: 220px;
+    aspect-ratio: 5 / 7;
+    object-fit: contain;
+    border-radius: 12px;
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow);
+    background: var(--card-strong);
+    pointer-events: none;
+}
+
 .tooltip-bubble::before {
     content: "";
     position: absolute;

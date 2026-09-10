@@ -26,6 +26,7 @@ page is added — it goes stale silently otherwise.
 | `GET /api/matchups/stats` | `getMatchupStats` | `app/matchups/page.tsx` (full matchup table, client-side sorted/paginated), `app/archetypes/[id]/page.tsx` (mini matchup table scoped to one archetype, `min_matches: 1`) |
 | `GET /api/players/{nickname}` | `getPlayer` | `app/players/[nickname]/page.tsx` (player detail) |
 | `GET /api/decklists/{id}` | `getDecklist` | `app/decklists/[id]/page.tsx` (decklist detail) |
+| `GET /api/card-images` | `getCardImages` | `app/decklists/[id]/page.tsx` (hover-preview art for the decklist's cards), `app/archetypes/[id]/page.tsx` (hover-preview art for skeleton + optional cards) — both resolve it server-side alongside their other data and pass the result down as a prop, rather than fetching it from the card-table components |
 | `POST /api/webhooks/limitless` | — (not called from the frontend) | *None.* Called by Limitless's own webhook delivery, not the app — see `cmd/ingest` / the webhook receiver in the ingest worker. |
 
 ## Pages with no API calls

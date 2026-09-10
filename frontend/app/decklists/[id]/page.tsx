@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
-import { getDecklist } from "@/lib/api";
+import { getCardImages, getDecklist } from "@/lib/api";
 import { DecklistCategory } from "./DecklistCardsTable";
 
 type PageParams = { nickname: string; id: string };
@@ -40,6 +40,12 @@ export default async function PlayerDecklistPage({
     const pokemonCards = byCategory("pokemon");
     const trainerCards = byCategory("trainer");
     const energyCards = byCategory("energy");
+
+    // Resolved server-side, alongside the decklist itself, and handed down
+    // as a plain prop -- one batched request for the whole page instead of
+    // three (one per category) firing client-side after hydration, and no
+    // "preview not ready yet" flash on first hover.
+    const images = await getCardImages(decklist.cards).catch(() => ({}));
 
     const totalCards = decklist.cards.reduce((sum, c) => sum + c.count, 0);
 
@@ -97,12 +103,18 @@ export default async function PlayerDecklistPage({
                         <DecklistCategory
                             label="Pokémon"
                             cards={pokemonCards}
+                            images={images}
                         />
                         <DecklistCategory
                             label="Trainer"
                             cards={trainerCards}
+                            images={images}
                         />
-                        <DecklistCategory label="Energy" cards={energyCards} />
+                        <DecklistCategory
+                            label="Energy"
+                            cards={energyCards}
+                            images={images}
+                        />
                     </div>
                 </Card>
             </div>

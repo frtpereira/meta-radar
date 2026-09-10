@@ -8,6 +8,7 @@ import {
     getArchetypeCardStats,
     getArchetypeDetail,
     getArchetypeStats,
+    getCardImages,
     getMatchupStats,
 } from "@/lib/api";
 import {
@@ -84,6 +85,12 @@ export default async function DecklistDetailPage({
 
     const totalDecklists =
         cardStats.length > 0 ? cardStats[0].total_decklists : 0;
+
+    // Resolved once for every card on the page (skeleton + optional
+    // combined) alongside the rest of the server-side data fetching --
+    // one batched request instead of one per category table, and no
+    // client-side loading gap before the first hover works.
+    const images = await getCardImages(cardStats).catch(() => ({}));
 
     const thisStat = archetypeStats.find((s) => String(s.id) === id);
 
@@ -206,16 +213,19 @@ export default async function DecklistDetailPage({
                                 label="Pokémon"
                                 cards={pokemonCards}
                                 totalDecklists={totalDecklists}
+                                images={images}
                             />
                             <SkeletonCategory
                                 label="Trainer"
                                 cards={trainerCards}
                                 totalDecklists={totalDecklists}
+                                images={images}
                             />
                             <SkeletonCategory
                                 label="Energy"
                                 cards={energyCards}
                                 totalDecklists={totalDecklists}
+                                images={images}
                             />
                         </>
                     )}
@@ -243,7 +253,7 @@ export default async function DecklistDetailPage({
                             copy="Run the clustering pipeline to separate core cards from tech choices."
                         />
                     ) : (
-                        <OptionalCardsTable cards={optionalCards} />
+                        <OptionalCardsTable cards={optionalCards} images={images} />
                     )}
                 </Card>
 

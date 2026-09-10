@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"os"
@@ -1151,4 +1152,84 @@ func (h *Handler) LimitlessWebhook(w http.ResponseWriter, r *http.Request) {
 			log.Printf("webhook-triggered sync failed for %s: %v", payload.Event.TournamentID, err)
 		}
 	}()
+}
+
+// CardImages resolves cached art URLs for a batch of cards in one request,
+// keyed by "set:number" -- so a decklist/archetype table's hover-preview
+// feature can fetch every image it might need up front instead of firing
+// one request per hover. Identifiers that are malformed, or that we simply
+// haven't resolved an image for yet (see card_images / 0007 migration),
+// are omitted from the response rather than erroring the whole batch --
+// callers should treat a missing key as "no preview available".
+//
+// @Summary Batch card image lookup
+// @Description Returns image URLs for the given set:number card identifiers, omitting any not yet resolved.
+// @Tags cards
+// @Produce json
+// @Param cards query string true "Comma-separated set:number pairs, e.g. SCR:115,SCR:116"
+// @Success 200 {object} map[string]string
+// @Router /api/card-images [get]
+func (h *Handler) CardImages(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	raw := strings.TrimSpace(r.URL.Query().Get("cards"))
+	if raw == "" {
+		writeJSON(w, http.StatusOK, map[string]string{})
+		return
+	}
+
+	sets := make([]string, 0, strings.Count(raw, ",")+1)
+	numbers := make([]string, 0, cap(sets))
+	seen := make(map[string]bool, cap(sets))
+	for _, p := range strings.Split(raw, ",") {
+		parts := strings.SplitN(strings.TrimSpace(p), ":", 2)
+		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+			continue // skip malformed identifiers rather than failing the whole batch
+		}
+		key := parts[0] + ":" + parts[1]
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		sets = append(sets, parts[0])
+		numbers = append(numbers, parts[1])
+	}
+	if len(sets) == 0 {
+		writeJSON(w, http.StatusOK, map[string]string{})
+		return
+	}
+
+	// card_images can hold more than one language per (set_code, number)
+	// as of 0008 -- pin to English here, since that's the only language
+	// the frontend's hover-preview currently requests. If a multi-language
+	// preview is ever wanted, "cards" would need to carry a language
+	// segment and this filter would become a parameter instead.
+	rows, err := h.DB.Query(ctx, `
+		SELECT set_code, number, image_url
+		FROM card_images
+		WHERE (set_code, number) IN (
+			SELECT * FROM unnest($1::text[], $2::text[])
+		)
+		AND language = 'EN'
+	`, sets, numbers)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying card images: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	result := make(map[string]string, len(sets))
+	for rows.Next() {
+		var set, number, url string
+		if err := rows.Scan(&set, &number, &url); err != nil {
+			writeError(w, http.StatusInternalServerError, "scanning card image row: "+err.Error())
+			return
+		}
+		result[set+":"+number] = url
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "iterating card image rows: "+err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
 }
