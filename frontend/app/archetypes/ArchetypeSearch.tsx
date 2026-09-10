@@ -114,17 +114,23 @@ function ArchetypesTable({
 export default function ArchetypeSearch({
     archetypes,
     metaId,
+    minMatches,
 }: {
     archetypes: ArchetypeStat[];
     metaId: string;
+    minMatches: number;
 }) {
     const [query, setQuery] = useState("");
 
     const filtered = useMemo(() => {
         const trimmed = query.trim().toLowerCase();
-        if (!trimmed) return archetypes;
-        return archetypes.filter((a) => a.name.toLowerCase().includes(trimmed));
-    }, [archetypes, query]);
+        return archetypes.filter((a) => {
+            const matchesQuery =
+                !trimmed || a.name.toLowerCase().includes(trimmed);
+            const meetsMinMatches = a.matches >= minMatches;
+            return matchesQuery && meetsMinMatches;
+        });
+    }, [archetypes, query, minMatches]);
 
     function handleQueryChange(value: string) {
         setQuery(value);
