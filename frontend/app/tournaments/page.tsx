@@ -108,7 +108,7 @@ function TournamentFilters({
                         id="min_players"
                         name="min_players"
                         type="number"
-                        min={0}
+                        min={32}
                         defaultValue={minPlayers}
                     />
                 </div>
@@ -185,11 +185,11 @@ export default async function TournamentsPage({
         params.source === "online" || params.source === "offline"
             ? params.source
             : "";
-    const parsedMinPlayers = Number.parseInt(params.min_players ?? "0", 10);
+    const parsedMinPlayers = Number.parseInt(params.min_players ?? "32", 10);
     const minPlayers =
-        Number.isFinite(parsedMinPlayers) && parsedMinPlayers >= 0
+        Number.isFinite(parsedMinPlayers) && parsedMinPlayers >= 32
             ? parsedMinPlayers
-            : 0;
+            : 32;
     const dateFrom = params.date_from ?? "";
     const dateTo = params.date_to ?? "";
     const winnerArchetype = params.winner_archetype ?? "";
