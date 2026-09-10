@@ -33,20 +33,20 @@ function CardCategoryTable({
                     key: "card",
                     label: "Card",
                     render: (c: Card) => (
-                        <div>
-                            <CardHoverPreview
-                                imageUrl={images[`${c.set}:${c.number}`]}
-                                name={c.name}
-                            >
+                        <CardHoverPreview
+                            imageUrl={images[`${c.set}:${c.number}`]}
+                            name={c.name}
+                        >
+                            <div>
                                 <div className="table-title">{c.name}</div>
-                            </CardHoverPreview>
-                            {c.set ? (
-                                <div className="muted tiny">
-                                    {c.set}
-                                    {c.number ? ` ${c.number}` : ""}
-                                </div>
-                            ) : null}
-                        </div>
+                                {c.set ? (
+                                    <div className="muted tiny">
+                                        {c.set}
+                                        {c.number ? ` ${c.number}` : ""}
+                                    </div>
+                                ) : null}
+                            </div>
+                        </CardHoverPreview>
                     ),
                 },
             ]}

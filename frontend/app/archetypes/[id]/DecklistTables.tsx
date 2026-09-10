@@ -127,20 +127,20 @@ export function SkeletonCategory({
             key: "card",
             label: "Card",
             render: (c: CardStat) => (
-                <div>
-                    <CardHoverPreview
-                        imageUrl={images[`${c.set}:${c.number}`]}
-                        name={c.name}
-                    >
+                <CardHoverPreview
+                    imageUrl={images[`${c.set}:${c.number}`]}
+                    name={c.name}
+                >
+                    <div>
                         <div className="table-title">{c.name}</div>
-                    </CardHoverPreview>
-                    {c.set ? (
-                        <div className="muted tiny">
-                            {c.set}
-                            {c.number ? ` ${c.number}` : ""}
-                        </div>
-                    ) : null}
-                </div>
+                        {c.set ? (
+                            <div className="muted tiny">
+                                {c.set}
+                                {c.number ? ` ${c.number}` : ""}
+                            </div>
+                        ) : null}
+                    </div>
+                </CardHoverPreview>
             ),
             sortValue: (c: CardStat) => c.name,
         },
@@ -188,20 +188,20 @@ export function OptionalCardsTable({
                     key: "card",
                     label: "Card",
                     render: (c: CardStat) => (
-                        <div>
-                            <CardHoverPreview
-                                imageUrl={images[`${c.set}:${c.number}`]}
-                                name={c.name}
-                            >
+                        <CardHoverPreview
+                            imageUrl={images[`${c.set}:${c.number}`]}
+                            name={c.name}
+                        >
+                            <div>
                                 <div className="table-title">{c.name}</div>
-                            </CardHoverPreview>
-                            {c.set ? (
-                                <div className="muted tiny">
-                                    {c.set}
-                                    {c.number ? ` ${c.number}` : ""}
-                                </div>
-                            ) : null}
-                        </div>
+                                {c.set ? (
+                                    <div className="muted tiny">
+                                        {c.set}
+                                        {c.number ? ` ${c.number}` : ""}
+                                    </div>
+                                ) : null}
+                            </div>
+                        </CardHoverPreview>
                     ),
                     sortValue: (c: CardStat) => c.name,
                 },
