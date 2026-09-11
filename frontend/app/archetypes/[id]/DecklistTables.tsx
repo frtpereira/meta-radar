@@ -275,10 +275,11 @@ export function MatchupMiniTable({
         if (wr === null) {
             return "var(--muted)";
         }
+        const pct = Math.round(wr * 1000) / 10;
         if (variant === "good") {
-            return wr >= 0.55 ? "var(--success)" : "var(--accent)";
+            return pct >= 55 ? "var(--success)" : "var(--accent)";
         }
-        return wr < 0.4 ? "var(--accent-2)" : "var(--muted)";
+        return pct < 40 ? "var(--accent-2)" : "var(--muted)";
     };
 
     if (stats.length === 0) {
@@ -305,29 +306,10 @@ export function MatchupMiniTable({
                         href={`/archetypes/${opp.id}${metaId ? `?meta_id=${metaId}` : ""}`}
                     >
                         <div className="table-title table-title--with-icons">
-                            <ArchetypeIcons
-                                icons={opp.icons}
-                                name={opp.name}
-                                size={20}
-                            />
+                            <ArchetypeIcons icons={opp.icons} name={opp.name} />
                             {opp.name}
                         </div>
                     </Link>
-                );
-            },
-        },
-        {
-            key: "record",
-            label: "Record",
-            render: (s: MatchupStat) => {
-                const weAreArchetype =
-                    String(s.archetype.id) === String(archetypeId);
-                const w = weAreArchetype ? s.wins : s.losses;
-                const l = weAreArchetype ? s.losses : s.wins;
-                return (
-                    <span className="muted tiny">
-                        {w}–{l}–{s.ties}
-                    </span>
                 );
             },
         },
@@ -345,8 +327,7 @@ export function MatchupMiniTable({
                     <span
                         style={{
                             color: colorFn(wr),
-                            fontWeight: 700,
-                            fontFamily: "Georgia, serif",
+                            fontWeight: 600,
                         }}
                     >
                         {formatPercent(wr)}
@@ -360,6 +341,21 @@ export function MatchupMiniTable({
             render: (s: MatchupStat) => (
                 <span className="muted tiny">{s.matches.toLocaleString()}</span>
             ),
+        },
+        {
+            key: "record",
+            label: "Record",
+            render: (s: MatchupStat) => {
+                const weAreArchetype =
+                    String(s.archetype.id) === String(archetypeId);
+                const w = weAreArchetype ? s.wins : s.losses;
+                const l = weAreArchetype ? s.losses : s.wins;
+                return (
+                    <span className="muted tiny">
+                        {w}–{l}–{s.ties}
+                    </span>
+                );
+            },
         },
     ];
 

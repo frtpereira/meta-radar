@@ -78,7 +78,6 @@ export default function MatchupTable({
                             <ArchetypeIcons
                                 icons={primary.icons}
                                 name={primary.name}
-                                size={24}
                             />
                             {primary.name}
                         </div>
@@ -104,7 +103,6 @@ export default function MatchupTable({
                             <ArchetypeIcons
                                 icons={secondary.icons}
                                 name={secondary.name}
-                                size={24}
                             />
                             {secondary.name}
                         </div>
