@@ -36,14 +36,16 @@ type tournamentsResponse struct {
 
 type matchupStatBody struct {
 	Archetype struct {
-		ID   int64  `json:"id"`
-		Name string `json:"name"`
-		Slug string `json:"slug"`
+		ID    int64    `json:"id"`
+		Name  string   `json:"name"`
+		Slug  string   `json:"slug"`
+		Icons []string `json:"icons"`
 	} `json:"archetype"`
 	Opponent struct {
-		ID   int64  `json:"id"`
-		Name string `json:"name"`
-		Slug string `json:"slug"`
+		ID    int64    `json:"id"`
+		Name  string   `json:"name"`
+		Slug  string   `json:"slug"`
+		Icons []string `json:"icons"`
 	} `json:"opponent"`
 	Matches   int      `json:"matches"`
 	Wins      int      `json:"wins"`
@@ -530,8 +532,8 @@ func TestMatchupStats(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
 		mock.ExpectQuery(`(?s)SELECT archetype_id, archetype_name, archetype_slug.*FROM matchups_mv`).WithArgs("meta-1", "10", false, 25).WillReturnRows(
-			pgxmock.NewRows([]string{"archetype_id", "archetype_name", "archetype_slug", "opponent_archetype_id", "opponent_name", "opponent_slug", "matches", "wins", "losses", "ties", "score_rate", "win_rate"}).
-				AddRow(int64(10), "Dragapult ex", "dragapult-ex", int64(11), "Gardevoir", "gardevoir", 40, 22, 14, 4, ptrFloat64(0.6), ptrFloat64(0.6111)),
+			pgxmock.NewRows([]string{"archetype_id", "archetype_name", "archetype_slug", "archetype_icons", "opponent_archetype_id", "opponent_name", "opponent_slug", "opponent_icons", "matches", "wins", "losses", "ties", "score_rate", "win_rate"}).
+				AddRow(int64(10), "Dragapult ex", "dragapult-ex", []string{"dragapult"}, int64(11), "Gardevoir", "gardevoir", []string{"gardevoir"}, 40, 22, 14, 4, ptrFloat64(0.6), ptrFloat64(0.6111)),
 		)
 
 		h := &Handler{DB: mock}
@@ -541,6 +543,8 @@ func TestMatchupStats(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		require.Len(t, resp, 1)
 		assert.Equal(t, int64(10), resp[0].Archetype.ID)
+		assert.Equal(t, []string{"dragapult"}, resp[0].Archetype.Icons)
+		assert.Equal(t, []string{"gardevoir"}, resp[0].Opponent.Icons)
 	})
 
 	t.Run("redis cache hit", func(t *testing.T) {
@@ -566,8 +570,8 @@ func TestMatchupStats(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
 		mock.ExpectQuery(`(?s)SELECT archetype_id, archetype_name, archetype_slug.*FROM matchups_mv`).WithArgs("meta-1", "", true, 20).WillReturnRows(
-			pgxmock.NewRows([]string{"archetype_id", "archetype_name", "archetype_slug", "opponent_archetype_id", "opponent_name", "opponent_slug", "matches", "wins", "losses", "ties", "score_rate", "win_rate"}).
-				AddRow(int64(1), "Dragapult ex", "dragapult-ex", int64(2), "Miraidon", "miraidon", 25, 14, 9, 2, ptrFloat64(0.6), ptrFloat64(0.6087)),
+			pgxmock.NewRows([]string{"archetype_id", "archetype_name", "archetype_slug", "archetype_icons", "opponent_archetype_id", "opponent_name", "opponent_slug", "opponent_icons", "matches", "wins", "losses", "ties", "score_rate", "win_rate"}).
+				AddRow(int64(1), "Dragapult ex", "dragapult-ex", []string{"dragapult"}, int64(2), "Miraidon", "miraidon", []string{"miraidon"}, 25, 14, 9, 2, ptrFloat64(0.6), ptrFloat64(0.6087)),
 		)
 
 		h := &Handler{DB: mock, Redis: redisClient}

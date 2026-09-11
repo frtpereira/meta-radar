@@ -253,7 +253,10 @@ export default async function DecklistDetailPage({
                             copy="Run the clustering pipeline to separate core cards from tech choices."
                         />
                     ) : (
-                        <OptionalCardsTable cards={optionalCards} images={images} />
+                        <OptionalCardsTable
+                            cards={optionalCards}
+                            images={images}
+                        />
                     )}
                 </Card>
 
@@ -274,7 +277,7 @@ export default async function DecklistDetailPage({
                                     fontWeight: 600,
                                 }}
                             >
-                                Top 5 favourable
+                                Top 5 Favourable
                             </span>
                         }
                     >
@@ -302,7 +305,7 @@ export default async function DecklistDetailPage({
                                     fontWeight: 600,
                                 }}
                             >
-                                Top 5 unfavourable
+                                Top 5 Unfavourable
                             </span>
                         }
                     >

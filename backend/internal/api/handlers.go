@@ -718,7 +718,9 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		SELECT archetype_id, archetype_name, archetype_slug,
+		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = matchups_mv.archetype_id) AS archetype_icons,
 		       opponent_archetype_id, opponent_name, opponent_slug,
+		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = matchups_mv.opponent_archetype_id) AS opponent_icons,
 		       matches, wins, losses, ties, score_rate, win_rate
 		FROM matchups_mv
 		WHERE meta_id = $1::uuid
@@ -737,14 +739,16 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 
 	type matchupStat struct {
 		Archetype struct {
-			ID   int64  `json:"id"`
-			Name string `json:"name"`
-			Slug string `json:"slug"`
+			ID    int64    `json:"id"`
+			Name  string   `json:"name"`
+			Slug  string   `json:"slug"`
+			Icons []string `json:"icons,omitempty"`
 		} `json:"archetype"`
 		Opponent struct {
-			ID   int64  `json:"id"`
-			Name string `json:"name"`
-			Slug string `json:"slug"`
+			ID    int64    `json:"id"`
+			Name  string   `json:"name"`
+			Slug  string   `json:"slug"`
+			Icons []string `json:"icons,omitempty"`
 		} `json:"opponent"`
 		Matches   int      `json:"matches"`
 		Wins      int      `json:"wins"`
@@ -758,8 +762,8 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var s matchupStat
 		if err := rows.Scan(
-			&s.Archetype.ID, &s.Archetype.Name, &s.Archetype.Slug,
-			&s.Opponent.ID, &s.Opponent.Name, &s.Opponent.Slug,
+			&s.Archetype.ID, &s.Archetype.Name, &s.Archetype.Slug, &s.Archetype.Icons,
+			&s.Opponent.ID, &s.Opponent.Name, &s.Opponent.Slug, &s.Opponent.Icons,
 			&s.Matches, &s.Wins, &s.Losses, &s.Ties, &s.ScoreRate, &s.WinRate,
 		); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning matchup stat: "+err.Error())

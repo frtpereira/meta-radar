@@ -19,11 +19,13 @@ function makeMatchup(
             id: archetypeId,
             name: `Archetype ${archetypeId}`,
             slug: `archetype-${archetypeId}`,
+            icons: null,
         },
         opponent: {
             id: opponentId,
             name: `Opponent ${opponentId}`,
             slug: `opponent-${opponentId}`,
+            icons: null,
         },
         matches,
         wins,
@@ -71,10 +73,10 @@ describe("MatchupTable", () => {
             .slice(1);
 
         expect(
-            within(rows[0]).getAllByRole("cell")[3].querySelector("span"),
+            within(rows[0]).getAllByRole("cell")[2].querySelector("span"),
         ).toHaveStyle({ color: "var(--success)", fontWeight: "600" });
         expect(
-            within(rows[1]).getAllByRole("cell")[3].querySelector("span"),
+            within(rows[1]).getAllByRole("cell")[2].querySelector("span"),
         ).toHaveStyle({ color: "var(--accent-2)", fontWeight: "600" });
     });
 
@@ -97,6 +99,37 @@ describe("MatchupTable", () => {
         expect(within(cells[1]).getByRole("link")).toHaveAttribute(
             "href",
             "/archetypes/2?meta_id=meta-1",
+        );
+    });
+
+    it("renders deck icons for the archetype and opponent columns", () => {
+        const stat = makeMatchup(1, 2, 24, 14, 8, 2, 0.636, 0.583);
+        stat.archetype.icons = ["charizard"];
+        stat.opponent.icons = null;
+
+        render(
+            React.createElement(MatchupTable, {
+                selectedArchetypeId: "1",
+                metaId: "meta-1",
+                stats: [stat],
+            }),
+        );
+
+        const row = within(screen.getByRole("table")).getAllByRole("row")[1];
+        const cells = within(row).getAllByRole("cell");
+
+        const archetypeIcon = within(cells[0]).getByRole("img");
+        expect(archetypeIcon).toHaveAttribute(
+            "src",
+            expect.stringContaining("/charizard.png"),
+        );
+
+        // No curated icons for the opponent falls back to the "unknown" icon
+        // instead of rendering a broken image.
+        const opponentIcon = within(cells[1]).getByRole("img");
+        expect(opponentIcon).toHaveAttribute(
+            "src",
+            expect.stringContaining("/unknown.png"),
         );
     });
 });

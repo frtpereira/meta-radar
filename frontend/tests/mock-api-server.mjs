@@ -530,11 +530,13 @@ function makeMatchup(archetypeId, opponentId, matches, wins, losses, ties) {
             id: archetype.id,
             name: archetype.name,
             slug: archetype.slug,
+            icons: archetype.archetype_icons,
         },
         opponent: {
             id: opponent.id,
             name: opponent.name,
             slug: opponent.slug,
+            icons: opponent.archetype_icons,
         },
         matches,
         wins,

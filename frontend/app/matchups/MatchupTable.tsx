@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { MatchupStat } from "@/lib/types";
 import Table from "@/components/table";
 import InfoTooltip from "@/components/info-tooltip";
+import ArchetypeIcons from "@/components/archetype-icons";
 
 // Table `columns` entries carry `render`/`sortValue` functions, and Table
 // itself is a Client Component (for sort state). Functions can't cross the
@@ -73,7 +74,13 @@ export default function MatchupTable({
                         className="table-link--plain"
                         href={decklistHref(primary.id)}
                     >
-                        <div className="table-title">{primary.name}</div>
+                        <div className="table-title table-title--with-icons">
+                            <ArchetypeIcons
+                                icons={primary.icons}
+                                name={primary.name}
+                            />
+                            {primary.name}
+                        </div>
                     </Link>
                 );
             },
@@ -92,7 +99,13 @@ export default function MatchupTable({
                         className="table-link"
                         href={decklistHref(secondary.id)}
                     >
-                        <div className="table-title">{secondary.name}</div>
+                        <div className="table-title table-title--with-icons">
+                            <ArchetypeIcons
+                                icons={secondary.icons}
+                                name={secondary.name}
+                            />
+                            {secondary.name}
+                        </div>
                     </Link>
                 );
             },

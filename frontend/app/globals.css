@@ -596,6 +596,12 @@ tbody tr:hover {
     font-weight: 700;
 }
 
+.table-title--with-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .archetype-icons {
     display: inline-flex;
     align-items: center;
