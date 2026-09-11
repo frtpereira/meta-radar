@@ -73,10 +73,10 @@ describe("MatchupTable", () => {
             .slice(1);
 
         expect(
-            within(rows[0]).getAllByRole("cell")[3].querySelector("span"),
+            within(rows[0]).getAllByRole("cell")[2].querySelector("span"),
         ).toHaveStyle({ color: "var(--success)", fontWeight: "600" });
         expect(
-            within(rows[1]).getAllByRole("cell")[3].querySelector("span"),
+            within(rows[1]).getAllByRole("cell")[2].querySelector("span"),
         ).toHaveStyle({ color: "var(--accent-2)", fontWeight: "600" });
     });
 

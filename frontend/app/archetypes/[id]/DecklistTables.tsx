@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Table from "@/components/table";
 import CardHoverPreview from "@/components/card-hover-preview";
+import ArchetypeIcons from "@/components/archetype-icons";
 import type { CardStat, MatchupStat } from "@/lib/types";
 
 // Table `columns` entries carry `render`/`sortValue` functions, and Table
@@ -303,7 +304,14 @@ export function MatchupMiniTable({
                         className="table-link"
                         href={`/archetypes/${opp.id}${metaId ? `?meta_id=${metaId}` : ""}`}
                     >
-                        <div className="table-title">{opp.name}</div>
+                        <div className="table-title table-title--with-icons">
+                            <ArchetypeIcons
+                                icons={opp.icons}
+                                name={opp.name}
+                                size={20}
+                            />
+                            {opp.name}
+                        </div>
                     </Link>
                 );
             },
