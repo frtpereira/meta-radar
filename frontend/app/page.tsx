@@ -116,7 +116,9 @@ function MetaSelector({
                     ))}
                 </select>
             </div>
-            <button type="submit">Apply</button>
+            <button type="submit" className="button--gradient">
+                Apply
+            </button>
         </form>
     );
 }

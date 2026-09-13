@@ -33,7 +33,9 @@ export default function PlayerSearch() {
                     style={{ width: "100%", minWidth: "auto" }}
                 />
             </div>
-            <button type="submit">Search</button>
+            <button type="submit" className="button--gradient">
+                Search
+            </button>
         </form>
     );
 }
