@@ -8,6 +8,9 @@ import "./globals.css";
 export const metadata: Metadata = {
     title: "Meta Radar",
     description: "Track metas, tournaments, and archetype performance.",
+    other: {
+        "google-adsense-account": "ca-pub-4019577090696903",
+    },
 };
 
 // Runs before first paint so the page never flashes the wrong theme.
