@@ -164,7 +164,9 @@ function TournamentFilters({
                     <p className="eyebrow selector__field-spacer" aria-hidden="true">
                         Apply
                     </p>
-                    <button type="submit">Apply</button>
+                    <button type="submit" className="button--gradient">
+                        Apply
+                    </button>
                 </div>
             </div>
         </FilterForm>
