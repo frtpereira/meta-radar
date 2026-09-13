@@ -4,6 +4,7 @@ import Hero from "@/components/hero";
 import Card from "@/components/card";
 import { getCardImages, getDecklist } from "@/lib/api";
 import { DecklistCategory } from "./DecklistCardsTable";
+import { ExportDecklistButton } from "./ExportDecklistButton";
 
 type PageParams = { nickname: string; id: string };
 
@@ -97,6 +98,12 @@ export default async function PlayerDecklistPage({
                             <p className="eyebrow">Decklist</p>
                             <h2>Exact List</h2>
                         </>
+                    }
+                    headingMeta={
+                        <ExportDecklistButton
+                            cards={decklist.cards}
+                            filename={`${decklist.player_name}-decklist.txt`}
+                        />
                     }
                 >
                     <div className="grid grid--three">

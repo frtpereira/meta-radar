@@ -46,7 +46,11 @@ export function ExportDecklistButton({
     }
 
     return (
-        <button type="button" className="button" onClick={handleExport}>
+        <button
+            type="button"
+            className="button--gradient"
+            onClick={handleExport}
+        >
             {copied ? "Copied!" : "Export Decklist"}
         </button>
     );

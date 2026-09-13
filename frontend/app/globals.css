@@ -76,7 +76,7 @@
         --ambient-1: rgba(201, 134, 10, 0.1);
         --ambient-2: rgba(216, 90, 44, 0.1);
         --nav-bg: rgba(250, 249, 245, 0.82);
-        --button-from: #2f6f9e;
+        --button-from: #2189b9;
         --button-to: #1f5c8a;
         --button-text: #f6f7fb;
         --body-bg:
@@ -123,7 +123,7 @@
     --ambient-1: rgba(201, 134, 10, 0.1);
     --ambient-2: rgba(216, 90, 44, 0.1);
     --nav-bg: rgba(250, 249, 245, 0.82);
-    --button-from: #2f6f9e;
+    --button-from: #2189b9;
     --button-to: #1f5c8a;
     --button-text: #f6f7fb;
     --body-bg:
@@ -427,8 +427,7 @@ p {
 }
 
 .selector select,
-.selector input,
-.selector button {
+.selector input {
     min-height: 46px;
     border-radius: 14px;
     border: 1px solid var(--line-strong);
@@ -454,13 +453,32 @@ p {
     color: var(--text);
 }
 
-.selector button {
+/* Shape, sizing and interaction for the accent gradient buttons used for
+   search-filter submission (and anywhere else the same call-to-action
+   styling fits). Kept independent of `.selector` so it also works
+   standalone. Background/text coloring is deliberately left out of this
+   rule and declared separately below -- see that rule for why. */
+.button--gradient {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 0 18px;
+    min-height: 46px;
     min-width: 140px;
-    background: linear-gradient(135deg, var(--button-from), var(--button-to));
-    color: var(--button-text);
+    border-radius: 14px;
+    border: 1px solid var(--line-strong);
     font-weight: 700;
     cursor: pointer;
+}
+
+/* Background coloring only, split out from the rule above. Both colors
+   come from theme variables that are redefined for the light theme (see
+   `:root[data-theme="light"]` and the `prefers-color-scheme` block near
+   the top of this file), so this rule itself never has to change --
+   only the variables it references do. */
+.button--gradient {
+    background: linear-gradient(135deg, var(--button-from), var(--button-to));
+    color: var(--button-text);
 }
 
 /* Generic small button used for pagination and other places */
