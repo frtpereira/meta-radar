@@ -69,7 +69,7 @@ function ArchetypeFilters({
                 >
                     Apply
                 </p>
-                <button type="submit" className="button-gradient">
+                <button type="submit" className="button--gradient">
                     Apply
                 </button>
             </div>
