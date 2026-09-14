@@ -154,7 +154,7 @@ export default async function Home({
         // threshold used for the events table below). The card surfaces the
         // winning archetype, not the tournament name itself.
         getTournaments({
-            eventName: "DOOM",
+            organizerName: "Doom's Events and Catering",
             minPlayers: 0,
             sortBy: "date",
             sortDir: "desc",
@@ -203,7 +203,7 @@ export default async function Home({
                         <>
                             <span className="pill">PBL+ Tracked</span>
                             <span className="pill pill--soft">
-                                v1.0.3-alpha
+                                v1.0.4-alpha
                             </span>
                         </>
                     }
