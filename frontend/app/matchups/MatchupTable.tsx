@@ -185,7 +185,7 @@ export default function MatchupTable({
             key: "matches",
             label: "Matches",
             sortDescFirst: true,
-            render: (stat: MatchupStat) => stat.matches.toLocaleString(),
+            render: (stat: MatchupStat) => stat.matches.toLocaleString("en-US"),
             sortValue: (stat: MatchupStat) => stat.matches,
         },
         {

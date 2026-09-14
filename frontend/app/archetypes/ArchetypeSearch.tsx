@@ -82,14 +82,14 @@ function ArchetypesTable({
             key: "decks",
             label: "Decklists",
             sortDescFirst: true,
-            render: (s: ArchetypeStat) => s.deck_count.toLocaleString(),
+            render: (s: ArchetypeStat) => s.deck_count.toLocaleString("en-US"),
             sortValue: (s: ArchetypeStat) => s.deck_count,
         },
         {
             key: "matches",
             label: "Matches",
             sortDescFirst: true,
-            render: (s: ArchetypeStat) => s.matches.toLocaleString(),
+            render: (s: ArchetypeStat) => s.matches.toLocaleString("en-US"),
             sortValue: (s: ArchetypeStat) => s.matches,
         },
         // {
@@ -160,7 +160,7 @@ export default function ArchetypeSearch({
                     />
                 </div>
                 <span className="muted">
-                    {filtered.length.toLocaleString()} archetypes
+                    {filtered.length.toLocaleString("en-US")} archetypes
                 </span>
             </div>
 

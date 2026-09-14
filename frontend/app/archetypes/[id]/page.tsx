@@ -157,7 +157,8 @@ export default async function DecklistDetailPage({
                     meta={
                         <>
                             <span className="pill">
-                                {totalDecklists.toLocaleString()} decklists
+                                {totalDecklists.toLocaleString("en-US")}{" "}
+                                decklists
                             </span>
                             {archetype.core_threshold !== null ? (
                                 <span className="pill pill--soft">

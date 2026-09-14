@@ -339,7 +339,9 @@ export function MatchupMiniTable({
             key: "matches",
             label: "Matches",
             render: (s: MatchupStat) => (
-                <span className="muted tiny">{s.matches.toLocaleString()}</span>
+                <span className="muted tiny">
+                    {s.matches.toLocaleString("en-US")}
+                </span>
             ),
         },
         {

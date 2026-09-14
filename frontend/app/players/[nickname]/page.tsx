@@ -56,7 +56,8 @@ export default async function PlayerDetailPage({
                     lede={`Tournament history for ${player.name}.`}
                     meta={
                         <span className="pill">
-                            {player.history.length.toLocaleString()} results
+                            {player.history.length.toLocaleString("en-US")}{" "}
+                            results
                         </span>
                     }
                 />

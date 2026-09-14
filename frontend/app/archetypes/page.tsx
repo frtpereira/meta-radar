@@ -163,7 +163,8 @@ export default async function DecklistsPage({
                     }
                     headingMeta={
                         <span className="muted">
-                            {archetypes.length.toLocaleString()} archetypes
+                            {archetypes.length.toLocaleString("en-US")}{" "}
+                            archetypes
                         </span>
                     }
                 >

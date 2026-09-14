@@ -93,7 +93,10 @@ function MatchupFilters({
             </div>
 
             <div className="selector__field">
-                <p className="eyebrow selector__field-spacer" aria-hidden="true">
+                <p
+                    className="eyebrow selector__field-spacer"
+                    aria-hidden="true"
+                >
                     Apply
                 </p>
                 <button type="submit" className="button--gradient">
@@ -185,7 +188,7 @@ export default async function MatchupsPage({
                     }
                     headingMeta={
                         <span className="muted">
-                            {matchupStats.length.toLocaleString()} rows
+                            {matchupStats.length.toLocaleString("en-US")} rows
                         </span>
                     }
                 >

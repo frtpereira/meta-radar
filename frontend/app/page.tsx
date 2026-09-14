@@ -215,7 +215,7 @@ export default async function Home({
                         value={topWinRateArchetype?.name ?? "—"}
                         detail={
                             topWinRateArchetype
-                                ? `${formatCardPercent(topWinRateArchetype.win_rate) ?? "—"} win-rate across ${topWinRateArchetype.matches.toLocaleString()} matches`
+                                ? `${formatCardPercent(topWinRateArchetype.win_rate) ?? "—"} win-rate across ${topWinRateArchetype.matches.toLocaleString("en-US")} matches`
                                 : `No archetype with ${MIN_MATCHES_FOR_TOP_WIN_RATE}+ matches yet.`
                         }
                     />
@@ -224,7 +224,7 @@ export default async function Home({
                         value={topPlayedArchetype?.name ?? "—"}
                         detail={
                             topPlayedArchetype
-                                ? `${topPlayedArchetype.deck_count.toLocaleString()} decklists in meta`
+                                ? `${topPlayedArchetype.deck_count.toLocaleString("en-US")} decklists in meta`
                                 : "No archetype data yet."
                         }
                     />

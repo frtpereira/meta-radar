@@ -52,7 +52,7 @@ export default async function TournamentPage({
                     lede={
                         <>
                             {formatDate(tournament.date)} ·{" "}
-                            {tournament.players.toLocaleString()} players
+                            {tournament.players.toLocaleString("en-US")} players
                             {tournament.organizer_name
                                 ? ` · Hosted by ${tournament.organizer_name}`
                                 : ""}
@@ -79,7 +79,9 @@ export default async function TournamentPage({
                     }
                     headingMeta={
                         <span className="muted">
-                            {tournament.standings.length.toLocaleString()}{" "}
+                            {tournament.standings.length.toLocaleString(
+                                "en-US",
+                            )}{" "}
                             entries
                         </span>
                     }

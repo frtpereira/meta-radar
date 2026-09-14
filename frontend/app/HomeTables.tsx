@@ -32,7 +32,7 @@ function formatStanding(value: number | null) {
         return "—";
     }
 
-    return Math.round(value).toLocaleString();
+    return Math.round(value).toLocaleString("en-US");
 }
 
 export function LiveTournamentsTable({
@@ -63,7 +63,8 @@ export function LiveTournamentsTable({
                 {
                     key: "players",
                     label: "Players",
-                    render: (t: Tournament) => t.players.toLocaleString(),
+                    render: (t: Tournament) =>
+                        t.players.toLocaleString("en-US"),
                 },
                 {
                     key: "source",
@@ -111,7 +112,8 @@ export function TopArchetypesTable({
                 {
                     key: "decks",
                     label: "Decks",
-                    render: (s: ArchetypeStat) => s.deck_count.toLocaleString(),
+                    render: (s: ArchetypeStat) =>
+                        s.deck_count.toLocaleString("en-US"),
                 },
                 {
                     key: "avg",

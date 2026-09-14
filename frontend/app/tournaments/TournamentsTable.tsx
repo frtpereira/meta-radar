@@ -92,7 +92,7 @@ export default function TournamentsTable({
         {
             key: "players",
             label: "Players",
-            render: (t: Tournament) => t.players.toLocaleString(),
+            render: (t: Tournament) => t.players.toLocaleString("en-US"),
         },
         {
             key: "source",
