@@ -669,6 +669,52 @@ tbody tr:hover {
     cursor: pointer;
 }
 
+.decklist-view-actions {
+    display: inline-flex;
+    gap: 10px;
+}
+
+.decklist-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.decklist-image-tile {
+    position: relative;
+    aspect-ratio: 5 / 7;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    background: var(--card-strong);
+}
+
+.decklist-image-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.decklist-image-tile__placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.decklist-image-tile__badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
 .card-preview-image {
     position: fixed;
     z-index: 1000;

@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Hero from "@/components/hero";
-import Card from "@/components/card";
 import { getCardImages, getDecklist } from "@/lib/api";
-import { DecklistCategory } from "./DecklistCardsTable";
-import { ExportDecklistButton } from "./ExportDecklistButton";
+import { DecklistView } from "./DecklistView";
 
 type PageParams = { nickname: string; id: string };
 
@@ -34,13 +32,6 @@ export default async function PlayerDecklistPage({
         }
         throw err;
     });
-
-    const byCategory = (cat: string) =>
-        decklist.cards.filter((c) => c.category === cat);
-
-    const pokemonCards = byCategory("pokemon");
-    const trainerCards = byCategory("trainer");
-    const energyCards = byCategory("energy");
 
     // Resolved server-side, alongside the decklist itself, and handed down
     // as a plain prop -- one batched request for the whole page instead of
@@ -91,39 +82,11 @@ export default async function PlayerDecklistPage({
                     }
                 />
 
-                <Card
-                    className="section--spaced"
-                    heading={
-                        <>
-                            <p className="eyebrow">Decklist</p>
-                            <h2>Exact List</h2>
-                        </>
-                    }
-                    headingMeta={
-                        <ExportDecklistButton
-                            cards={decklist.cards}
-                            filename={`${decklist.player_name}-decklist.txt`}
-                        />
-                    }
-                >
-                    <div className="grid grid--three">
-                        <DecklistCategory
-                            label="Pokémon"
-                            cards={pokemonCards}
-                            images={images}
-                        />
-                        <DecklistCategory
-                            label="Trainer"
-                            cards={trainerCards}
-                            images={images}
-                        />
-                        <DecklistCategory
-                            label="Energy"
-                            cards={energyCards}
-                            images={images}
-                        />
-                    </div>
-                </Card>
+                <DecklistView
+                    cards={decklist.cards}
+                    images={images}
+                    filename={`${decklist.player_name}-decklist.txt`}
+                />
             </div>
         </main>
     );
