@@ -90,39 +90,6 @@ function EmptyState({ title, copy }: { title: string; copy: string }) {
     );
 }
 
-function MetaSelector({
-    metas,
-    activeMeta,
-}: {
-    metas: Meta[];
-    activeMeta: Meta | null;
-}) {
-    return (
-        <form className="selector" method="get">
-            <div>
-                <p className="eyebrow">Current meta</p>
-                <label className="sr-only" htmlFor="meta_id">
-                    Select meta
-                </label>
-                <select
-                    id="meta_id"
-                    name="meta_id"
-                    defaultValue={activeMeta?.id ?? ""}
-                >
-                    {metas.map((meta) => (
-                        <option key={meta.id} value={meta.id}>
-                            {meta.name}
-                        </option>
-                    ))}
-                </select>
-            </div>
-            <button type="submit" className="button--gradient">
-                Apply
-            </button>
-        </form>
-    );
-}
-
 export default async function Home({
     searchParams,
 }: {
@@ -139,7 +106,7 @@ export default async function Home({
                   metaId: activeMeta.id,
                   minPlayers: 32,
                   page: 1,
-                  pageSize: 8,
+                  pageSize: 10,
               }).catch(() => ({ items: [] as Tournament[] }))
             : Promise.resolve({ items: [] as Tournament[] }),
         activeMeta
@@ -243,28 +210,6 @@ export default async function Home({
                     />
                 </section>
 
-                <Card
-                    heading={
-                        <>
-                            <p className="eyebrow">Meta Selection</p>
-                            <h2>
-                                {activeMeta
-                                    ? activeMeta.name
-                                    : "No meta loaded"}
-                            </h2>
-                        </>
-                    }
-                >
-                    {metas.length > 0 ? (
-                        <MetaSelector metas={metas} activeMeta={activeMeta} />
-                    ) : (
-                        <EmptyState
-                            title="No Metas yet"
-                            copy="Seed a specific meta before the dashboard can populate tournaments and archetypes."
-                        />
-                    )}
-                </Card>
-
                 <section className="grid grid--two">
                     <Card
                         heading={
@@ -273,7 +218,14 @@ export default async function Home({
                                 <h2>Latest Events</h2>
                             </>
                         }
-                        headingMeta={<span className="muted">32+ players</span>}
+                        headingMeta={
+                            <Link
+                                className="pill pill--soft"
+                                href="/tournaments"
+                            >
+                                View Events
+                            </Link>
+                        }
                     >
                         {liveTournaments.length > 0 ? (
                             <LiveTournamentsTable
@@ -297,13 +249,9 @@ export default async function Home({
                         headingMeta={
                             <Link
                                 className="pill pill--soft"
-                                href={
-                                    activeMeta
-                                        ? `/matchups?meta_id=${activeMeta.id}`
-                                        : "/matchups"
-                                }
+                                href="/archetypes"
                             >
-                                View Matchups
+                                View Archetypes
                             </Link>
                         }
                     >

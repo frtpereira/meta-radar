@@ -56,11 +56,6 @@ export function LiveTournamentsTable({
                     ),
                 },
                 {
-                    key: "date",
-                    label: "Date",
-                    render: (t: Tournament) => formatDate(t.date),
-                },
-                {
                     key: "players",
                     label: "Players",
                     render: (t: Tournament) =>
@@ -110,16 +105,10 @@ export function TopArchetypesTable({
                     ),
                 },
                 {
-                    key: "decks",
-                    label: "Decks",
+                    key: "matches",
+                    label: "Matches",
                     render: (s: ArchetypeStat) =>
-                        s.deck_count.toLocaleString("en-US"),
-                },
-                {
-                    key: "avg",
-                    label: "Avg standing",
-                    render: (s: ArchetypeStat) =>
-                        formatStanding(s.avg_standing),
+                        s.matches.toLocaleString("en-US"),
                 },
                 {
                     key: "win",
