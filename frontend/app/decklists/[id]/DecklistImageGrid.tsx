@@ -1,6 +1,7 @@
 "use client";
 
 import { CountBadge } from "@/components/count-badge";
+import { withCardImageSize } from "@/lib/card-images";
 import type { Card } from "@/lib/types";
 
 // Same category ordering as the list view (DecklistCardsTable) and the
@@ -17,7 +18,22 @@ function CardImageTile({ card, imageUrl }: { card: Card; imageUrl?: string }) {
     return (
         <div className="decklist-image-tile">
             {imageUrl ? (
-                <img src={imageUrl} alt={card.name} loading="lazy" />
+                // The grid's own tile size already shrinks on mobile (see
+                // the .decklist-image-grid media query in globals.css) --
+                // these <source> breakpoints match it, so mobile browsers
+                // download the actual smaller asset (SM/XS) instead of
+                // just scaling the MD one down.
+                <picture>
+                    <source
+                        media="(max-width: 480px)"
+                        srcSet={withCardImageSize(imageUrl, "XS")}
+                    />
+                    <source
+                        media="(max-width: 720px)"
+                        srcSet={withCardImageSize(imageUrl, "SM")}
+                    />
+                    <img src={imageUrl} alt={card.name} loading="lazy" />
+                </picture>
             ) : (
                 <div className="decklist-image-tile__placeholder">
                     {card.name}
