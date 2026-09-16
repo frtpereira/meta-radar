@@ -10,7 +10,7 @@ import type {
     Tournament,
     TournamentDetail,
 } from "@/lib/types";
-import { cardImageUrl } from "@/lib/card-images";
+import { cardImageUrl, type CardImageSize } from "@/lib/card-images";
 
 const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
@@ -153,11 +153,15 @@ export async function getDecklist(id: string) {
 // treat a missing key as "no preview available", not an error.
 //
 // The backend returns image_url as a path relative to our R2 bucket
-// (e.g. "PBL/PBL_080_R_EN.png"), not a full URL -- cardImageUrl() turns
+// (e.g. "PBL/PBL_080_R_EN_MD.png", always at MD size -- the endpoint
+// itself has no notion of size), not a full URL -- cardImageUrl() turns
 // it into one here, so every caller of getCardImages already gets a
-// ready-to-render <img src>.
+// ready-to-render <img src>. `size` rewrites the filename's suffix to
+// one of the smaller assets we also have (SM, XS) -- see
+// lib/card-images.ts. Grid view keeps the MD default.
 export async function getCardImages(
     cards: { set?: string; number?: string }[],
+    size: CardImageSize = "MD",
 ) {
     const keys = Array.from(
         new Set(
@@ -175,7 +179,10 @@ export async function getCardImages(
     );
 
     return Object.fromEntries(
-        Object.entries(paths).map(([key, path]) => [key, cardImageUrl(path)]),
+        Object.entries(paths).map(([key, path]) => [
+            key,
+            cardImageUrl(path, size),
+        ]),
     ) as Record<string, string>;
 }
 

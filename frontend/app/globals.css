@@ -689,11 +689,19 @@ tbody tr:hover {
     background: var(--card-strong);
 }
 
+.decklist-image-tile picture,
 .decklist-image-tile img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
+}
+
+@media (max-width: 720px) {
+    .decklist-image-grid {
+        grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+        gap: 6px;
+    }
 }
 
 .decklist-image-tile__placeholder {
