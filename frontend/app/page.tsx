@@ -14,8 +14,8 @@ type SearchParams = {
 // wired up to a real data source; update these by hand each set cycle.
 // Ordered soonest-first.
 const NEXT_SET_RELEASES = [
-    { name: "30th Anniversary", date: "2026-09-16" },
     { name: "Delta Reign", date: "2026-11-06" },
+    // { name: "TBA", date: "" },
 ];
 
 // Minimum sample size before an archetype's win rate is considered stable
@@ -170,7 +170,7 @@ export default async function Home({
                         <>
                             <span className="pill">PBL+ Tracked</span>
                             <span className="pill pill--soft">
-                                v1.0.4-alpha
+                                v1.0.5-alpha
                             </span>
                         </>
                     }
