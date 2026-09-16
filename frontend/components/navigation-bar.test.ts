@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { usePathname } from "next/navigation";
@@ -71,5 +72,52 @@ describe("NavigationBar", () => {
         expect(
             screen.getByRole("navigation", { name: "Main" }),
         ).toBeInTheDocument();
+    });
+
+    it("renders a menu button for mobile navigation", () => {
+        mockedUsePathname.mockReturnValue("/");
+        render(React.createElement(NavigationBar));
+
+        const menuButton = screen.getByRole("button", {
+            name: "Toggle navigation menu",
+        });
+        expect(menuButton).toBeInTheDocument();
+        expect(menuButton).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("toggles menu button aria-expanded state when clicked", async () => {
+        mockedUsePathname.mockReturnValue("/");
+        render(React.createElement(NavigationBar));
+
+        const menuButton = screen.getByRole("button", {
+            name: "Toggle navigation menu",
+        });
+
+        expect(menuButton).toHaveAttribute("aria-expanded", "false");
+
+        await userEvent.click(menuButton);
+        expect(menuButton).toHaveAttribute("aria-expanded", "true");
+
+        await userEvent.click(menuButton);
+        expect(menuButton).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("closes the menu when navigation pathname changes", async () => {
+        const { rerender } = render(React.createElement(NavigationBar));
+
+        mockedUsePathname.mockReturnValue("/");
+        rerender(React.createElement(NavigationBar));
+
+        const menuButton = screen.getByRole("button", {
+            name: "Toggle navigation menu",
+        });
+
+        await userEvent.click(menuButton);
+        expect(menuButton).toHaveAttribute("aria-expanded", "true");
+
+        mockedUsePathname.mockReturnValue("/tournaments");
+        rerender(React.createElement(NavigationBar));
+
+        expect(menuButton).toHaveAttribute("aria-expanded", "false");
     });
 });
