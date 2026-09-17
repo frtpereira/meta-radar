@@ -4,6 +4,7 @@ import Card from "@/components/card";
 
 import { getTournament } from "@/lib/api";
 import StandingsTable from "./StandingsTable";
+import Link from "next/link";
 
 function formatDate(value: string) {
     return new Intl.DateTimeFormat("en-US", {
@@ -46,6 +47,17 @@ export default async function TournamentPage({
             <div className="ambient ambient--two" />
 
             <div className="shell">
+                {/* breadcrumb */}
+                <div style={{ marginBottom: 16 }}>
+                    <Link
+                        href="/archetypes}"
+                        className="button"
+                        style={{ display: "inline-flex" }}
+                    >
+                        ← All Events
+                    </Link>
+                </div>
+
                 <Hero
                     eyebrow="Meta Radar - Tournament Standings"
                     title={tournament.name}

@@ -146,7 +146,7 @@ export default async function DecklistDetailPage({
                         className="button"
                         style={{ display: "inline-flex" }}
                     >
-                        ← All archetypes
+                        ← All Archetypes
                     </Link>
                 </div>
 

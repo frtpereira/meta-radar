@@ -46,7 +46,7 @@ export default async function PlayerDetailPage({
                         className="button"
                         style={{ display: "inline-flex" }}
                     >
-                        ← Search another player
+                        ← Search Another Player
                     </Link>
                 </div>
 
