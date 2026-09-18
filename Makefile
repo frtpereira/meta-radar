@@ -91,6 +91,20 @@ inspect:
 	$(DOCKER_COMPOSE) build ingest
 	$(DOCKER_COMPOSE) run --rm --entrypoint inspect ingest --tournament=$(ID) $(if $(PAIRINGS),--pairings)
 
+# Compute and store a point-in-time archetype breakdown (deck share, win
+# rate, avg standing) for every currently-open meta -- foundation for
+# later winrate/usage-over-time graphs. See backend/cmd/snapshot and
+# db/migrations/0011_meta_snapshots.sql. Intended to be run from cron;
+# re-running for the same day/week replaces that snapshot rather than
+# duplicating it. Pass META=<meta-id> to snapshot just one meta.
+snapshot-daily:
+	$(DOCKER_COMPOSE) build ingest
+	$(DOCKER_COMPOSE) run --rm --entrypoint snapshot ingest --type=daily $(if $(META),--meta=$(META))
+
+snapshot-weekly:
+	$(DOCKER_COMPOSE) build ingest
+	$(DOCKER_COMPOSE) run --rm --entrypoint snapshot ingest --type=weekly $(if $(META),--meta=$(META))
+
 # Run a Cloudflare Tunnel connector using the token from .env
 # (CLOUDFLARE_TUNNEL_TOKEN, copy from .env.example). Requires the
 # `cloudflared` CLI: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/

@@ -324,6 +324,12 @@ make open-set-meta
 # open set meta), flip is_current_standard off for their tournaments,
 # and open a fresh standard + set meta (edit SET_NAME first)
 make rotate-standard
+
+# capture today's / this week's per-archetype deck share, win rate, and
+# avg standing for every currently-open meta (foundation for future
+# winrate/usage-over-time graphs -- nothing reads these yet)
+make snapshot-daily
+make snapshot-weekly
 ```
 
 Notes:
@@ -459,11 +465,13 @@ picture, never a point-in-time one.** `archetypes.core_cards` and
 meta so far," not "what did this look like on August 1 vs. August 8."
 Concretely, missing:
 
-1. **Historical snapshots.** No table captures meta share / win rate /
-   card-inclusion rate _as of a given day or tournament_. Without this,
-   Rising/Falling, Meta Momentum, the Meta Timeline, and card trend charts
-   (gpt.md items #1, #2, #5, #11, #14) are all impossible — there's nothing
-   to diff against.
+1. **Historical snapshots.** `meta_snapshots` / `meta_snapshot_archetypes`
+   (migration 0011) plus `cmd/snapshot` now capture per-archetype deck
+   share, win rate, and avg standing as of a given day or week. Nothing
+   reads them yet, so Rising/Falling, Meta Momentum, the Meta Timeline,
+   and card trend charts (gpt.md items #1, #2, #5, #11, #14) are still
+   blocked -- but there's now something to diff against, and card-
+   inclusion rate specifically still needs item #3 below.
 2. **Region/country data.** `tournaments` has no `country`/`region` column
    (Limitless's `/details` payload is stored in `raw_details` but never
    parsed for location), so there is no way to isolate Japanese results at
@@ -589,11 +597,14 @@ Concretely, missing:
 
 6. Frontend.
 
-7. **Historical snapshots.** Not started. Add a periodic job (or an
-   ingest-time write) that records per-archetype meta share, win rate, and
-   card-inclusion rate keyed by date/meta. This is the prerequisite for
-   nearly every item below, and matches gpt.md's own #1 MVP priority
-   ("Meta Radar" — rising/falling, overhyped/bombing, sleeper detection).
+7. **Historical snapshots.** Storage foundation in place: `meta_snapshots`
+   / `meta_snapshot_archetypes` (migration 0011) plus `cmd/snapshot`
+   (`make snapshot-daily` / `make snapshot-weekly`) record per-archetype
+   deck share, win rate, and avg standing keyed by meta/date. Card-
+   inclusion rate isn't captured yet (needs item #9's tracking first),
+   and nothing reads these tables into an actual UI/graph yet -- that's
+   the next piece, and matches gpt.md's own #1 MVP priority ("Meta
+   Radar" — rising/falling, overhyped/bombing, sleeper detection).
 
 8. **Region capture + Japan Meta Preview.** Not started. Parse
    country/region out of `raw_details` at ingest time into a real column,
