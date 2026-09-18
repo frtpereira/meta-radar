@@ -4,6 +4,7 @@ import Hero from "@/components/hero";
 import Card from "@/components/card";
 
 import { getArchetypeStats, getMetas, getTournaments } from "@/lib/api";
+import { pickDefaultMeta } from "@/lib/metas";
 import { LiveTournamentsTable, TopArchetypesTable } from "./HomeTables";
 
 type SearchParams = {
@@ -97,8 +98,7 @@ export default async function Home({
 }) {
     const params = await searchParams;
     const metas = await getMetas().catch(() => [] as Meta[]);
-    const activeMeta =
-        metas.find((meta) => meta.id === params.meta_id) ?? metas[0] ?? null;
+    const activeMeta = pickDefaultMeta(metas, params.meta_id);
 
     const [tournamentPage, archetypes, doomTournamentPage] = await Promise.all([
         activeMeta
