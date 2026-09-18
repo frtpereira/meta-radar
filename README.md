@@ -214,6 +214,10 @@ A "meta" comes in two kinds (`type` field), see
 
 - `GET /api/archetypes/stats?meta_id=...`
     - Returns one row per archetype in that meta.
+    - `meta_id` can be a `set` meta (as before) or a `standard` meta -- for
+      a `standard` meta, archetypes sharing a slug across its set metas
+      are merged into one row (summed deck counts/matches, recomputed
+      rates), keyed by the most recently created matching archetype id.
     - Fields: `deck_count`, `avg_standing`, `drop_count`, `matches`, `wins`,
       `losses`, `ties`, `score_rate`, and `win_rate`.
     - `score_rate` comes from pairings and counts draws as half a win.
@@ -233,7 +237,9 @@ A "meta" comes in two kinds (`type` field), see
 
 - `GET /api/matchups/stats?meta_id=...&archetype_id=...&min_matches=5&include_mirrors=false`
     - Returns directional archetype-vs-archetype results from stored pairings.
-    - `meta_id` is required.
+    - `meta_id` is required and, like `/api/archetypes/stats`, can be a
+      `standard` meta -- matchups are merged by archetype slug pair
+      across its set metas the same way.
     - `archetype_id` is optional; when present it narrows results to one
       archetype.
     - `min_matches` defaults to `1` and filters out sparse pairings.

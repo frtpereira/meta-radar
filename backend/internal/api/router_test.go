@@ -30,6 +30,7 @@ func TestNewRouterRoutesAndMiddleware(t *testing.T) {
 		"GET /api/tournaments",
 		"GET /api/tournaments/{id}",
 		"GET /api/metas",
+		"GET /api/metas/current",
 		"GET /api/archetypes/stats",
 		"GET /api/matchups/stats",
 		"GET /api/archetypes/{id}",
