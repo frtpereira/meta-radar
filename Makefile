@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi)
 
-.PHONY: up upd down logs psql frontend frontend-dev frontend-install tidy swagger-gen migrate ingest-once seed-meta resync cluster inspect tunnel
+.PHONY: up upd down logs psql frontend frontend-dev frontend-install tidy swagger-gen migrate ingest-once seed-meta open-set-meta rotate-standard resync cluster inspect snapshot-daily snapshot-weekly tunnel
 
 up:
 	$(DOCKER_COMPOSE) up --build
@@ -50,10 +50,24 @@ ingest-once:
 	$(DOCKER_COMPOSE) build ingest
 	$(DOCKER_COMPOSE) run --rm ingest --interval=0
 
-# Open the current Standard meta (idempotent) and backfill it onto any
-# already-synced tournaments. See db/seed/001_current_standard_meta.sql.
+# Bootstrap a format: opens its permanent Standard meta plus its first
+# set meta (idempotent), and backfills them onto any already-synced
+# tournaments. See db/seed/001_current_standard_meta.sql.
 seed-meta:
 	$(DOCKER_COMPOSE) exec -T postgres psql -U app -d pokemontcg < db/seed/001_current_standard_meta.sql
+
+# Close the currently open set meta and open a new one under the same
+# standard parent -- run this whenever a new set releases. Edit
+# db/seed/002_open_set_meta.sql's FORMAT_CODE/SET_NAME first.
+open-set-meta:
+	$(DOCKER_COMPOSE) exec -T postgres psql -U app -d pokemontcg < db/seed/002_open_set_meta.sql
+
+# Close the current standard meta, flip is_current_standard off for its
+# tournaments, and open a new standard + set meta -- run this only on an
+# actual Standard rotation. Edit db/seed/003_rotate_standard.sql's
+# FORMAT_CODE/SET_NAME first.
+rotate-standard:
+	$(DOCKER_COMPOSE) exec -T postgres psql -U app -d pokemontcg < db/seed/003_rotate_standard.sql
 
 # Force a full re-sync so already-synced tournaments/decklists pick up
 # archetype_id now that a meta exists to scope archetypes to. Run this
