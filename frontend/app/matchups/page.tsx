@@ -6,6 +6,7 @@ import Hero from "@/components/hero";
 import Card from "@/components/card";
 import FilterForm from "@/components/filter-form";
 import MatchupTable from "./MatchupTable";
+import { Fragment } from "react";
 
 type SearchParams = {
     meta_id?: string;
@@ -28,16 +29,14 @@ function MetaOptions({ metas }: { metas: Meta[] }) {
     return (
         <>
             {standards.map((standard) => (
-                <optgroup key={standard.id} label={standard.name}>
-                    <option value={standard.id}>
-                        {standard.name} (all sets)
-                    </option>
+                <Fragment key={standard.id}>
+                    <option value={standard.id}>{standard.name}</option>
                     {(setsByParent.get(standard.id) ?? []).map((set) => (
                         <option key={set.id} value={set.id}>
                             {set.name}
                         </option>
                     ))}
-                </optgroup>
+                </Fragment>
             ))}
             {orphanSets.length > 0 ? (
                 <optgroup label="Other">

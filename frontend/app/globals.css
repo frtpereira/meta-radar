@@ -480,7 +480,8 @@ p {
 }
 
 /* Ensure option text is readable in dark theme across browsers */
-.selector select option {
+.selector select option,
+optgroup {
     color: var(--text);
     background: var(--bg);
 }
