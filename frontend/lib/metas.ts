@@ -17,7 +17,7 @@ export function pickDefaultMeta(
     }
 
     const openStandard = metas.find(
-        (m) => m.type === "standard" && m.ends_at === null,
+        (m) => m.type === "standard" && !m.ends_at,
     );
     if (openStandard) return openStandard;
 
