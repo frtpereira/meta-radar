@@ -190,6 +190,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	countQuery := `
 		SELECT COUNT(*)
 		FROM tournaments t
+		LEFT JOIN metas m ON m.id = t.meta_id
 		LEFT JOIN LATERAL (
 			SELECT a.slug AS archetype_slug
 			FROM standings s
@@ -201,7 +202,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		WHERE t.has_decklists = true
 		  AND t.players >= $1
 		  AND ($2 = '' OR t.format_code = $2)
-		  AND ($3 = '' OR t.meta_id::text = $3)
+		  AND ($3 = '' OR t.meta_id::text = $3 OR m.parent_meta_id::text = $3)
 		  AND ($4::boolean IS NULL OR t.is_online = $4)
 		  AND ($5::timestamptz IS NULL OR t.date >= $5)
 		  AND ($6::timestamptz IS NULL OR t.date <= $6)
@@ -217,7 +218,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 
 	query := fmt.Sprintf(`
 		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
-		       w.archetype_name, w.archetype_icons, w.player_id, w.decklist_id
+		       w.archetype_name, w.archetype_icons, w.player_id, w.decklist_id, t.is_current_standard
 		FROM tournaments t
 		LEFT JOIN metas m ON m.id = t.meta_id
 		LEFT JOIN LATERAL (
@@ -234,7 +235,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		WHERE t.has_decklists = true
 		  AND t.players >= $1
 		  AND ($2 = '' OR t.format_code = $2)
-		  AND ($3 = '' OR t.meta_id::text = $3)
+		  AND ($3 = '' OR t.meta_id::text = $3 OR m.parent_meta_id::text = $3)
 		  AND ($4::boolean IS NULL OR t.is_online = $4)
 		  AND ($5::timestamptz IS NULL OR t.date >= $5)
 		  AND ($6::timestamptz IS NULL OR t.date <= $6)
@@ -254,7 +255,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	tournaments := []models.Tournament{}
 	for rows.Next() {
 		var t models.Tournament
-		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype, &t.WinnerArchetypeIcons, &t.WinnerNickname, &t.WinnerDecklistID); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype, &t.WinnerArchetypeIcons, &t.WinnerNickname, &t.WinnerDecklistID, &t.IsCurrentStandard); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning tournament: "+err.Error())
 			return
 		}
@@ -410,8 +411,16 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 // @Router /api/metas [get]
 func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	q := r.URL.Query()
+	metaType := q.Get("type")
+	format := q.Get("format")
 
-	rows, err := h.DB.Query(ctx, `SELECT id, name, format_code, starts_at, ends_at FROM metas ORDER BY starts_at DESC`)
+	rows, err := h.DB.Query(ctx, `
+		SELECT id, name, format_code, meta_type, parent_meta_id, starts_at, ends_at
+		FROM metas
+		WHERE ($1 = '' OR meta_type = $1)
+		  AND ($2 = '' OR format_code = $2)
+		ORDER BY starts_at DESC`, metaType, format)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying metas: "+err.Error())
 		return
@@ -421,7 +430,7 @@ func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 	metas := []models.Meta{}
 	for rows.Next() {
 		var m models.Meta
-		if err := rows.Scan(&m.ID, &m.Name, &m.FormatCode, &m.StartsAt, &m.EndsAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Name, &m.FormatCode, &m.Type, &m.ParentMetaID, &m.StartsAt, &m.EndsAt); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning meta: "+err.Error())
 			return
 		}
@@ -430,6 +439,211 @@ func (h *Handler) ListMetas(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, metas)
 }
+
+// CurrentMetas returns the currently open standard meta for a format
+// plus its currently open set meta, e.g. {"standard": {...},
+// "current_set": {...}}. This is what the frontend defaults to on
+// first load, per the meta hierarchy in
+// db/migrations/0009_meta_hierarchy.sql: "standard" is the permanent,
+// format-level view the website shows by default, "current_set" is the
+// latest set-driven era within it. Either field is null if that format
+// hasn't been bootstrapped yet (see `make seed-meta`).
+//
+// @Summary Currently open standard + set meta for a format
+// @Tags metas
+// @Param format query string false "Limitless format code" default(STANDARD)
+// @Success 200 {object} map[string]models.Meta
+// @Router /api/metas/current [get]
+func (h *Handler) CurrentMetas(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "STANDARD"
+	}
+
+	result := map[string]*models.Meta{"standard": nil, "current_set": nil}
+
+	var std models.Meta
+	err := h.DB.QueryRow(ctx, `
+		SELECT id, name, format_code, meta_type, parent_meta_id, starts_at, ends_at
+		FROM metas
+		WHERE format_code = $1 AND meta_type = 'standard' AND ends_at IS NULL`, format,
+	).Scan(&std.ID, &std.Name, &std.FormatCode, &std.Type, &std.ParentMetaID, &std.StartsAt, &std.EndsAt)
+	if err != nil && err != pgx.ErrNoRows {
+		writeError(w, http.StatusInternalServerError, "querying current standard meta: "+err.Error())
+		return
+	}
+	if err == nil {
+		result["standard"] = &std
+	}
+
+	var set models.Meta
+	err = h.DB.QueryRow(ctx, `
+		SELECT id, name, format_code, meta_type, parent_meta_id, starts_at, ends_at
+		FROM metas
+		WHERE format_code = $1 AND meta_type = 'set' AND ends_at IS NULL`, format,
+	).Scan(&set.ID, &set.Name, &set.FormatCode, &set.Type, &set.ParentMetaID, &set.StartsAt, &set.EndsAt)
+	if err != nil && err != pgx.ErrNoRows {
+		writeError(w, http.StatusInternalServerError, "querying current set meta: "+err.Error())
+		return
+	}
+	if err == nil {
+		result["current_set"] = &set
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// resolveMetaScope expands a meta id into the list of "set" meta ids
+// its stats should be computed over. For an ordinary set meta that's
+// just itself. For a permanent standard meta (see
+// db/migrations/0009_meta_hierarchy.sql) it's every set meta currently
+// or previously nested under it, since a standard meta never owns
+// archetypes/tournaments directly -- only its children do.
+func (h *Handler) resolveMetaScope(ctx context.Context, metaID string) (setMetaIDs []string, isStandard bool, err error) {
+	var metaType string
+	err = h.DB.QueryRow(ctx, `SELECT meta_type FROM metas WHERE id = $1::uuid`, metaID).Scan(&metaType)
+	if err == pgx.ErrNoRows {
+		return nil, false, fmt.Errorf("meta not found")
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	if metaType != models.MetaTypeStandard {
+		return []string{metaID}, false, nil
+	}
+
+	rows, err := h.DB.Query(ctx, `SELECT id::text FROM metas WHERE parent_meta_id = $1::uuid`, metaID)
+	if err != nil {
+		return nil, true, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, true, err
+		}
+		setMetaIDs = append(setMetaIDs, id)
+	}
+	return setMetaIDs, true, rows.Err()
+}
+
+// archetypeStatsQuery computes per-archetype stats for a single set meta.
+const archetypeStatsQuery = `
+	WITH sides AS (
+		SELECT d.archetype_id, p.player1_id AS player_id, p.winner_player_id
+		FROM pairings p
+		JOIN tournaments t ON t.id = p.tournament_id
+		JOIN decklists d ON d.tournament_id = p.tournament_id AND d.player_id = p.player1_id
+			WHERE t.meta_id = $1::uuid AND p.result IN ('win', 'draw')
+
+		UNION ALL
+
+		SELECT d.archetype_id, p.player2_id AS player_id, p.winner_player_id
+		FROM pairings p
+		JOIN tournaments t ON t.id = p.tournament_id
+		JOIN decklists d ON d.tournament_id = p.tournament_id AND d.player_id = p.player2_id
+			WHERE t.meta_id = $1::uuid AND p.result IN ('win', 'draw')
+	), match_stats AS (
+		SELECT archetype_id,
+		       COUNT(*)::int AS matches,
+		       SUM(CASE WHEN winner_player_id = player_id THEN 1 ELSE 0 END)::int AS wins,
+		       SUM(CASE WHEN winner_player_id IS NOT NULL AND winner_player_id <> player_id THEN 1 ELSE 0 END)::int AS losses,
+		       SUM(CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END)::int AS ties
+		FROM sides
+		GROUP BY archetype_id
+	)
+	SELECT a.id, a.name, a.slug, COUNT(d.id) AS deck_count,
+	       AVG(NULLIF(s.standing, 0)) AS avg_standing,
+	       COUNT(*) FILTER (WHERE s.standing = 0) AS drop_count,
+	       COALESCE(ms.matches, 0), COALESCE(ms.wins, 0), COALESCE(ms.losses, 0), COALESCE(ms.ties, 0),
+	       CASE WHEN COALESCE(ms.matches, 0) = 0 THEN NULL
+	            ELSE (COALESCE(ms.wins, 0) + 0.5 * COALESCE(ms.ties, 0)) / COALESCE(ms.matches, 0)::float8 END AS score_rate,
+	       CASE WHEN COALESCE(ms.wins, 0) + COALESCE(ms.losses, 0) = 0 THEN NULL
+	            ELSE COALESCE(ms.wins, 0)::float8 / (COALESCE(ms.wins, 0) + COALESCE(ms.losses, 0))::float8 END AS win_rate,
+	       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = a.id) AS archetype_icons
+	FROM archetypes a
+	JOIN decklists d ON d.archetype_id = a.id
+	LEFT JOIN standings s ON s.decklist_id = d.id
+	LEFT JOIN match_stats ms ON ms.archetype_id = a.id
+			WHERE a.meta_id = $1::uuid AND a.name <> 'Other'
+	GROUP BY a.id, a.name, a.slug, ms.matches, ms.wins, ms.losses, ms.ties
+	ORDER BY deck_count DESC`
+
+// archetypeStatsStandardQuery is archetypeStatsQuery's counterpart for a
+// permanent standard meta ($1 is an array of its child set meta ids --
+// see resolveMetaScope). Archetypes with the same slug in different set
+// metas are the same named deck across eras and are merged into one
+// row, keyed by the newest matching archetype id ("representative_id")
+// so archetype_icons and the /api/archetypes/{id} link land somewhere
+// sensible. deck_stats and match_totals aggregate independently by
+// slug -- joining decklists and match_stats in the same pass (like the
+// single-meta query above can, since it never merges rows) would
+// fan out match_stats once per decklist and double-count matches.
+const archetypeStatsStandardQuery = `
+	WITH sides AS (
+		SELECT d.archetype_id, p.player1_id AS player_id, p.winner_player_id
+		FROM pairings p
+		JOIN tournaments t ON t.id = p.tournament_id
+		JOIN decklists d ON d.tournament_id = p.tournament_id AND d.player_id = p.player1_id
+			WHERE t.meta_id = ANY($1::uuid[]) AND p.result IN ('win', 'draw')
+
+		UNION ALL
+
+		SELECT d.archetype_id, p.player2_id AS player_id, p.winner_player_id
+		FROM pairings p
+		JOIN tournaments t ON t.id = p.tournament_id
+		JOIN decklists d ON d.tournament_id = p.tournament_id AND d.player_id = p.player2_id
+			WHERE t.meta_id = ANY($1::uuid[]) AND p.result IN ('win', 'draw')
+	), match_stats AS (
+		SELECT archetype_id,
+		       COUNT(*)::int AS matches,
+		       SUM(CASE WHEN winner_player_id = player_id THEN 1 ELSE 0 END)::int AS wins,
+		       SUM(CASE WHEN winner_player_id IS NOT NULL AND winner_player_id <> player_id THEN 1 ELSE 0 END)::int AS losses,
+		       SUM(CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END)::int AS ties
+		FROM sides
+		GROUP BY archetype_id
+	), slugs AS (
+		SELECT slug,
+		       MAX(name) AS name,
+		       (ARRAY_AGG(id ORDER BY id DESC))[1] AS representative_id
+		FROM archetypes
+		WHERE meta_id = ANY($1::uuid[]) AND name <> 'Other'
+		GROUP BY slug
+	), deck_stats AS (
+		SELECT a.slug,
+		       COUNT(d.id) AS deck_count,
+		       AVG(NULLIF(s.standing, 0)) AS avg_standing,
+		       COUNT(*) FILTER (WHERE s.standing = 0) AS drop_count
+		FROM archetypes a
+		JOIN decklists d ON d.archetype_id = a.id
+		LEFT JOIN standings s ON s.decklist_id = d.id
+		WHERE a.meta_id = ANY($1::uuid[]) AND a.name <> 'Other'
+		GROUP BY a.slug
+	), match_totals AS (
+		SELECT a.slug,
+		       COALESCE(SUM(ms.matches), 0)::int AS matches,
+		       COALESCE(SUM(ms.wins), 0)::int AS wins,
+		       COALESCE(SUM(ms.losses), 0)::int AS losses,
+		       COALESCE(SUM(ms.ties), 0)::int AS ties
+		FROM archetypes a
+		LEFT JOIN match_stats ms ON ms.archetype_id = a.id
+		WHERE a.meta_id = ANY($1::uuid[]) AND a.name <> 'Other'
+		GROUP BY a.slug
+	)
+	SELECT sl.representative_id, sl.name, sl.slug,
+	       ds.deck_count, ds.avg_standing, ds.drop_count,
+	       mt.matches, mt.wins, mt.losses, mt.ties,
+	       CASE WHEN mt.matches = 0 THEN NULL
+	            ELSE (mt.wins + 0.5 * mt.ties) / mt.matches::float8 END AS score_rate,
+	       CASE WHEN mt.wins + mt.losses = 0 THEN NULL
+	            ELSE mt.wins::float8 / (mt.wins + mt.losses)::float8 END AS win_rate,
+	       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = sl.representative_id) AS archetype_icons
+	FROM slugs sl
+	JOIN deck_stats ds ON ds.slug = sl.slug
+	JOIN match_totals mt ON mt.slug = sl.slug
+	ORDER BY ds.deck_count DESC`
 
 // ArchetypeStats returns per-archetype play counts for a given meta, the
 // basic input for the "top performing decks" view. avg_standing excludes
@@ -465,48 +679,31 @@ func (h *Handler) ArchetypeStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `
-		WITH sides AS (
-			SELECT d.archetype_id, p.player1_id AS player_id, p.winner_player_id
-			FROM pairings p
-			JOIN tournaments t ON t.id = p.tournament_id
-			JOIN decklists d ON d.tournament_id = p.tournament_id AND d.player_id = p.player1_id
-				WHERE t.meta_id = $1::uuid AND p.result IN ('win', 'draw')
+	setMetaIDs, isStandard, err := h.resolveMetaScope(ctx, metaID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "resolving meta: "+err.Error())
+		return
+	}
 
-			UNION ALL
+	var query string
+	var args []any
+	if isStandard {
+		// Archetypes are scoped per set meta (see
+		// db/migrations/0009_meta_hierarchy.sql), so the same named deck
+		// gets a distinct archetype row -- and id -- in each set meta under
+		// this standard meta. Merge those by slug: deck_stats and
+		// match_totals each aggregate first (grouped by slug, against the
+		// decklist join and the match join separately), then join --
+		// aggregating both in one pass against a shared decklist join would
+		// double-count matches once per decklist row.
+		query = archetypeStatsStandardQuery
+		args = []any{setMetaIDs}
+	} else {
+		query = archetypeStatsQuery
+		args = []any{metaID}
+	}
 
-			SELECT d.archetype_id, p.player2_id AS player_id, p.winner_player_id
-			FROM pairings p
-			JOIN tournaments t ON t.id = p.tournament_id
-			JOIN decklists d ON d.tournament_id = p.tournament_id AND d.player_id = p.player2_id
-				WHERE t.meta_id = $1::uuid AND p.result IN ('win', 'draw')
-		), match_stats AS (
-			SELECT archetype_id,
-			       COUNT(*)::int AS matches,
-			       SUM(CASE WHEN winner_player_id = player_id THEN 1 ELSE 0 END)::int AS wins,
-			       SUM(CASE WHEN winner_player_id IS NOT NULL AND winner_player_id <> player_id THEN 1 ELSE 0 END)::int AS losses,
-			       SUM(CASE WHEN winner_player_id IS NULL THEN 1 ELSE 0 END)::int AS ties
-			FROM sides
-			GROUP BY archetype_id
-		)
-		SELECT a.id, a.name, a.slug, COUNT(d.id) AS deck_count,
-		       AVG(NULLIF(s.standing, 0)) AS avg_standing,
-		       COUNT(*) FILTER (WHERE s.standing = 0) AS drop_count,
-		       COALESCE(ms.matches, 0), COALESCE(ms.wins, 0), COALESCE(ms.losses, 0), COALESCE(ms.ties, 0),
-		       CASE WHEN COALESCE(ms.matches, 0) = 0 THEN NULL
-		            ELSE (COALESCE(ms.wins, 0) + 0.5 * COALESCE(ms.ties, 0)) / COALESCE(ms.matches, 0)::float8 END AS score_rate,
-		       CASE WHEN COALESCE(ms.wins, 0) + COALESCE(ms.losses, 0) = 0 THEN NULL
-		            ELSE COALESCE(ms.wins, 0)::float8 / (COALESCE(ms.wins, 0) + COALESCE(ms.losses, 0))::float8 END AS win_rate,
-		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = a.id) AS archetype_icons
-		FROM archetypes a
-		JOIN decklists d ON d.archetype_id = a.id
-		LEFT JOIN standings s ON s.decklist_id = d.id
-		LEFT JOIN match_stats ms ON ms.archetype_id = a.id
-				WHERE a.meta_id = $1::uuid AND a.name <> 'Other'
-		GROUP BY a.id, a.name, a.slug, ms.matches, ms.wins, ms.losses, ms.ties
-		ORDER BY deck_count DESC`
-
-	rows, err := h.DB.Query(ctx, query, metaID)
+	rows, err := h.DB.Query(ctx, query, args...)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying archetype stats: "+err.Error())
 		return
@@ -654,6 +851,65 @@ func (h *Handler) ArchetypeVariants(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, variants)
 }
 
+// matchupStatsQuery computes directional matchup stats for a single set
+// meta from the matchups_mv materialized view.
+const matchupStatsQuery = `
+	SELECT archetype_id, archetype_name, archetype_slug,
+	       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = matchups_mv.archetype_id) AS archetype_icons,
+	       opponent_archetype_id, opponent_name, opponent_slug,
+	       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = matchups_mv.opponent_archetype_id) AS opponent_icons,
+	       matches, wins, losses, ties, score_rate, win_rate
+	FROM matchups_mv
+	WHERE meta_id = $1::uuid
+	  AND ($2 = '' OR archetype_id = NULLIF($2,'')::bigint OR opponent_archetype_id = NULLIF($2,'')::bigint)
+	  AND ($3 OR archetype_id <> opponent_archetype_id)
+	  AND matches >= $4
+	ORDER BY matches DESC, archetype_name ASC, opponent_name ASC
+`
+
+// matchupStatsStandardQuery is matchupStatsQuery's counterpart for a
+// permanent standard meta ($1 is an array of its child set meta ids --
+// see resolveMetaScope). Like archetypeStatsStandardQuery, the same
+// matchup in different set metas is merged into one row keyed by
+// archetype slug pair rather than id pair, with raw matches/wins/
+// losses/ties summed (matchups_mv has at most one row per meta +
+// archetype pair, so summing across metas doesn't fan out or double
+// count) and rates recomputed from those sums. A mirror match is
+// identified by slug equality here (archetype_slug = opponent_slug),
+// not id equality, since the two representative ids picked for a
+// merged mirror row can differ even though they're the same deck.
+const matchupStatsStandardQuery = `
+	WITH agg AS (
+		SELECT archetype_slug, opponent_slug,
+		       (ARRAY_AGG(archetype_id ORDER BY archetype_id DESC))[1] AS archetype_id,
+		       MAX(archetype_name) AS archetype_name,
+		       (ARRAY_AGG(opponent_archetype_id ORDER BY opponent_archetype_id DESC))[1] AS opponent_archetype_id,
+		       MAX(opponent_name) AS opponent_name,
+		       SUM(matches)::int AS matches,
+		       SUM(wins)::int AS wins,
+		       SUM(losses)::int AS losses,
+		       SUM(ties)::int AS ties
+		FROM matchups_mv
+		WHERE meta_id = ANY($1::uuid[])
+		  AND ($2 = '' OR archetype_slug = (SELECT slug FROM archetypes WHERE id = NULLIF($2,'')::bigint)
+		               OR opponent_slug = (SELECT slug FROM archetypes WHERE id = NULLIF($2,'')::bigint))
+		GROUP BY archetype_slug, opponent_slug
+	)
+	SELECT archetype_id, archetype_name, archetype_slug,
+	       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = agg.archetype_id) AS archetype_icons,
+	       opponent_archetype_id, opponent_name, opponent_slug,
+	       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = agg.opponent_archetype_id) AS opponent_icons,
+	       matches, wins, losses, ties,
+	       CASE WHEN archetype_slug = opponent_slug OR matches = 0 THEN NULL
+	            ELSE (wins + 0.5 * ties) / matches::float8 END AS score_rate,
+	       CASE WHEN archetype_slug = opponent_slug OR wins + losses = 0 THEN NULL
+	            ELSE wins::float8 / (wins + losses)::float8 END AS win_rate
+	FROM agg
+	WHERE ($3 OR archetype_slug <> opponent_slug)
+	  AND matches >= $4
+	ORDER BY matches DESC, archetype_name ASC, opponent_name ASC
+`
+
 // MatchupStats returns directional archetype-vs-archetype results based on
 // actual pairings, not final placement proxies.
 //
@@ -716,21 +972,30 @@ func (h *Handler) MatchupStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	query := `
-		SELECT archetype_id, archetype_name, archetype_slug,
-		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = matchups_mv.archetype_id) AS archetype_icons,
-		       opponent_archetype_id, opponent_name, opponent_slug,
-		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = matchups_mv.opponent_archetype_id) AS opponent_icons,
-		       matches, wins, losses, ties, score_rate, win_rate
-		FROM matchups_mv
-		WHERE meta_id = $1::uuid
-		  AND ($2 = '' OR archetype_id = NULLIF($2,'')::bigint OR opponent_archetype_id = NULLIF($2,'')::bigint)
-		  AND ($3 OR archetype_id <> opponent_archetype_id)
-		  AND matches >= $4
-		ORDER BY matches DESC, archetype_name ASC, opponent_name ASC
-	`
+	setMetaIDs, isStandard, err := h.resolveMetaScope(ctx, metaID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "resolving meta: "+err.Error())
+		return
+	}
 
-	rows, err := h.DB.Query(ctx, query, metaID, archetypeID, includeMirrors, minMatches)
+	var query string
+	var args []any
+	if isStandard {
+		// matchups_mv is already scoped per set meta, same as archetypes
+		// (see archetypeStatsStandardQuery above) -- re-aggregate its
+		// rows by archetype slug pair rather than id pair so the same
+		// matchup across set metas becomes one row, summing raw
+		// matches/wins/losses/ties (safe: matchups_mv has at most one row
+		// per meta/archetype-pair, so there's no fan-out to double-count)
+		// and recomputing rates from the sums.
+		query = matchupStatsStandardQuery
+		args = []any{setMetaIDs, archetypeID, includeMirrors, minMatches}
+	} else {
+		query = matchupStatsQuery
+		args = []any{metaID, archetypeID, includeMirrors, minMatches}
+	}
+
+	rows, err := h.DB.Query(ctx, query, args...)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying matchup stats: "+err.Error())
 		return

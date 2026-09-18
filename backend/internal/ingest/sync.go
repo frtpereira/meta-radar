@@ -198,13 +198,37 @@ func (s *Syncer) syncTournament(ctx context.Context, tournamentID string) error 
 		return fmt.Errorf("upserting tournament: %w", err)
 	}
 
-	// Try to attach this tournament to an existing open meta for its format.
-	// (Meta creation/rotation is a deliberate, human decision -- see README --
-	// so we only attach, never create one here.)
+	// Try to attach this tournament to an existing open *set* meta for
+	// its format -- that's the fine-grained era archetypes/decklists
+	// scope to (see db/migrations/0009_meta_hierarchy.sql). A format can
+	// now also have an open *standard* meta at the same time, so
+	// meta_type is explicit here rather than matching on ends_at alone.
+	// (Meta creation/rotation is a deliberate, human decision -- see
+	// README -- so we only attach, never create one here.)
+	//
+	// Every tournament attached here is, by definition, current Standard
+	// (is_current_standard = true): db/seed/002_open_set_meta.sql
+	// refuses to open a set meta without an open standard parent, and
+	// db/seed/003_rotate_standard.sql closes a standard meta and any set
+	// meta still open under it together, atomically. So whenever *a*
+	// set meta is open for a format, its parent standard meta is
+	// necessarily open too -- there's no "open set meta under a closed
+	// standard" state to check for here. The flag only ever needs to
+	// flip to false for tournaments synced under a *previous* era, which
+	// 003_rotate_standard.sql does directly, in bulk, at the point a
+	// rotation actually happens -- not something ingest needs to
+	// re-derive on every sync.
 	var metaID *string
-	_ = tx.QueryRow(ctx, `SELECT id::text FROM metas WHERE format_code = $1 AND ends_at IS NULL`, details.Format).Scan(&metaID)
+	err = tx.QueryRow(ctx, `
+		SELECT id::text FROM metas
+		WHERE format_code = $1 AND meta_type = 'set' AND ends_at IS NULL`,
+		details.Format,
+	).Scan(&metaID)
+	if err != nil && err != pgx.ErrNoRows {
+		return fmt.Errorf("resolving meta: %w", err)
+	}
 	if metaID != nil {
-		if _, err := tx.Exec(ctx, `UPDATE tournaments SET meta_id = $1 WHERE id = $2`, *metaID, details.ID); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE tournaments SET meta_id = $1, is_current_standard = true WHERE id = $2`, *metaID, details.ID); err != nil {
 			return fmt.Errorf("attaching meta: %w", err)
 		}
 	}

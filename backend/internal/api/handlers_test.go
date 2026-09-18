@@ -93,7 +93,7 @@ func TestListTournaments(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
 		mock.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM tournaments t`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "").WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
-		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id"}))
+		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id", "is_current_standard"}))
 
 		h := &Handler{DB: mock}
 		req := httptest.NewRequest(http.MethodGet, "/api/tournaments?min_players=nope&source=invalid&date_from=bad&date_to=bad&page=0&page_size=-5", nil)
@@ -118,8 +118,8 @@ func TestListTournaments(t *testing.T) {
 		dateTo := time.Date(2026, 1, 31, 23, 59, 59, int(time.Second-time.Nanosecond), time.UTC)
 		mock.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM tournaments t`).WithArgs(64, "STANDARD", "meta-1", boolPtrArg(false), timePtrArg(dateFrom), timePtrArg(dateTo), "dragapult-ex", "cup", "").WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(200))
 		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t`).WithArgs(64, "STANDARD", "meta-1", boolPtrArg(false), timePtrArg(dateFrom), timePtrArg(dateTo), "dragapult-ex", "cup", "", 100, 100).WillReturnRows(
-			pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id"}).
-				AddRow("t1", "Cup", "PTCG", "STANDARD", ptrString("meta-1"), ptrString("2026 Meta"), time.Date(2026, 1, 20, 12, 0, 0, 0, time.UTC), 128, false, true, ptrString("League"), ptrString("Dragapult ex"), []string{"dragapult"}, ptrString("player1"), ptrInt64(42)),
+			pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id", "is_current_standard"}).
+				AddRow("t1", "Cup", "PTCG", "STANDARD", ptrString("meta-1"), ptrString("2026 Meta"), time.Date(2026, 1, 20, 12, 0, 0, 0, time.UTC), 128, false, true, ptrString("League"), ptrString("Dragapult ex"), []string{"dragapult"}, ptrString("player1"), ptrInt64(42), true),
 		)
 
 		h := &Handler{DB: mock}
@@ -147,7 +147,7 @@ func TestListTournaments(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
 		mock.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM tournaments t.*WHERE t\.has_decklists = true`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "").WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
-		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t.*WHERE t\.has_decklists = true`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id"}))
+		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t.*WHERE t\.has_decklists = true`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id", "is_current_standard"}))
 
 		h := &Handler{DB: mock}
 		req := httptest.NewRequest(http.MethodGet, "/api/tournaments", nil)
@@ -162,7 +162,7 @@ func TestListTournaments(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
 		mock.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM tournaments t`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "").WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
-		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t.*ORDER BY t\.players ASC`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id"}))
+		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t.*ORDER BY t\.players ASC`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id", "is_current_standard"}))
 
 		h := &Handler{DB: mock}
 		req := httptest.NewRequest(http.MethodGet, "/api/tournaments?sort_by=players&sort_dir=asc", nil)
@@ -177,7 +177,7 @@ func TestListTournaments(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
 		mock.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM tournaments t`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "").WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
-		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t.*ORDER BY w\.archetype_name ASC NULLS LAST, t\.date DESC`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id"}))
+		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t.*ORDER BY w\.archetype_name ASC NULLS LAST, t\.date DESC`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id", "is_current_standard"}))
 
 		h := &Handler{DB: mock}
 		req := httptest.NewRequest(http.MethodGet, "/api/tournaments?sort_by=winner_archetype&sort_dir=asc", nil)
@@ -192,7 +192,7 @@ func TestListTournaments(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
 		mock.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM tournaments t`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "").WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
-		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t.*ORDER BY t\.date DESC`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id"}))
+		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t.*ORDER BY t\.date DESC`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id", "is_current_standard"}))
 
 		h := &Handler{DB: mock}
 		req := httptest.NewRequest(http.MethodGet, "/api/tournaments?sort_by=name", nil)
@@ -219,8 +219,8 @@ func TestListTournaments(t *testing.T) {
 		defer mock.Close()
 		mock.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM tournaments t`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "").WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(1))
 		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*FROM tournaments t`).WithArgs(0, "", "", nilArg(), nilArg(), nilArg(), "", "", "", 20, 0).WillReturnRows(
-			pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id"}).
-				AddRow("t1", "Cup", "PTCG", "STANDARD", ptrString("meta-1"), ptrString("Meta"), time.Now(), "bad-players", false, true, ptrString("Org"), ptrString("Winner"), nil, ptrString("player1"), ptrInt64(1)),
+			pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "winner_archetype", "winner_archetype_icons", "player_id", "decklist_id", "is_current_standard"}).
+				AddRow("t1", "Cup", "PTCG", "STANDARD", ptrString("meta-1"), ptrString("Meta"), time.Now(), "bad-players", false, true, ptrString("Org"), ptrString("Winner"), nil, ptrString("player1"), ptrInt64(1), true),
 		)
 		h = &Handler{DB: mock}
 		scanReq := httptest.NewRequest(http.MethodGet, "/api/tournaments", nil)
@@ -318,10 +318,10 @@ func TestListMetas(t *testing.T) {
 		defer mock.Close()
 		start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 		end := start.Add(7 * 24 * time.Hour)
-		mock.ExpectQuery(`SELECT id, name, format_code, starts_at, ends_at FROM metas ORDER BY starts_at DESC`).WillReturnRows(
-			pgxmock.NewRows([]string{"id", "name", "format_code", "starts_at", "ends_at"}).
-				AddRow("m1", "Meta 1", "STANDARD", start, ptrTime(end)).
-				AddRow("m2", "Meta 2", "EXPANDED", start.Add(-24*time.Hour), nil),
+		mock.ExpectQuery(`(?s)SELECT id, name, format_code, meta_type, parent_meta_id, starts_at, ends_at\s+FROM metas`).WithArgs("", "").WillReturnRows(
+			pgxmock.NewRows([]string{"id", "name", "format_code", "meta_type", "parent_meta_id", "starts_at", "ends_at"}).
+				AddRow("m1", "Meta 1", "STANDARD", "set", ptrString("std-1"), start, ptrTime(end)).
+				AddRow("m2", "Meta 2", "EXPANDED", "standard", nil, start.Add(-24*time.Hour), nil),
 		)
 
 		h := &Handler{DB: mock}
@@ -338,9 +338,9 @@ func TestListMetas(t *testing.T) {
 	t.Run("scan error", func(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
-		mock.ExpectQuery(`SELECT id, name, format_code, starts_at, ends_at FROM metas ORDER BY starts_at DESC`).WillReturnRows(
-			pgxmock.NewRows([]string{"id", "name", "format_code", "starts_at", "ends_at"}).
-				AddRow("m1", "Meta 1", "STANDARD", "bad-time", nil),
+		mock.ExpectQuery(`(?s)SELECT id, name, format_code, meta_type, parent_meta_id, starts_at, ends_at\s+FROM metas`).WithArgs("", "").WillReturnRows(
+			pgxmock.NewRows([]string{"id", "name", "format_code", "meta_type", "parent_meta_id", "starts_at", "ends_at"}).
+				AddRow("m1", "Meta 1", "STANDARD", "set", nil, "bad-time", nil),
 		)
 
 		h := &Handler{DB: mock}
@@ -348,6 +348,51 @@ func TestListMetas(t *testing.T) {
 		h.ListMetas(rr, httptest.NewRequest(http.MethodGet, "/api/metas", nil))
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 		assert.Contains(t, rr.Body.String(), "scanning meta")
+	})
+}
+
+func TestCurrentMetas(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+		mock.ExpectQuery(`(?s)FROM metas\s+WHERE format_code = \$1 AND meta_type = 'standard' AND ends_at IS NULL`).WithArgs("STANDARD").WillReturnRows(
+			pgxmock.NewRows([]string{"id", "name", "format_code", "meta_type", "parent_meta_id", "starts_at", "ends_at"}).
+				AddRow("std-1", "Standard", "STANDARD", "standard", nil, start, nil),
+		)
+		mock.ExpectQuery(`(?s)FROM metas\s+WHERE format_code = \$1 AND meta_type = 'set' AND ends_at IS NULL`).WithArgs("STANDARD").WillReturnRows(
+			pgxmock.NewRows([]string{"id", "name", "format_code", "meta_type", "parent_meta_id", "starts_at", "ends_at"}).
+				AddRow("set-1", "Current Standard", "STANDARD", "set", ptrString("std-1"), start, nil),
+		)
+
+		h := &Handler{DB: mock}
+		rr := httptest.NewRecorder()
+		h.CurrentMetas(rr, httptest.NewRequest(http.MethodGet, "/api/metas/current", nil))
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		resp := decodeBody[map[string]*models.Meta](t, rr)
+		require.NotNil(t, resp["standard"])
+		require.NotNil(t, resp["current_set"])
+		assert.Equal(t, "std-1", resp["standard"].ID)
+		assert.Equal(t, "set-1", resp["current_set"].ID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("nothing bootstrapped yet", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`(?s)FROM metas\s+WHERE format_code = \$1 AND meta_type = 'standard' AND ends_at IS NULL`).WithArgs("STANDARD").WillReturnError(pgx.ErrNoRows)
+		mock.ExpectQuery(`(?s)FROM metas\s+WHERE format_code = \$1 AND meta_type = 'set' AND ends_at IS NULL`).WithArgs("STANDARD").WillReturnError(pgx.ErrNoRows)
+
+		h := &Handler{DB: mock}
+		rr := httptest.NewRecorder()
+		h.CurrentMetas(rr, httptest.NewRequest(http.MethodGet, "/api/metas/current", nil))
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		resp := decodeBody[map[string]*models.Meta](t, rr)
+		assert.Nil(t, resp["standard"])
+		assert.Nil(t, resp["current_set"])
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
 
@@ -364,6 +409,7 @@ func TestArchetypeStats(t *testing.T) {
 
 	mock := newMockDB(t)
 	defer mock.Close()
+	mock.ExpectQuery(`SELECT meta_type FROM metas WHERE id = \$1::uuid`).WithArgs("meta-1").WillReturnRows(pgxmock.NewRows([]string{"meta_type"}).AddRow("set"))
 	mock.ExpectQuery(`(?s)WITH sides AS.*ORDER BY deck_count DESC`).WithArgs("meta-1").WillReturnRows(
 		pgxmock.NewRows([]string{"id", "name", "slug", "deck_count", "avg_standing", "drop_count", "matches", "wins", "losses", "ties", "score_rate", "win_rate", "archetype_icons"}).
 			AddRow(int64(1), "Dragapult ex", "dragapult-ex", 12, ptrFloat64(3.5), 1, 20, 12, 6, 2, ptrFloat64(0.65), ptrFloat64(0.6667), []string{"dragapult", "dusknoir"}),
@@ -393,6 +439,7 @@ func TestArchetypeStats(t *testing.T) {
 	t.Run("query error", func(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
+		mock.ExpectQuery(`SELECT meta_type FROM metas WHERE id = \$1::uuid`).WithArgs("meta-1").WillReturnRows(pgxmock.NewRows([]string{"meta_type"}).AddRow("set"))
 		mock.ExpectQuery(`(?s)WITH sides AS.*ORDER BY deck_count DESC`).WithArgs("meta-1").WillReturnError(assert.AnError)
 
 		h := &Handler{DB: mock}
@@ -405,6 +452,7 @@ func TestArchetypeStats(t *testing.T) {
 	t.Run("always filters out the catch-all Other archetype", func(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
+		mock.ExpectQuery(`SELECT meta_type FROM metas WHERE id = \$1::uuid`).WithArgs("meta-1").WillReturnRows(pgxmock.NewRows([]string{"meta_type"}).AddRow("set"))
 		mock.ExpectQuery(`(?s)WITH sides AS.*WHERE a\.meta_id = \$1::uuid AND a\.name <> 'Other'.*ORDER BY deck_count DESC`).WithArgs("meta-1").WillReturnRows(
 			pgxmock.NewRows([]string{"id", "name", "slug", "deck_count", "avg_standing", "drop_count", "matches", "wins", "losses", "ties", "score_rate", "win_rate", "archetype_icons"}),
 		)
@@ -412,6 +460,26 @@ func TestArchetypeStats(t *testing.T) {
 		h := &Handler{DB: mock}
 		rr := httptest.NewRecorder()
 		h.ArchetypeStats(rr, httptest.NewRequest(http.MethodGet, "/api/archetypes/stats?meta_id=meta-1", nil))
+		assert.Equal(t, http.StatusOK, rr.Code)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("aggregates across set metas for a standard meta", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`SELECT meta_type FROM metas WHERE id = \$1::uuid`).WithArgs("std-1").WillReturnRows(pgxmock.NewRows([]string{"meta_type"}).AddRow("standard"))
+		mock.ExpectQuery(`SELECT id::text FROM metas WHERE parent_meta_id = \$1::uuid`).WithArgs("std-1").WillReturnRows(
+			pgxmock.NewRows([]string{"id"}).AddRow("meta-1").AddRow("meta-2"),
+		)
+		mock.ExpectQuery(`(?s)WITH sides AS.*slugs AS.*deck_stats AS.*match_totals AS.*ORDER BY ds\.deck_count DESC`).
+			WithArgs([]string{"meta-1", "meta-2"}).WillReturnRows(
+			pgxmock.NewRows([]string{"id", "name", "slug", "deck_count", "avg_standing", "drop_count", "matches", "wins", "losses", "ties", "score_rate", "win_rate", "archetype_icons"}).
+				AddRow(int64(2), "Dragapult ex", "dragapult-ex", 20, ptrFloat64(3.2), 2, 35, 21, 10, 4, ptrFloat64(0.6143), ptrFloat64(0.6774), []string{"dragapult", "dusknoir"}),
+		)
+
+		h := &Handler{DB: mock}
+		rr := httptest.NewRecorder()
+		h.ArchetypeStats(rr, httptest.NewRequest(http.MethodGet, "/api/archetypes/stats?meta_id=std-1", nil))
 		assert.Equal(t, http.StatusOK, rr.Code)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -531,6 +599,7 @@ func TestMatchupStats(t *testing.T) {
 	t.Run("nil redis path", func(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
+		mock.ExpectQuery(`SELECT meta_type FROM metas WHERE id = \$1::uuid`).WithArgs("meta-1").WillReturnRows(pgxmock.NewRows([]string{"meta_type"}).AddRow("set"))
 		mock.ExpectQuery(`(?s)SELECT archetype_id, archetype_name, archetype_slug.*FROM matchups_mv`).WithArgs("meta-1", "10", false, 25).WillReturnRows(
 			pgxmock.NewRows([]string{"archetype_id", "archetype_name", "archetype_slug", "archetype_icons", "opponent_archetype_id", "opponent_name", "opponent_slug", "opponent_icons", "matches", "wins", "losses", "ties", "score_rate", "win_rate"}).
 				AddRow(int64(10), "Dragapult ex", "dragapult-ex", []string{"dragapult"}, int64(11), "Gardevoir", "gardevoir", []string{"gardevoir"}, 40, 22, 14, 4, ptrFloat64(0.6), ptrFloat64(0.6111)),
@@ -569,6 +638,7 @@ func TestMatchupStats(t *testing.T) {
 
 		mock := newMockDB(t)
 		defer mock.Close()
+		mock.ExpectQuery(`SELECT meta_type FROM metas WHERE id = \$1::uuid`).WithArgs("meta-1").WillReturnRows(pgxmock.NewRows([]string{"meta_type"}).AddRow("set"))
 		mock.ExpectQuery(`(?s)SELECT archetype_id, archetype_name, archetype_slug.*FROM matchups_mv`).WithArgs("meta-1", "", true, 20).WillReturnRows(
 			pgxmock.NewRows([]string{"archetype_id", "archetype_name", "archetype_slug", "archetype_icons", "opponent_archetype_id", "opponent_name", "opponent_slug", "opponent_icons", "matches", "wins", "losses", "ties", "score_rate", "win_rate"}).
 				AddRow(int64(1), "Dragapult ex", "dragapult-ex", []string{"dragapult"}, int64(2), "Miraidon", "miraidon", []string{"miraidon"}, 25, 14, 9, 2, ptrFloat64(0.6), ptrFloat64(0.6087)),
@@ -586,6 +656,7 @@ func TestMatchupStats(t *testing.T) {
 	t.Run("query error", func(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
+		mock.ExpectQuery(`SELECT meta_type FROM metas WHERE id = \$1::uuid`).WithArgs("meta-1").WillReturnRows(pgxmock.NewRows([]string{"meta_type"}).AddRow("set"))
 		mock.ExpectQuery(`(?s)SELECT archetype_id, archetype_name, archetype_slug.*FROM matchups_mv`).WithArgs("meta-1", "", true, 20).WillReturnError(assert.AnError)
 
 		h := &Handler{DB: mock}
@@ -593,6 +664,29 @@ func TestMatchupStats(t *testing.T) {
 		h.MatchupStats(rr, httptest.NewRequest(http.MethodGet, "/api/matchups/stats?meta_id=meta-1", nil))
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 		assert.Contains(t, rr.Body.String(), "querying matchup stats")
+	})
+
+	t.Run("aggregates across set metas for a standard meta", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`SELECT meta_type FROM metas WHERE id = \$1::uuid`).WithArgs("std-1").WillReturnRows(pgxmock.NewRows([]string{"meta_type"}).AddRow("standard"))
+		mock.ExpectQuery(`SELECT id::text FROM metas WHERE parent_meta_id = \$1::uuid`).WithArgs("std-1").WillReturnRows(
+			pgxmock.NewRows([]string{"id"}).AddRow("meta-1").AddRow("meta-2"),
+		)
+		mock.ExpectQuery(`(?s)WITH agg AS.*FROM matchups_mv.*FROM agg`).
+			WithArgs([]string{"meta-1", "meta-2"}, "", true, 20).WillReturnRows(
+			pgxmock.NewRows([]string{"archetype_id", "archetype_name", "archetype_slug", "archetype_icons", "opponent_archetype_id", "opponent_name", "opponent_slug", "opponent_icons", "matches", "wins", "losses", "ties", "score_rate", "win_rate"}).
+				AddRow(int64(3), "Dragapult ex", "dragapult-ex", []string{"dragapult"}, int64(4), "Gardevoir", "gardevoir", []string{"gardevoir"}, 65, 36, 24, 5, ptrFloat64(0.5923), ptrFloat64(0.6)),
+		)
+
+		h := &Handler{DB: mock}
+		rr := httptest.NewRecorder()
+		h.MatchupStats(rr, httptest.NewRequest(http.MethodGet, "/api/matchups/stats?meta_id=std-1", nil))
+		resp := decodeBody[[]matchupStatBody](t, rr)
+		assert.Equal(t, http.StatusOK, rr.Code)
+		require.Len(t, resp, 1)
+		assert.Equal(t, int64(3), resp[0].Archetype.ID)
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
 

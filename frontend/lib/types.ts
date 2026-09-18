@@ -1,9 +1,26 @@
+export type MetaType = "standard" | "set";
+
 export interface Meta {
     id: string;
     name: string;
     format_code: string;
+    type: MetaType;
+    // These two are pointer fields on the Go side with `omitempty`, so
+    // an open meta's `ends_at` and a standard meta's `parent_meta_id`
+    // aren't sent as `null` -- the key is dropped from the response
+    // entirely (see backend/internal/models/models_test.go's
+    // TestModelJSONOmitemptyBehavior). Treat both as "not set" with a
+    // falsy check (`!m.ends_at`), never `=== null` -- `undefined` fails
+    // that check silently instead of erroring, which is exactly what
+    // broke default-meta selection before this comment existed.
+    parent_meta_id?: string | null;
     starts_at: string;
-    ends_at: string | null;
+    ends_at?: string | null;
+}
+
+export interface CurrentMetas {
+    standard: Meta | null;
+    current_set: Meta | null;
 }
 
 export interface Tournament {
@@ -22,6 +39,7 @@ export interface Tournament {
     winner_archetype_icons: string[] | null;
     winner_nickname: string | null;
     winner_decklist_id: number | null;
+    is_current_standard: boolean;
 }
 
 export interface ArchetypeStat {

@@ -556,8 +556,8 @@ func newLimitlessServer(t *testing.T, statuses map[string]int) (*httptest.Server
 func expectSuccessfulSync(mock pgxmock.PgxPoolIface, details *limitless.TournamentDetails, standings []limitless.StandingEntry, pairings []limitless.PairingEntry) {
 	mock.ExpectBegin()
 	mock.ExpectExec(`INSERT INTO tournaments`).WithArgs(details.ID, details.Name, details.Game, details.Format, details.Date, details.Players, details.IsOnline, details.IsPublic, details.Decklists, details.Organizer.Name, jsonArgFor(details)).WillReturnResult(pgxmock.NewResult("INSERT", 1))
-	mock.ExpectQuery(`SELECT id::text FROM metas WHERE format_code = \$1 AND ends_at IS NULL`).WithArgs(details.Format).WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow(ptrString("meta-1")))
-	mock.ExpectExec(`UPDATE tournaments SET meta_id = \$1 WHERE id = \$2`).WithArgs("meta-1", details.ID).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	mock.ExpectQuery(`(?s)SELECT id::text FROM metas.*WHERE format_code = \$1 AND meta_type = 'set' AND ends_at IS NULL`).WithArgs(details.Format).WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow(ptrString("meta-1")))
+	mock.ExpectExec(`UPDATE tournaments SET meta_id = \$1, is_current_standard = true WHERE id = \$2`).WithArgs("meta-1", details.ID).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	for _, entry := range standings {
 		mock.ExpectExec(`INSERT INTO players`).WithArgs(entry.Player, entry.Name).WillReturnResult(pgxmock.NewResult("INSERT", 1))
 		mock.ExpectQuery(`INSERT INTO archetypes`).WithArgs("meta-1", entry.Deck.Name, entry.Deck.ID).WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow(int64(3)))

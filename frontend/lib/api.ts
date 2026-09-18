@@ -3,6 +3,7 @@ import type {
     ArchetypeStat,
     ArchetypeVariant,
     CardStat,
+    CurrentMetas,
     DecklistDetail,
     MatchupStat,
     Meta,
@@ -54,6 +55,16 @@ async function fetchJson<T>(path: string): Promise<T> {
 
 export async function getMetas() {
     return fetchJson<Meta[]>("/metas");
+}
+
+// getCurrentMetas returns the currently open standard meta plus its
+// currently open set meta for a format -- the standard meta is what
+// the site defaults to. Either field can be null if that format
+// hasn't been bootstrapped yet (see `make seed-meta`).
+export async function getCurrentMetas(formatCode = "STANDARD") {
+    return fetchJson<CurrentMetas>(
+        `/metas/current?format=${encodeURIComponent(formatCode)}`,
+    );
 }
 
 export interface TournamentPage {

@@ -1,9 +1,11 @@
 import type { ArchetypeStat, Meta } from "@/lib/types";
 import { getArchetypeStats, getMetas } from "@/lib/api";
+import { groupMetasForSelect, pickDefaultMeta } from "@/lib/metas";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
 import FilterForm from "@/components/filter-form";
 import ArchetypeSearch from "./ArchetypeSearch";
+import { Fragment } from "react";
 
 type SearchParams = {
     meta_id?: string;
@@ -16,6 +18,34 @@ function EmptyState({ title, copy }: { title: string; copy: string }) {
             <h3>{title}</h3>
             <p>{copy}</p>
         </div>
+    );
+}
+
+function MetaOptions({ metas }: { metas: Meta[] }) {
+    const { standards, setsByParent, orphanSets } = groupMetasForSelect(metas);
+
+    return (
+        <>
+            {standards.map((standard) => (
+                <Fragment key={standard.id}>
+                    <option value={standard.id}>{standard.name}</option>
+                    {(setsByParent.get(standard.id) ?? []).map((set) => (
+                        <option key={set.id} value={set.id}>
+                            {set.name}
+                        </option>
+                    ))}
+                </Fragment>
+            ))}
+            {orphanSets.length > 0 ? (
+                <optgroup label="Other">
+                    {orphanSets.map((set) => (
+                        <option key={set.id} value={set.id}>
+                            {set.name}
+                        </option>
+                    ))}
+                </optgroup>
+            ) : null}
+        </>
     );
 }
 
@@ -40,11 +70,7 @@ function ArchetypeFilters({
                     name="meta_id"
                     defaultValue={activeMeta?.id ?? ""}
                 >
-                    {metas.map((meta) => (
-                        <option key={meta.id} value={meta.id}>
-                            {meta.name}
-                        </option>
-                    ))}
+                    <MetaOptions metas={metas} />
                 </select>
             </div>
 
@@ -96,11 +122,7 @@ function MetaSelector({
                     name="meta_id"
                     defaultValue={activeMeta?.id ?? ""}
                 >
-                    {metas.map((meta) => (
-                        <option key={meta.id} value={meta.id}>
-                            {meta.name}
-                        </option>
-                    ))}
+                    <MetaOptions metas={metas} />
                 </select>
             </div>
             <button type="submit">Apply</button>
@@ -115,8 +137,7 @@ export default async function DecklistsPage({
 }) {
     const params = await searchParams;
     const metas = await getMetas().catch(() => [] as Meta[]);
-    const activeMeta =
-        metas.find((m) => m.id === params.meta_id) ?? metas[0] ?? null;
+    const activeMeta = pickDefaultMeta(metas, params.meta_id);
 
     const parsedMinMatches = Number.parseInt(params.min_matches ?? "40", 10);
     const minMatches =

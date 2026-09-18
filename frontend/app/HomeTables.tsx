@@ -62,15 +62,21 @@ export function LiveTournamentsTable({
                         t.players.toLocaleString("en-US"),
                 },
                 {
-                    key: "source",
-                    label: "Source",
-                    render: (t: Tournament) => (
-                        <span
-                            className={`badge ${t.is_online ? "badge--online" : ""}`}
-                        >
-                            {t.is_online ? "Online" : "In person"}
-                        </span>
-                    ),
+                    key: "winner_archetype",
+                    label: "Winner",
+                    render: (t: Tournament) =>
+                        t.winner_archetype &&
+                        t.winner_nickname &&
+                        t.winner_decklist_id ? (
+                            <Link href={`/decklists/${t.winner_decklist_id}`}>
+                                <ArchetypeIcons
+                                    icons={t.winner_archetype_icons}
+                                    name={t.winner_archetype}
+                                />
+                            </Link>
+                        ) : (
+                            <span className="muted tiny">Unknown</span>
+                        ),
                 },
             ]}
             rows={tournaments}

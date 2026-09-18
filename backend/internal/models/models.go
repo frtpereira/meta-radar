@@ -2,12 +2,24 @@ package models
 
 import "time"
 
+// MetaType distinguishes the two kinds of row in `metas` -- see
+// db/migrations/0009_meta_hierarchy.sql. "standard" is a permanent,
+// format-level container (the website's default view); "set" is the
+// existing finer-grained era that opens on each set release and
+// belongs to exactly one standard meta via ParentMetaID.
+const (
+	MetaTypeStandard = "standard"
+	MetaTypeSet      = "set"
+)
+
 type Meta struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	FormatCode string     `json:"format_code"`
-	StartsAt   time.Time  `json:"starts_at"`
-	EndsAt     *time.Time `json:"ends_at,omitempty"`
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	FormatCode   string     `json:"format_code"`
+	Type         string     `json:"type"`
+	ParentMetaID *string    `json:"parent_meta_id,omitempty"`
+	StartsAt     time.Time  `json:"starts_at"`
+	EndsAt       *time.Time `json:"ends_at,omitempty"`
 }
 
 type Tournament struct {
@@ -30,6 +42,11 @@ type Tournament struct {
 	WinnerArchetypeIcons []string `json:"winner_archetype_icons,omitempty"`
 	WinnerNickname       *string  `json:"winner_nickname,omitempty"`
 	WinnerDecklistID     *int64   `json:"winner_decklist_id,omitempty"`
+	// IsCurrentStandard is true when this tournament's meta is still
+	// part of the currently open Standard rotation, as opposed to a
+	// Standard tournament that's since rotated out -- see
+	// db/migrations/0010_tournament_current_standard_flag.sql.
+	IsCurrentStandard bool `json:"is_current_standard"`
 }
 
 type Archetype struct {
@@ -92,6 +109,39 @@ type ArchetypeIcon struct {
 	ArchetypeID  int64  `json:"archetype_id"`
 	PokemonSlug  string `json:"pokemon_slug"`
 	DisplayOrder int    `json:"display_order"`
+}
+
+// MetaSnapshot is one point-in-time capture of a meta's archetype
+// breakdown -- see db/migrations/0011_meta_snapshots.sql. Written by
+// cmd/snapshot on a daily/weekly cadence; nothing reads these yet, but
+// they're the foundation for winrate/usage-over-time graphs.
+const (
+	SnapshotTypeDaily  = "daily"
+	SnapshotTypeWeekly = "weekly"
+)
+
+type MetaSnapshot struct {
+	ID           int64     `json:"id"`
+	MetaID       string    `json:"meta_id"`
+	SnapshotType string    `json:"snapshot_type"`
+	SnapshotDate string    `json:"snapshot_date"` // YYYY-MM-DD
+	GeneratedAt  time.Time `json:"generated_at"`
+	TotalDecks   int       `json:"total_decks"`
+}
+
+// MetaSnapshotArchetype is one archetype's row within a MetaSnapshot.
+type MetaSnapshotArchetype struct {
+	ID           int64    `json:"id"`
+	SnapshotID   int64    `json:"snapshot_id"`
+	ArchetypeID  int64    `json:"archetype_id"`
+	DeckCount    int      `json:"deck_count"`
+	SharePct     *float64 `json:"share_pct,omitempty"`
+	Matches      int      `json:"matches"`
+	Wins         int      `json:"wins"`
+	Losses       int      `json:"losses"`
+	Ties         int      `json:"ties"`
+	WinRate      *float64 `json:"win_rate,omitempty"`
+	AvgStanding  *float64 `json:"avg_standing,omitempty"`
 }
 
 // CardImage is a resolved card-art URL for one print, keyed by its

@@ -190,13 +190,34 @@ github.com/swaggo/swag/cmd/swag@latest`).
 
 ### Metas
 
+A "meta" comes in two kinds (`type` field), see
+`db/migrations/0009_meta_hierarchy.sql`:
+
+- `standard` -- a permanent, format-level container (e.g. "Standard").
+  This is the website's default: it only closes on an actual Standard
+  rotation, not on every set release.
+- `set` -- the finer-grained era that opens whenever a new set shakes
+  up the format. Every `set` meta has a `parent_meta_id` pointing at
+  the `standard` meta it belongs to. Archetypes/decklists/matchups are
+  still scoped to a `set` meta's id, same as before this existed.
+
 - `GET /api/metas`
-    - Lists all metas, newest first.
+    - Lists all metas, newest first. Optional `?type=standard|set` and
+      `?format=STANDARD` filters.
+- `GET /api/metas/current?format=STANDARD`
+    - Returns the currently open `standard` meta for that format plus
+      its currently open `set` meta, e.g.
+      `{ "standard": {...}, "current_set": {...} }`. This is what the
+      frontend defaults to on first load.
 
 ### Archetypes
 
 - `GET /api/archetypes/stats?meta_id=...`
     - Returns one row per archetype in that meta.
+    - `meta_id` can be a `set` meta (as before) or a `standard` meta -- for
+      a `standard` meta, archetypes sharing a slug across its set metas
+      are merged into one row (summed deck counts/matches, recomputed
+      rates), keyed by the most recently created matching archetype id.
     - Fields: `deck_count`, `avg_standing`, `drop_count`, `matches`, `wins`,
       `losses`, `ties`, `score_rate`, and `win_rate`.
     - `score_rate` comes from pairings and counts draws as half a win.
@@ -216,7 +237,9 @@ github.com/swaggo/swag/cmd/swag@latest`).
 
 - `GET /api/matchups/stats?meta_id=...&archetype_id=...&min_matches=5&include_mirrors=false`
     - Returns directional archetype-vs-archetype results from stored pairings.
-    - `meta_id` is required.
+    - `meta_id` is required and, like `/api/archetypes/stats`, can be a
+      `standard` meta -- matchups are merged by archetype slug pair
+      across its set metas the same way.
     - `archetype_id` is optional; when present it narrows results to one
       archetype.
     - `min_matches` defaults to `1` and filters out sparse pairings.
@@ -280,7 +303,7 @@ batch clustering job to compute `core_cards` and `core_hash`.
 # one-time / schema step
 make migrate
 
-# seed the current Standard meta (idempotent)
+# bootstrap a format: opens its permanent Standard meta + first set meta (idempotent)
 make seed-meta
 
 # force a full re-sync so decklists/archetypes are backfilled
@@ -288,6 +311,25 @@ make resync
 
 # compute cores & variants; omit META to run all metas
 make cluster META=<meta-id> THRESHOLD=0.7
+```
+
+Ongoing meta lifecycle, once a format is bootstrapped:
+
+```bash
+# a new set just released: close the current set meta, open a new one
+# under the same standard parent (edit SET_NAME in the script first)
+make open-set-meta
+
+# an actual Standard rotation happened: close the standard meta (and its
+# open set meta), flip is_current_standard off for their tournaments,
+# and open a fresh standard + set meta (edit SET_NAME first)
+make rotate-standard
+
+# capture today's / this week's per-archetype deck share, win rate, and
+# avg standing for every currently-open meta (foundation for future
+# winrate/usage-over-time graphs -- nothing reads these yet)
+make snapshot-daily
+make snapshot-weekly
 ```
 
 Notes:
@@ -423,11 +465,13 @@ picture, never a point-in-time one.** `archetypes.core_cards` and
 meta so far," not "what did this look like on August 1 vs. August 8."
 Concretely, missing:
 
-1. **Historical snapshots.** No table captures meta share / win rate /
-   card-inclusion rate _as of a given day or tournament_. Without this,
-   Rising/Falling, Meta Momentum, the Meta Timeline, and card trend charts
-   (gpt.md items #1, #2, #5, #11, #14) are all impossible — there's nothing
-   to diff against.
+1. **Historical snapshots.** `meta_snapshots` / `meta_snapshot_archetypes`
+   (migration 0011) plus `cmd/snapshot` now capture per-archetype deck
+   share, win rate, and avg standing as of a given day or week. Nothing
+   reads them yet, so Rising/Falling, Meta Momentum, the Meta Timeline,
+   and card trend charts (gpt.md items #1, #2, #5, #11, #14) are still
+   blocked -- but there's now something to diff against, and card-
+   inclusion rate specifically still needs item #3 below.
 2. **Region/country data.** `tournaments` has no `country`/`region` column
    (Limitless's `/details` payload is stored in `raw_details` but never
    parsed for location), so there is no way to isolate Japanese results at
@@ -553,11 +597,14 @@ Concretely, missing:
 
 6. Frontend.
 
-7. **Historical snapshots.** Not started. Add a periodic job (or an
-   ingest-time write) that records per-archetype meta share, win rate, and
-   card-inclusion rate keyed by date/meta. This is the prerequisite for
-   nearly every item below, and matches gpt.md's own #1 MVP priority
-   ("Meta Radar" — rising/falling, overhyped/bombing, sleeper detection).
+7. **Historical snapshots.** Storage foundation in place: `meta_snapshots`
+   / `meta_snapshot_archetypes` (migration 0011) plus `cmd/snapshot`
+   (`make snapshot-daily` / `make snapshot-weekly`) record per-archetype
+   deck share, win rate, and avg standing keyed by meta/date. Card-
+   inclusion rate isn't captured yet (needs item #9's tracking first),
+   and nothing reads these tables into an actual UI/graph yet -- that's
+   the next piece, and matches gpt.md's own #1 MVP priority ("Meta
+   Radar" — rising/falling, overhyped/bombing, sleeper detection).
 
 8. **Region capture + Japan Meta Preview.** Not started. Parse
    country/region out of `raw_details` at ingest time into a real column,
