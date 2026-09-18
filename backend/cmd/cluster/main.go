@@ -35,7 +35,11 @@ func main() {
 		return
 	}
 
-	rows, err := pool.Query(ctx, `SELECT id FROM metas`)
+	// Only 'set' metas ever have archetypes attached directly (see
+	// db/migrations/0009_meta_hierarchy.sql) -- a 'standard' meta is a
+	// permanent container over a group of set metas, so there's nothing
+	// for the clusterer to do against its id directly.
+	rows, err := pool.Query(ctx, `SELECT id FROM metas WHERE meta_type = 'set'`)
 	if err != nil {
 		log.Fatalf("listing metas: %v", err)
 	}

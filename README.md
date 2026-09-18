@@ -190,8 +190,25 @@ github.com/swaggo/swag/cmd/swag@latest`).
 
 ### Metas
 
+A "meta" comes in two kinds (`type` field), see
+`db/migrations/0009_meta_hierarchy.sql`:
+
+- `standard` -- a permanent, format-level container (e.g. "Standard").
+  This is the website's default: it only closes on an actual Standard
+  rotation, not on every set release.
+- `set` -- the finer-grained era that opens whenever a new set shakes
+  up the format. Every `set` meta has a `parent_meta_id` pointing at
+  the `standard` meta it belongs to. Archetypes/decklists/matchups are
+  still scoped to a `set` meta's id, same as before this existed.
+
 - `GET /api/metas`
-    - Lists all metas, newest first.
+    - Lists all metas, newest first. Optional `?type=standard|set` and
+      `?format=STANDARD` filters.
+- `GET /api/metas/current?format=STANDARD`
+    - Returns the currently open `standard` meta for that format plus
+      its currently open `set` meta, e.g.
+      `{ "standard": {...}, "current_set": {...} }`. This is what the
+      frontend defaults to on first load.
 
 ### Archetypes
 
@@ -280,7 +297,7 @@ batch clustering job to compute `core_cards` and `core_hash`.
 # one-time / schema step
 make migrate
 
-# seed the current Standard meta (idempotent)
+# bootstrap a format: opens its permanent Standard meta + first set meta (idempotent)
 make seed-meta
 
 # force a full re-sync so decklists/archetypes are backfilled
@@ -288,6 +305,19 @@ make resync
 
 # compute cores & variants; omit META to run all metas
 make cluster META=<meta-id> THRESHOLD=0.7
+```
+
+Ongoing meta lifecycle, once a format is bootstrapped:
+
+```bash
+# a new set just released: close the current set meta, open a new one
+# under the same standard parent (edit SET_NAME in the script first)
+make open-set-meta
+
+# an actual Standard rotation happened: close the standard meta (and its
+# open set meta), flip is_current_standard off for their tournaments,
+# and open a fresh standard + set meta (edit SET_NAME first)
+make rotate-standard
 ```
 
 Notes:
