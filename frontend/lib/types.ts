@@ -1,9 +1,18 @@
+export type MetaType = "standard" | "set";
+
 export interface Meta {
     id: string;
     name: string;
     format_code: string;
+    type: MetaType;
+    parent_meta_id: string | null;
     starts_at: string;
     ends_at: string | null;
+}
+
+export interface CurrentMetas {
+    standard: Meta | null;
+    current_set: Meta | null;
 }
 
 export interface Tournament {
@@ -22,6 +31,7 @@ export interface Tournament {
     winner_archetype_icons: string[] | null;
     winner_nickname: string | null;
     winner_decklist_id: number | null;
+    is_current_standard: boolean;
 }
 
 export interface ArchetypeStat {
