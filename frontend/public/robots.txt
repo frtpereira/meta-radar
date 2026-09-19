@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /decklists/
+Disallow: /players/
+
+Sitemap: https://metaradar-tcg.com/sitemap.xml
