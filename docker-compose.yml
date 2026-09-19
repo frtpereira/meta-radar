@@ -57,5 +57,23 @@ services:
             LIMITLESS_API_BASE: https://play.limitlesstcg.com/api
             LIMITLESS_API_KEY: ${LIMITLESS_API_KEY:-}
 
+    snapshot-scheduler:
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        container_name: tcg_snapshot_scheduler
+        restart: unless-stopped
+        entrypoint: ["snapshot"]
+        # Runs daily at 06:00 UTC, plus a weekly snapshot every Monday --
+        # see backend/cmd/snapshot's package comment. Override with
+        # SNAPSHOT_AT (e.g. "SNAPSHOT_AT=09:30" in .env) if 6am UTC isn't
+        # what you want; it's always UTC regardless of the host's clock.
+        command: ["--daemon", "--at=${SNAPSHOT_AT:-06:00}"]
+        depends_on:
+            postgres:
+                condition: service_healthy
+        environment:
+            DATABASE_URL: postgres://${DB_USER:-app}:${DB_PASSWORD:-devpassword}@postgres:5432/${DB_NAME:-pokemontcg}?sslmode=disable
+
 volumes:
     pgdata:

@@ -4,10 +4,23 @@
 // db/migrations/0011_meta_snapshots.sql. It's the write side of the
 // meta-snapshot foundation; nothing reads meta_snapshots /
 // meta_snapshot_archetypes yet, but this is what later winrate/usage-
-// over-time graphs will read from. Intended to run from cron (see
-// `make snapshot-daily` / `make snapshot-weekly`); re-running for a
-// date that already has a snapshot replaces its archetype rows rather
-// than accumulating duplicates.
+// over-time graphs will read from.
+//
+// Two ways to run it:
+//   - One-shot (for `make snapshot-daily` / `make snapshot-weekly`, or
+//     manual backfills): pass -type=daily|weekly, optionally -meta=<id>
+//     to snapshot just one meta. Runs once and exits.
+//   - Daemon (the snapshot-scheduler service in docker-compose.yml):
+//     pass -daemon, optionally -at=HH:MM (UTC, default 06:00). Sleeps
+//     until the next occurrence of that time every day and takes a
+//     full daily snapshot (every currently-open meta), plus a weekly
+//     snapshot on top every Monday -- see snapshotDate's comment on why
+//     which day of the week the weekly one runs on doesn't matter for
+//     correctness, only for which date it's filed under.
+//
+// Re-running for a date that already has a snapshot replaces its
+// archetype rows rather than accumulating duplicates, so the daemon
+// re-triggering the same day (e.g. after a restart) is harmless.
 package main
 
 import (
@@ -15,6 +28,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/frtpereira/meta-radar/internal/config"
@@ -105,16 +120,15 @@ type archetypeRow struct {
 }
 
 func main() {
-	snapshotType := flag.String("type", "", `snapshot cadence: "daily" or "weekly"`)
-	only := flag.String("meta", "", "meta id to snapshot (empty = every currently open meta, standard and set)")
+	snapshotType := flag.String("type", "", `snapshot cadence for a one-shot run: "daily" or "weekly" (ignored with -daemon)`)
+	only := flag.String("meta", "", "meta id to snapshot for a one-shot run (empty = every currently open meta, standard and set; ignored with -daemon, which always does every meta)")
+	daemon := flag.Bool("daemon", false, "run continuously: sleep until -at (UTC) each day, take a daily snapshot, and also a weekly one every Monday, instead of running once and exiting")
+	at := flag.String("at", "06:00", `UTC time of day the daemon runs at each day, as "HH:MM" (only used with -daemon)`)
 	flag.Parse()
 
-	if *snapshotType != "daily" && *snapshotType != "weekly" {
-		log.Fatalf(`-type must be "daily" or "weekly", got %q`, *snapshotType)
-	}
-
 	cfg := config.Load()
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	pool, err := db.New(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -122,23 +136,90 @@ func main() {
 	}
 	defer pool.Close()
 
-	dateStr := snapshotDate(*snapshotType).Format("2006-01-02")
+	if *daemon {
+		hour, minute, err := parseHourMinute(*at)
+		if err != nil {
+			log.Fatalf("invalid -at %q: %v", *at, err)
+		}
+		runDaemon(ctx, pool, hour, minute)
+		return
+	}
 
-	targets, err := targetMetas(ctx, pool, *only)
+	if *snapshotType != "daily" && *snapshotType != "weekly" {
+		log.Fatalf(`-type must be "daily" or "weekly", got %q`, *snapshotType)
+	}
+	runPass(ctx, pool, *snapshotType, *only)
+}
+
+// parseHourMinute parses an "HH:MM" string (as validated by -at) into
+// its hour/minute components.
+func parseHourMinute(s string) (hour, minute int, err error) {
+	t, err := time.Parse("15:04", s)
 	if err != nil {
-		log.Fatalf("resolving target metas: %v", err)
+		return 0, 0, err
+	}
+	return t.Hour(), t.Minute(), nil
+}
+
+// runDaemon sleeps until the next occurrence of hour:minute UTC, then
+// takes a daily snapshot (and, on Mondays, a weekly one too), forever,
+// until ctx is cancelled (SIGINT/SIGTERM).
+func runDaemon(ctx context.Context, pool *pgxpool.Pool, hour, minute int) {
+	log.Printf("snapshot daemon started: will run daily at %02d:%02d UTC (plus weekly every Monday)", hour, minute)
+
+	for {
+		now := time.Now().UTC()
+		next := nextOccurrence(now, hour, minute)
+
+		log.Printf("snapshot daemon: sleeping %s, next run at %s", next.Sub(now).Round(time.Second), next.Format(time.RFC3339))
+
+		select {
+		case <-ctx.Done():
+			log.Println("snapshot daemon: shutting down")
+			return
+		case <-time.After(next.Sub(now)):
+		}
+
+		runPass(ctx, pool, "daily", "")
+		if next.Weekday() == time.Monday {
+			runPass(ctx, pool, "weekly", "")
+		}
+	}
+}
+
+// nextOccurrence returns the next time hour:minute UTC occurs at or
+// after now -- today if that time hasn't passed yet, otherwise
+// tomorrow.
+func nextOccurrence(now time.Time, hour, minute int) time.Time {
+	next := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, 0, 0, time.UTC)
+	if !next.After(now) {
+		next = next.AddDate(0, 0, 1)
+	}
+	return next
+}
+
+// runPass snapshots `only` (or every currently-open meta, if empty) for
+// the given cadence, logging each meta's outcome. Used by both the
+// one-shot and daemon code paths.
+func runPass(ctx context.Context, pool *pgxpool.Pool, snapshotType, only string) {
+	dateStr := snapshotDate(snapshotType).Format("2006-01-02")
+
+	targets, err := targetMetas(ctx, pool, only)
+	if err != nil {
+		log.Printf("resolving target metas for %s snapshot: %v", snapshotType, err)
+		return
 	}
 	if len(targets) == 0 {
-		log.Println("no open metas to snapshot")
+		log.Printf("no open metas to snapshot for %s %s", snapshotType, dateStr)
 		return
 	}
 
 	for _, target := range targets {
-		if err := snapshotOne(ctx, pool, target, *snapshotType, dateStr); err != nil {
+		if err := snapshotOne(ctx, pool, target, snapshotType, dateStr); err != nil {
 			log.Printf("snapshotting meta %s (%s): %v", target.id, target.metaType, err)
 			continue
 		}
-		log.Printf("snapshotted meta %s (%s) for %s %s", target.id, target.metaType, *snapshotType, dateStr)
+		log.Printf("snapshotted meta %s (%s) for %s %s", target.id, target.metaType, snapshotType, dateStr)
 	}
 }
 
