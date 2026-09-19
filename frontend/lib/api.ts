@@ -12,14 +12,18 @@ import type {
     TournamentDetail,
 } from "@/lib/types";
 import { cardImageUrl, type CardImageSize } from "@/lib/card-images";
+import { logRequest } from "@/lib/logger";
 
 const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
 
 async function fetchJson<T>(path: string): Promise<T> {
+    const startTime = performance.now();
     const response = await fetch(`${apiBaseUrl}${path}`, {
         cache: "no-store",
     });
+    const durationMs = Math.round(performance.now() - startTime);
+    logRequest("GET", path, response.status, durationMs);
 
     // Read response as text first so we can include server error bodies in thrown errors
     const text = await response.text();
@@ -148,9 +152,7 @@ export async function getArchetypeCardStats(id: string) {
 }
 
 export async function getPlayer(nickname: string) {
-    return fetchJson<PlayerDetail>(
-        `/players/${encodeURIComponent(nickname)}`,
-    );
+    return fetchJson<PlayerDetail>(`/players/${encodeURIComponent(nickname)}`);
 }
 
 export async function getDecklist(id: string) {
