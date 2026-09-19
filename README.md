@@ -340,6 +340,15 @@ Notes:
 - The `cluster` binary is built into the backend image by the
   `backend/Dockerfile` and the Makefile target runs it inside the
   `ingest` image.
+- Archetype icons (`archetype_icons`) are keyed by archetype id, and
+  archetypes are scoped per set meta, so the same deck gets a new id in
+  every set meta. Migration `0012_archetype_icon_inheritance.sql` copies
+  icons from the same-slug archetype in the most recent earlier meta of
+  the same format whenever an archetype has none: automatically for every
+  archetype ingestion creates, and for existing ones each time
+  `make migrate` runs. Curated icons are never overwritten, so after
+  curating icons on an older set's archetype, re-run `make migrate` to
+  push them onto newer set metas.
 
 (Won't return anything meaningful until a `metas` row exists for the
 format you're syncing — see below.)
