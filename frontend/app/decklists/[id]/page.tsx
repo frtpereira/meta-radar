@@ -4,7 +4,7 @@ import Hero from "@/components/hero";
 import { getCardImages, getDecklist } from "@/lib/api";
 import { DecklistView } from "./DecklistView";
 
-type PageParams = { nickname: string; id: string };
+type PageParams = { id: string };
 
 function formatDate(value: string) {
     return new Intl.DateTimeFormat("en-US", {
@@ -20,8 +20,7 @@ export default async function PlayerDecklistPage({
 }: {
     params: Promise<PageParams>;
 }) {
-    const { nickname: rawNickname, id } = await params;
-    const nickname = decodeURIComponent(rawNickname);
+    const { id } = await params;
 
     const decklist = await getDecklist(id).catch((err: unknown) => {
         if (
@@ -41,6 +40,10 @@ export default async function PlayerDecklistPage({
 
     const totalCards = decklist.cards.reduce((sum, c) => sum + c.count, 0);
 
+    // This route is /decklists/[id], so there is no nickname in the URL to
+    // build the player link from -- the decklist itself is the source of truth.
+    const playerHref = `/players/${encodeURIComponent(decklist.player_name)}`;
+
     return (
         <main className="page">
             <div className="ambient ambient--one" />
@@ -49,7 +52,7 @@ export default async function PlayerDecklistPage({
             <div className="shell">
                 <div style={{ marginBottom: 16 }}>
                     <Link
-                        href={`/players/${encodeURIComponent(nickname)}`}
+                        href={playerHref}
                         className="button"
                         style={{ display: "inline-flex" }}
                     >
@@ -67,7 +70,7 @@ export default async function PlayerDecklistPage({
                     meta={
                         <>
                             <Link
-                                href={`/players/${decklist.player_name}`}
+                                href={playerHref}
                                 className="pill"
                             >
                                 {decklist.player_name}
