@@ -15,7 +15,100 @@ import (
 )
 
 func TestCardKey(t *testing.T) {
-	assert.Equal(t, "Buddy-Buddy Poffin|TEF|144", cardKey(models.Card{Name: "Buddy-Buddy Poffin", Set: "TEF", Number: "144"}))
+	assert.Equal(t, "Buddy-Buddy Poffin|TEF|144", CardKey(models.Card{Name: "Buddy-Buddy Poffin", Set: "TEF", Number: "144"}))
+}
+
+func TestCardKeyMergesTrainerAndEnergyPrints(t *testing.T) {
+	// Trainers: same name, different set/number -> same key.
+	pal := models.Card{Name: "Boss's Orders", Set: "PAL", Number: "172", Category: "trainer"}
+	meg := models.Card{Name: "Boss's Orders", Set: "MEG", Number: "114", Category: "trainer"}
+	assert.Equal(t, CardKey(pal), CardKey(meg))
+	assert.Equal(t, "Boss's Orders", CardKey(pal))
+	assert.Equal(t, CardKey(pal), CardKey(models.Card{Name: "Boss's Orders", Set: "MEG", Number: "114", Category: "Trainer"}))
+
+	// Different trainer names stay distinct.
+	assert.NotEqual(t, CardKey(pal), CardKey(models.Card{Name: "Iono", Set: "PAL", Number: "185", Category: "trainer"}))
+
+	// Pokemon keep set + number in the key.
+	assert.NotEqual(t,
+		CardKey(models.Card{Name: "Charizard ex", Set: "OBF", Number: "125", Category: "pokemon"}),
+		CardKey(models.Card{Name: "Charizard ex", Set: "PAF", Number: "234", Category: "pokemon"}))
+
+	// Energy: same name, different set/number -> same key, regardless of print.
+	grassSVE := models.Card{Name: "Grass Energy", Set: "SVE", Number: "1", Category: "energy"}
+	grassMEE := models.Card{Name: "Grass Energy", Set: "MEE", Number: "1", Category: "energy"}
+	assert.Equal(t, CardKey(grassSVE), CardKey(grassMEE))
+	assert.Equal(t, "Grass Energy", CardKey(grassSVE))
+	assert.Equal(t, "Grass Energy", CardKey(models.Card{Name: "Grass Energy", Category: "Energy"}))
+	assert.NotEqual(t, CardKey(grassSVE), CardKey(models.Card{Name: "Fire Energy", Set: "SVE", Number: "2", Category: "energy"}))
+
+	// A trainer-keyed name can never collide with a name|set|number key.
+	assert.NotEqual(t, CardKey(pal), CardKey(models.Card{Name: "Boss's Orders", Set: "PAL", Number: "172", Category: "pokemon"}))
+}
+
+func TestCoreCardListMergesTrainerPrints(t *testing.T) {
+	decks := []deckRow{
+		{ID: 1, Cards: []models.Card{
+			{Name: "Boss's Orders", Set: "PAL", Number: "172", Count: 2, Category: "trainer"},
+			{Name: "Boss's Orders", Set: "MEG", Number: "114", Count: 1, Category: "trainer"},
+		}},
+		{ID: 2, Cards: []models.Card{{Name: "Boss's Orders", Set: "PAL", Number: "172", Count: 3, Category: "trainer"}}},
+		{ID: 3, Cards: []models.Card{{Name: "Boss's Orders", Set: "MEG", Number: "114", Count: 1, Category: "trainer"}}},
+	}
+	core := map[string]bool{"Boss's Orders": true}
+
+	// Totals per deck: 3, 3, 1 -> modal total 3. PAL is the most-played print (5 vs 2 copies).
+	assert.Equal(t, []models.Card{
+		{Name: "Boss's Orders", Set: "PAL", Number: "172", Count: 3, Category: "trainer"},
+	}, coreCardList(decks, core))
+}
+
+func TestCoreCardListMergesEnergyPrints(t *testing.T) {
+	decks := []deckRow{
+		{ID: 1, Cards: []models.Card{
+			{Name: "Grass Energy", Set: "SVE", Number: "1", Count: 4, Category: "energy"},
+			{Name: "Grass Energy", Set: "MEE", Number: "1", Count: 2, Category: "energy"},
+		}},
+		{ID: 2, Cards: []models.Card{{Name: "Grass Energy", Set: "SVE", Number: "1", Count: 6, Category: "energy"}}},
+	}
+	assert.Equal(t, []models.Card{
+		{Name: "Grass Energy", Set: "SVE", Number: "1", Count: 6, Category: "energy"},
+	}, coreCardList(decks, map[string]bool{"Grass Energy": true}))
+}
+
+func TestCoreHashTreatsTrainerReprintsAsSameCard(t *testing.T) {
+	core := map[string]bool{"Boss's Orders": true, "Charizard ex|OBF|125": true}
+	charizard := models.Card{Name: "Charizard ex", Set: "OBF", Number: "125", Count: 3, Category: "pokemon"}
+
+	palOnly := []models.Card{charizard, {Name: "Boss's Orders", Set: "PAL", Number: "172", Count: 3, Category: "trainer"}}
+	megOnly := []models.Card{charizard, {Name: "Boss's Orders", Set: "MEG", Number: "114", Count: 3, Category: "trainer"}}
+	split := []models.Card{
+		charizard,
+		{Name: "Boss's Orders", Set: "PAL", Number: "172", Count: 2, Category: "trainer"},
+		{Name: "Boss's Orders", Set: "MEG", Number: "114", Count: 1, Category: "trainer"},
+	}
+	assert.Equal(t, coreHash(palOnly, core), coreHash(megOnly, core))
+	assert.Equal(t, coreHash(palOnly, core), coreHash(split, core), "same total split across prints must hash the same")
+
+	// A different total is still a real build difference.
+	fewer := []models.Card{charizard, {Name: "Boss's Orders", Set: "PAL", Number: "172", Count: 2, Category: "trainer"}}
+	assert.NotEqual(t, coreHash(palOnly, core), coreHash(fewer, core))
+
+	// Energy prints are merged the same way.
+	coreWithEnergy := map[string]bool{"Grass Energy": true}
+	oneGrass := []models.Card{{Name: "Grass Energy", Set: "SVE", Number: "1", Count: 6, Category: "energy"}}
+	splitGrass := []models.Card{
+		{Name: "Grass Energy", Set: "SVE", Number: "1", Count: 4, Category: "energy"},
+		{Name: "Grass Energy", Set: "MEE", Number: "1", Count: 2, Category: "energy"},
+	}
+	assert.Equal(t, coreHash(oneGrass, coreWithEnergy), coreHash(splitGrass, coreWithEnergy))
+
+	// Pokemon prints are NOT merged.
+	otherCharizard := []models.Card{
+		{Name: "Charizard ex", Set: "PAF", Number: "234", Count: 3, Category: "pokemon"},
+		{Name: "Boss's Orders", Set: "PAL", Number: "172", Count: 3, Category: "trainer"},
+	}
+	assert.NotEqual(t, coreHash(palOnly, core), coreHash(otherCharizard, core))
 }
 
 func TestCoreCardListSelectsDeterministicCountsAndOrdering(t *testing.T) {
@@ -23,7 +116,7 @@ func TestCoreCardListSelectsDeterministicCountsAndOrdering(t *testing.T) {
 		{ID: 1, Cards: []models.Card{{Name: "A", Set: "SET", Number: "1", Count: 4, Category: "pokemon"}, {Name: "B", Set: "SET", Number: "2", Count: 2, Category: "trainer"}}},
 		{ID: 2, Cards: []models.Card{{Name: "A", Set: "SET", Number: "1", Count: 3, Category: "pokemon"}, {Name: "B", Set: "SET", Number: "2", Count: 2, Category: "trainer"}}},
 	}
-	core := map[string]bool{"A|SET|1": true, "B|SET|2": true}
+	core := map[string]bool{"A|SET|1": true, "B": true}
 
 	assert.Equal(t, []models.Card{
 		{Name: "A", Set: "SET", Number: "1", Count: 3, Category: "pokemon"},
@@ -108,13 +201,51 @@ func TestRunForArchetype(t *testing.T) {
 		WHERE id = $3`)).
 			WithArgs(jsonArg(expectedCore), threshold, int64(7)).
 			WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-		mock.ExpectExec(regexp.QuoteMeta(`UPDATE decklists SET core_hash = $1 WHERE id = $2`)).WithArgs(coreHash(mustCards(t, deck1), map[string]bool{"A|SET|1": true, "B|SET|2": true}), int64(11)).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-		mock.ExpectExec(regexp.QuoteMeta(`UPDATE decklists SET core_hash = $1 WHERE id = $2`)).WithArgs(coreHash(mustCards(t, deck2), map[string]bool{"A|SET|1": true, "B|SET|2": true}), int64(12)).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-		mock.ExpectExec(regexp.QuoteMeta(`UPDATE decklists SET core_hash = $1 WHERE id = $2`)).WithArgs(coreHash(mustCards(t, deck3), map[string]bool{"A|SET|1": true, "B|SET|2": true}), int64(13)).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+		mock.ExpectExec(regexp.QuoteMeta(`UPDATE decklists SET core_hash = $1 WHERE id = $2`)).WithArgs(coreHash(mustCards(t, deck1), map[string]bool{"A|SET|1": true, "B": true}), int64(11)).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+		mock.ExpectExec(regexp.QuoteMeta(`UPDATE decklists SET core_hash = $1 WHERE id = $2`)).WithArgs(coreHash(mustCards(t, deck2), map[string]bool{"A|SET|1": true, "B": true}), int64(12)).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+		mock.ExpectExec(regexp.QuoteMeta(`UPDATE decklists SET core_hash = $1 WHERE id = $2`)).WithArgs(coreHash(mustCards(t, deck3), map[string]bool{"A|SET|1": true, "B": true}), int64(13)).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 		mock.ExpectCommit()
 
 		cl := NewClusterer(mock)
 		require.NoError(t, cl.RunForArchetype(context.Background(), 7, threshold))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("trainer reprints count toward the same core card", func(t *testing.T) {
+		mock, err := pgxmock.NewPool()
+		require.NoError(t, err)
+		defer mock.Close()
+
+		boss := func(set, number string, count int) models.Card {
+			return models.Card{Name: "Boss's Orders", Set: set, Number: number, Count: count, Category: "trainer"}
+		}
+		// Each print alone is in <70% of decks; combined the Trainer is in all of
+		// them, always 3 copies in total, so every deck gets the same hash.
+		deck1 := mustJSON(t, []models.Card{boss("PAL", "172", 3)})
+		deck2 := mustJSON(t, []models.Card{boss("MEG", "114", 3)})
+		deck3 := mustJSON(t, []models.Card{boss("PAL", "172", 2), boss("MEG", "114", 1)})
+		expectedCore := []models.Card{boss("PAL", "172", 3)} // PAL is the most-played print (5 vs 4 copies)
+		core := map[string]bool{"Boss's Orders": true}
+		sameHash := coreHash(mustCards(t, deck1), core)
+
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, cards FROM decklists WHERE archetype_id = $1`)).
+			WithArgs(int64(7)).
+			WillReturnRows(pgxmock.NewRows([]string{"id", "cards"}).AddRow(int64(11), deck1).AddRow(int64(12), deck2).AddRow(int64(13), deck3))
+		mock.ExpectBegin()
+		mock.ExpectExec(regexp.QuoteMeta(`
+		UPDATE archetypes SET core_cards = $1, core_threshold = $2, core_computed_at = now()
+		WHERE id = $3`)).
+			WithArgs(jsonArg(expectedCore), DefaultCoreThreshold, int64(7)).
+			WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+		for _, id := range []int64{11, 12, 13} {
+			mock.ExpectExec(regexp.QuoteMeta(`UPDATE decklists SET core_hash = $1 WHERE id = $2`)).
+				WithArgs(sameHash, id).
+				WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+		}
+		mock.ExpectCommit()
+
+		cl := NewClusterer(mock)
+		require.NoError(t, cl.RunForArchetype(context.Background(), 7, DefaultCoreThreshold))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
