@@ -20,7 +20,7 @@ export default function AboutPage() {
                         Meta Radar is a fan-made analytics site for the Pokémon
                         Trading Card Game competitive scene. We track tournament
                         results, deck archetypes, and matchup data so players
-                        can see what's actually winning — not just what's hyped.
+                        can see what&apos;s actually winning — not just what&apos;s hyped.
                     </p>
 
                     <h2>What we do</h2>
@@ -42,7 +42,7 @@ export default function AboutPage() {
                     <ul>
                         <li>
                             Group individual decklists into archetypes,
-                            separating the "core" cards that define a deck from
+                            separating the &quot;core&quot; cards that define a deck from
                             the flexible slots players tech around.
                         </li>
                         <li>
@@ -52,23 +52,23 @@ export default function AboutPage() {
                         </li>
                         <li>
                             Give organizers, content creators, and competitive
-                            players a faster way to answer "what's actually good
-                            right now?" than scrolling through event pages one
+                            players a faster way to answer &quot;what&apos;s actually good
+                            right now?&quot; than scrolling through event pages one
                             at a time.
                         </li>
                     </ul>
 
-                    <h2>What we don't do</h2>
+                    <h2>What we don&apos;t do</h2>
 
                     <p>
-                        We don't run tournaments, sell products, or store
-                        decklists you haven't already published to a public
-                        event. We're not a marketplace, a deck builder, or a
+                        We don&apos;t run tournaments, sell products, or store
+                        decklists you haven&apos;t already published to a public
+                        event. We&apos;re not a marketplace, a deck builder, or a
                         substitute for the official rules — just a lens on data
                         that already exists.
                     </p>
 
-                    <h2>Who's behind it</h2>
+                    <h2>Who&apos;s behind it</h2>
 
                     <p>
                         Meta Radar is an independent, fan-built project. It is
@@ -77,7 +77,7 @@ export default function AboutPage() {
                         Limitless TCG. Pokémon and all related names,
                         characters, and images are trademarks of their
                         respective owners, used here only to describe the game
-                        we're analyzing. See our{" "}
+                        we&apos;re analyzing. See our{" "}
                         <Link href="/disclaimers">Disclaimers</Link> for more on
                         this.
                     </p>

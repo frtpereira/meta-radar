@@ -51,13 +51,13 @@ export default function DisclaimersPage() {
                         <li>
                             <strong>Archetypes are analytical groupings, not official categories.</strong>
                             {" "}Two decks with different tech choices may be grouped into the same
-                            archetype based on shared "core" cards, which is a judgment call, not
+                            archetype based on shared &quot;core&quot; cards, which is a judgment call, not
                             a ruling.
                         </li>
                         <li>
                             <strong>Numbers can lag or be revised.</strong> Source data (standings, pairings,
                             drops) is sometimes incomplete, corrected late by organizers, or
-                            updated after we've already processed it.
+                            updated after we&apos;ve already processed it.
                         </li>
                         <li>
                             <strong>Past performance is not predictive.</strong> Win rates and meta trends
@@ -78,7 +78,7 @@ export default function DisclaimersPage() {
                         Meta Radar is an analytics tool, not a rules authority. For official
                         tournament rules, deck legality, banned/restricted card lists, or format
                         rotations, always consult the official Pokémon TCG rules resources or
-                        your tournament organizer — not Meta Radar's archetype or format
+                        your tournament organizer — not Meta Radar&apos;s archetype or format
                         labeling.
                     </p>
 
@@ -95,8 +95,8 @@ export default function DisclaimersPage() {
 
                     <p>
                         Meta Radar may link to third-party sites, including Limitless TCG,
-                        social media profiles, and content creators. We don't control, and
-                        aren't responsible for, the content, accuracy, or practices of any
+                        social media profiles, and content creators. We don&apos;t control, and
+                        aren&apos;t responsible for, the content, accuracy, or practices of any
                         linked site.
                     </p>
 
@@ -104,7 +104,7 @@ export default function DisclaimersPage() {
 
                     <p>
                         See Section 7 of our <Link href="/tos">Terms of Service</Link> for the
-                        full limitation of liability applicable to reliance on Meta Radar's
+                        full limitation of liability applicable to reliance on Meta Radar&apos;s
                         data and content.
                     </p>
                 </article>

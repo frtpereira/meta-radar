@@ -6,7 +6,7 @@ import type { ArchetypeStat } from "@/lib/types";
 import ArchetypeSearch from "./ArchetypeSearch";
 
 vi.mock("next/link", () => ({
-    default: (props: any) =>
+    default: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) =>
         React.createElement(
             "a",
             { href: props.href, ...props },
@@ -49,6 +49,7 @@ describe("ArchetypeSearch", () => {
             React.createElement(ArchetypeSearch, {
                 archetypes,
                 metaId: "meta-1",
+                minMatches: 0,
             }),
         );
 
@@ -72,6 +73,7 @@ describe("ArchetypeSearch", () => {
             React.createElement(ArchetypeSearch, {
                 archetypes,
                 metaId: "meta-1",
+                minMatches: 0,
             }),
         );
 
@@ -94,6 +96,7 @@ describe("ArchetypeSearch", () => {
             React.createElement(ArchetypeSearch, {
                 archetypes,
                 metaId: "meta-1",
+                minMatches: 0,
             }),
         );
 
@@ -108,6 +111,7 @@ describe("ArchetypeSearch", () => {
             React.createElement(ArchetypeSearch, {
                 archetypes,
                 metaId: "meta-1",
+                minMatches: 0,
             }),
         );
 

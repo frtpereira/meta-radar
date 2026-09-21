@@ -16,7 +16,7 @@ export default function ContactPage() {
                     <h1>Contact</h1>
 
                     <p>
-                        We'd rather hear from you than have you sit on a bug or
+                        We&apos;d rather hear from you than have you sit on a bug or
                         a bad take about a matchup number.
                     </p>
 
@@ -24,7 +24,7 @@ export default function ContactPage() {
 
                     <p>
                         If something looks wrong — a mislabeled archetype, a
-                        missing tournament, a stat that doesn't add up — the
+                        missing tournament, a stat that doesn&apos;t add up — the
                         fastest way to get it fixed is to open an issue on our
                         GitHub repository:
                     </p>
@@ -51,7 +51,7 @@ export default function ContactPage() {
 
                     <p>
                         Same place — open an issue and tag it as a feature
-                        request. We read all of them, even if we can't reply to
+                        request. We read all of them, even if we can&apos;t reply to
                         each one individually.
                     </p>
 
@@ -59,7 +59,7 @@ export default function ContactPage() {
 
                     <p>
                         For privacy questions, takedown requests, legal notices,
-                        or anything that doesn't fit a GitHub issue, email us
+                        or anything that doesn&apos;t fit a GitHub issue, email us
                         at:
                     </p>
 

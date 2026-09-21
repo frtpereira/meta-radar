@@ -21,16 +21,16 @@ export default function PrivacyPage() {
                     </p>
 
                     <p>
-                        Meta Radar ("Meta Radar," "we," "us," or "our")
+                        Meta Radar (&quot;Meta Radar,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;)
                         publishes this Privacy Policy to explain what
                         information we collect when you use metaradar-tcg.com
-                        (the "Site") and how we handle it.
+                        (the &quot;Site&quot;) and how we handle it.
                     </p>
 
                     <p>
                         We built Meta Radar to be a lightweight analytics tool,
                         not a platform that needs to know who you are. This
-                        policy is short because, by design, we don't collect
+                        policy is short because, by design, we don&apos;t collect
                         much.
                     </p>
 
@@ -84,17 +84,17 @@ export default function PrivacyPage() {
                     <h2>3. Local storage and cookies</h2>
 
                     <p>
-                        The Site uses your browser's local storage to remember
+                        The Site uses your browser&apos;s local storage to remember
                         your display preference (light or dark theme). This
                         information is stored only on your own device, is never
                         transmitted to our servers, and can be cleared at any
-                        time by clearing your browser's site data.
+                        time by clearing your browser&apos;s site data.
                     </p>
 
                     <p>
                         We do not currently use tracking cookies or advertising
                         cookies. If that changes, this policy will be updated to
-                        describe what's set and why, and a cookie banner will be
+                        describe what&apos;s set and why, and a cookie banner will be
                         added where required by law.
                     </p>
 
@@ -135,7 +135,7 @@ export default function PrivacyPage() {
                         security.
                     </p>
 
-                    <h2>7. Children's privacy</h2>
+                    <h2>7. Children&apos;s privacy</h2>
 
                     <p>
                         Meta Radar is not directed at children under 13 (or the
@@ -149,13 +149,13 @@ export default function PrivacyPage() {
                     <h2>8. Your choices</h2>
 
                     <p>
-                        Because we collect so little, there's little to manage —
+                        Because we collect so little, there&apos;s little to manage —
                         but you can:
                     </p>
 
                     <ul>
                         <li>
-                            Clear your browser's local storage at any time to
+                            Clear your browser&apos;s local storage at any time to
                             reset your theme preference.
                         </li>
                         <li>
@@ -175,7 +175,7 @@ export default function PrivacyPage() {
                     <p>
                         We may update this Privacy Policy from time to time, for
                         example to reflect a new feature or a new analytics
-                        tool. We'll update the effective date at the top of this
+                        tool. We&apos;ll update the effective date at the top of this
                         page when we do. Continued use of the Site after a
                         change means you accept the updated policy.
                     </p>

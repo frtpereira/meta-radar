@@ -1,16 +1,13 @@
 import { render, screen } from "@testing-library/react";
-import React from "react";
 import { describe, expect, it } from "vitest";
 import Card from "./card";
 
 describe("Card", () => {
     it("renders string headings with eyebrow text and an h2", () => {
         render(
-            React.createElement(Card, {
-                heading: "Overview",
-                headingMeta: "Summary",
-                children: React.createElement("p", null, "Body content"),
-            }),
+            <Card heading="Overview" headingMeta="Summary">
+                <p>Body content</p>
+            </Card>,
         );
 
         expect(screen.getByText("Summary")).toHaveClass("eyebrow");
@@ -22,11 +19,12 @@ describe("Card", () => {
 
     it("renders ReactNode headings as-is without the generated string wrapper", () => {
         render(
-            React.createElement(Card, {
-                heading: React.createElement("h3", null, "Custom Heading"),
-                headingMeta: React.createElement("span", null, "Meta badge"),
-                children: React.createElement("p", null, "Details"),
-            }),
+            <Card
+                heading={<h3>Custom Heading</h3>}
+                headingMeta={<span>Meta badge</span>}
+            >
+                <p>Details</p>
+            </Card>,
         );
 
         expect(
@@ -40,15 +38,12 @@ describe("Card", () => {
 
     it("renders ReactNode heading meta in the side meta slot for string headings", () => {
         render(
-            React.createElement(Card, {
-                heading: "Overview",
-                headingMeta: React.createElement(
-                    "span",
-                    { "data-testid": "heading-meta" },
-                    "Updated now",
-                ),
-                children: React.createElement("p", null, "Children stay visible"),
-            }),
+            <Card
+                heading="Overview"
+                headingMeta={<span data-testid="heading-meta">Updated now</span>}
+            >
+                <p>Children stay visible</p>
+            </Card>,
         );
 
         const meta = screen.getByTestId("heading-meta");
@@ -60,11 +55,9 @@ describe("Card", () => {
 
     it("omits the heading wrapper entirely when no heading is provided", () => {
         const { container } = render(
-            React.createElement(
-                Card,
-                null,
-                React.createElement("p", null, "Only content"),
-            ),
+            <Card>
+                <p>Only content</p>
+            </Card>,
         );
 
         expect(container.querySelector(".section__heading")).not.toBeInTheDocument();
@@ -73,14 +66,9 @@ describe("Card", () => {
 
     it("merges custom className values and always renders children", () => {
         const { container } = render(
-            React.createElement(Card, {
-                className: "card--tight extra-spacing",
-                children: React.createElement(
-                    "button",
-                    { type: "button" },
-                    "Open",
-                ),
-            }),
+            <Card className="card--tight extra-spacing">
+                <button type="button">Open</button>
+            </Card>,
         );
 
         expect(container.firstElementChild).toHaveClass(

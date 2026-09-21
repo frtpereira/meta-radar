@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { NavigationBar } from "./navigation-bar";
 
 vi.mock("next/link", () => ({
-    default: (props: any) =>
+    default: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) =>
         React.createElement(
             "a",
             { href: props.href, ...props },

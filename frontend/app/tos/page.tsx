@@ -22,10 +22,10 @@ export default function TermsOfServicePage() {
                     </p>
 
                     <p>
-                        Welcome to Meta Radar. These Terms of Service ("Terms")
-                        govern your use of metaradar-tcg.com (the "Site"). By
+                        Welcome to Meta Radar. These Terms of Service (&quot;Terms&quot;)
+                        govern your use of metaradar-tcg.com (the &quot;Site&quot;). By
                         accessing or using the Site, you agree to these Terms.
-                        If you don't agree, please don't use the Site.
+                        If you don&apos;t agree, please don&apos;t use the Site.
                     </p>
 
                     <h2>1. Who we are</h2>
@@ -52,11 +52,11 @@ export default function TermsOfServicePage() {
                             Use automated means (scraping, bots, crawlers) to
                             extract data from the Site at a volume or frequency
                             that could disrupt its operation, or in a way that
-                            circumvents the underlying Limitless TCG API's own
+                            circumvents the underlying Limitless TCG API&apos;s own
                             terms of use.
                         </li>
                         <li>
-                            Attempt to gain unauthorized access to the Site's
+                            Attempt to gain unauthorized access to the Site&apos;s
                             systems or data.
                         </li>
                         <li>
@@ -64,7 +64,7 @@ export default function TermsOfServicePage() {
                             infringe the rights of any third party.
                         </li>
                         <li>
-                            Misrepresent Meta Radar's data as official
+                            Misrepresent Meta Radar&apos;s data as official
                             tournament results, rankings, or statements from The
                             Pokémon Company, Nintendo, or Limitless TCG.
                         </li>
@@ -78,7 +78,7 @@ export default function TermsOfServicePage() {
                     <h2>3. Data accuracy</h2>
 
                     <p>
-                        Meta Radar's tournament, archetype, and matchup
+                        Meta Radar&apos;s tournament, archetype, and matchup
                         statistics are derived from third-party data (primarily
                         the Limitless TCG API) and from our own processing logic
                         (such as archetype clustering and win-rate
@@ -139,7 +139,7 @@ export default function TermsOfServicePage() {
                         Tournament and player data displayed on the Site
                         originates from Limitless TCG and the organizers of the
                         underlying events; we display it under the terms of
-                        Limitless TCG's public API.
+                        Limitless TCG&apos;s public API.
                     </p>
 
                     <h2>5. Third-party links</h2>
@@ -147,7 +147,7 @@ export default function TermsOfServicePage() {
                     <p>
                         The Site may link to third-party sites (such as
                         Limitless TCG, social media, or content creators). We
-                        don't control these sites and aren't responsible for
+                        don&apos;t control these sites and aren&apos;t responsible for
                         their content, policies, or practices. Visiting them is
                         at your own risk.
                     </p>
@@ -155,8 +155,8 @@ export default function TermsOfServicePage() {
                     <h2>6. Disclaimer of warranties</h2>
 
                     <p>
-                        The Site and all its content are provided "as is" and
-                        "as available," without warranties of any kind, express
+                        The Site and all its content are provided &quot;as is&quot; and
+                        &quot;as available,&quot; without warranties of any kind, express
                         or implied, including implied warranties of
                         merchantability, fitness for a particular purpose, or
                         non-infringement. We do not warrant that the Site will
@@ -181,7 +181,7 @@ export default function TermsOfServicePage() {
                     <p>
                         We may modify, suspend, or discontinue any part of the
                         Site at any time. We may also update these Terms from
-                        time to time; we'll update the effective date above when
+                        time to time; we&apos;ll update the effective date above when
                         we do. Continued use of the Site after changes take
                         effect means you accept the revised Terms.
                     </p>

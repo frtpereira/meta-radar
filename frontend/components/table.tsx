@@ -199,7 +199,7 @@ export default function Table<T>({
                                     <td key={c.key}>
                                         {c.render
                                             ? c.render(row)
-                                            : (row as any)[c.key]}
+                                            : (row as Record<string, React.ReactNode>)[c.key]}
                                     </td>
                                 ))}
                             </tr>
