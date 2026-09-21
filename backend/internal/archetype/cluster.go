@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/frtpereira/meta-radar/internal/models"
 	"github.com/jackc/pgx/v5"
@@ -38,13 +39,19 @@ func NewClusterer(db ClustererDB) *Clusterer {
 	return &Clusterer{DB: db}
 }
 
-// cardKey canonically identifies a card for frequency counting: name + set
-// + number. Two different prints of a functionally-identical card (e.g. a
-// reprinted Boss's Orders from an older set) are treated as distinct here --
-// a known simplification. Merging reprints would need a canonical-card
-// mapping this project doesn't have yet; worth revisiting if it causes
-// visibly fragmented cores in practice.
-func cardKey(c models.Card) string {
+// CardKey canonically identifies a card for frequency counting and hashing.
+//
+// Trainer and Energy cards are keyed by name alone: the same Trainer or
+// Energy reprinted in a different set (e.g. Boss's Orders from PAL and from
+// MEG, or Grass Energy from any set) is functionally the same card, so its
+// prints must not fragment a core or split a variant. Pokémon stay keyed by
+// name + set + number, since different prints of those can differ in ways
+// that matter (attacks, abilities, HP).
+func CardKey(c models.Card) string {
+	switch strings.ToLower(c.Category) {
+	case "trainer", "energy":
+		return c.Name
+	}
 	return fmt.Sprintf("%s|%s|%s", c.Name, c.Set, c.Number)
 }
 
@@ -117,7 +124,7 @@ func (cl *Clusterer) RunForArchetype(ctx context.Context, archetypeID int64, thr
 	for _, d := range decks {
 		seen := map[string]bool{}
 		for _, c := range d.Cards {
-			k := cardKey(c)
+			k := CardKey(c)
 			if !seen[k] {
 				presence[k]++
 				seen[k] = true
@@ -161,39 +168,64 @@ func (cl *Clusterer) RunForArchetype(ctx context.Context, archetypeID int64, thr
 	return tx.Commit(ctx)
 }
 
-// coreCardList picks one representative Card per core key, using whichever
-// count was most common for that card across decklists (so "core" reflects
-// a realistic play count, not just presence).
+// coreCardList picks one representative Card per core key. The count is
+// whichever total was most common for that card across decklists (so "core"
+// reflects a realistic play count, not just presence). Copies of a card that
+// share a CardKey but come from different prints within one decklist (e.g.
+// 2 Boss's Orders from one set + 2 from another) are summed first. When a
+// key has several prints, the most-played one is used for the set/number.
 func coreCardList(decks []deckRow, core map[string]bool) []models.Card {
-	countFreq := map[string]map[int]int{} // cardKey -> count -> how many decklists played that count
+	type printID struct{ set, number string }
+	countFreq := map[string]map[int]int{}     // cardKey -> total count -> how many decklists played that total
+	printFreq := map[string]map[printID]int{} // cardKey -> print -> total copies played across decklists
 	rep := map[string]models.Card{}
 	for _, d := range decks {
+		totals := map[string]int{}
 		for _, c := range d.Cards {
-			k := cardKey(c)
+			k := CardKey(c)
 			if !core[k] {
 				continue
 			}
+			totals[k] += c.Count
+			if printFreq[k] == nil {
+				printFreq[k] = map[printID]int{}
+			}
+			printFreq[k][printID{c.Set, c.Number}] += c.Count
+			rep[k] = c
+		}
+		for k, n := range totals {
 			if countFreq[k] == nil {
 				countFreq[k] = map[int]int{}
 			}
-			countFreq[k][c.Count]++
-			rep[k] = c
+			countFreq[k][n]++
 		}
 	}
 
 	list := make([]models.Card, 0, len(core))
 	for k := range core {
 		c := rep[k]
-		bestCount, bestFreq := c.Count, -1
+
+		bestCount, bestFreq := 0, -1
 		for cnt, freq := range countFreq[k] {
 			if freq > bestFreq || (freq == bestFreq && cnt < bestCount) {
 				bestCount, bestFreq = cnt, freq
 			}
 		}
 		c.Count = bestCount
+
+		var bestPrint printID
+		bestPrintFreq := -1
+		for p, freq := range printFreq[k] {
+			if freq > bestPrintFreq ||
+				(freq == bestPrintFreq && (p.set < bestPrint.set || (p.set == bestPrint.set && p.number < bestPrint.number))) {
+				bestPrint, bestPrintFreq = p, freq
+			}
+		}
+		c.Set, c.Number = bestPrint.set, bestPrint.number
+
 		list = append(list, c)
 	}
-	sort.Slice(list, func(i, j int) bool { return cardKey(list[i]) < cardKey(list[j]) })
+	sort.Slice(list, func(i, j int) bool { return CardKey(list[i]) < CardKey(list[j]) })
 	return list
 }
 
@@ -201,24 +233,26 @@ func coreCardList(decks []deckRow, core map[string]bool) []models.Card {
 // restricted to core cards, so two decklists with the same skeleton but
 // different tech/swap choices land on the same hash, and decklists that
 // differ in how many copies of a *core* card they run land on different
-// hashes (that's a real build difference, not just a tech swap).
+// hashes (that's a real build difference, not just a tech swap). Copies
+// that share a CardKey (Trainer/Energy reprints) are summed, so splitting the same
+// total across different prints doesn't change the hash.
 func coreHash(cards []models.Card, core map[string]bool) string {
-	type kv struct {
-		key   string
-		count int
-	}
-	var pairs []kv
+	counts := map[string]int{}
 	for _, c := range cards {
-		k := cardKey(c)
+		k := CardKey(c)
 		if core[k] {
-			pairs = append(pairs, kv{k, c.Count})
+			counts[k] += c.Count
 		}
 	}
-	sort.Slice(pairs, func(i, j int) bool { return pairs[i].key < pairs[j].key })
+	keys := make([]string, 0, len(counts))
+	for k := range counts {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 
 	h := sha256.New()
-	for _, p := range pairs {
-		fmt.Fprintf(h, "%s:%d;", p.key, p.count)
+	for _, k := range keys {
+		fmt.Fprintf(h, "%s:%d;", k, counts[k])
 	}
 	return hex.EncodeToString(h.Sum(nil))
 }

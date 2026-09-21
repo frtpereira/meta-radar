@@ -13,6 +13,7 @@ import (
 
 	"os"
 
+	"github.com/frtpereira/meta-radar/internal/archetype"
 	"github.com/frtpereira/meta-radar/internal/ingest"
 	"github.com/frtpereira/meta-radar/internal/models"
 	"github.com/go-chi/chi/v5"
@@ -1093,10 +1094,12 @@ func (h *Handler) ArchetypeCardStats(w http.ResponseWriter, r *http.Request) {
 	var coreCards []models.Card
 	_ = json.Unmarshal(coreCardsJSON, &coreCards)
 
-	// Build lookup set of core card keys (name|set|number).
+	// Build lookup set of core card keys. Uses the same key as clustering, so
+	// every print of a core Trainer (keyed by name alone) is flagged as core,
+	// not just the one print stored in core_cards.
 	coreSet := make(map[string]bool, len(coreCards))
 	for _, c := range coreCards {
-		coreSet[fmt.Sprintf("%s|%s|%s", c.Name, c.Set, c.Number)] = true
+		coreSet[archetype.CardKey(c)] = true
 	}
 
 	// Count total decklists in this archetype (denominator for all rates).
@@ -1198,7 +1201,7 @@ func (h *Handler) ArchetypeCardStats(w http.ResponseWriter, r *http.Request) {
 			dist[strconv.Itoa(cnt)] = float64(dc) / float64(totalDecks)
 		}
 
-		coreKey := fmt.Sprintf("%s|%s|%s", a.name, a.set, a.number)
+		coreKey := archetype.CardKey(models.Card{Name: a.name, Set: a.set, Number: a.number, Category: a.category})
 		result = append(result, cardStatOut{
 			Name:              a.name,
 			Set:               a.set,

@@ -758,6 +758,36 @@ func TestArchetypeCardStats(t *testing.T) {
 		assert.InDelta(t, 1.0, resp[0].Dist["4"], 0.001)
 	})
 
+	t.Run("flags every print of a core trainer as core", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		// core_cards stores a single print; the other print of the same Trainer must still be core.
+		coreCards, _ := json.Marshal([]models.Card{{Name: "Boss's Orders", Set: "PAL", Number: "172", Count: 2, Category: "trainer"}})
+		mock.ExpectQuery(`SELECT COALESCE\(core_cards, '\[\]'::jsonb\) FROM archetypes WHERE id = \$1`).WithArgs("7").WillReturnRows(pgxmock.NewRows([]string{"core_cards"}).AddRow(coreCards))
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM decklists WHERE archetype_id = \$1`).WithArgs("7").WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(2))
+		mock.ExpectQuery(`(?s)SELECT\s+c->>'name'.*FROM decklists d`).WithArgs("7").WillReturnRows(
+			pgxmock.NewRows([]string{"card_name", "card_set", "card_number", "category", "copy_count", "deck_count"}).
+				AddRow("Boss's Orders", "PAL", "172", "trainer", 2, 1).
+				AddRow("Boss's Orders", "MEG", "114", "trainer", 2, 1).
+				AddRow("Charizard ex", "OBF", "125", "pokemon", 2, 1),
+		)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/archetypes/7/card-stats", nil), "id", "7")
+		rr := httptest.NewRecorder()
+		h.ArchetypeCardStats(rr, req)
+
+		resp := decodeBody[[]struct {
+			Name   string `json:"name"`
+			Set    string `json:"set"`
+			IsCore bool   `json:"is_core"`
+		}](t, rr)
+		require.Len(t, resp, 3)
+		for _, c := range resp {
+			assert.Equal(t, c.Name == "Boss's Orders", c.IsCore, "%s %s", c.Name, c.Set)
+		}
+	})
+
 	t.Run("row iteration error", func(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()

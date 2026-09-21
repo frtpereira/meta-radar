@@ -575,10 +575,10 @@ Concretely, missing:
       `core_hash`, each with `deck_count`, `avg_standing` (drops excluded),
       and `drop_count`
 
-    Known simplification: cards are keyed by name+set+number, so two
-    different prints of a functionally identical card (e.g. an older
-    reprint of a staple Trainer) count as separate cards rather than being
-    merged -- worth revisiting if it visibly fragments cores in practice.
+    Card identity: Trainer and Energy cards are keyed by name alone, so
+    reprints of the same Trainer or Energy from different sets count as one
+    card when computing cores and `core_hash` (copies split across prints
+    are summed). Pokémon stay keyed by name+set+number.
 
 3. **Meta lifecycle automation.** Basic meta support exists now: metas can
    be seeded, listed via `/api/metas`, and attached during ingest when an
