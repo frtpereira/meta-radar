@@ -64,15 +64,15 @@ export default function StandingsTable({
                     label: "Decklist",
                     sortable: false,
                     render: (r: TournamentStanding) =>
-                        r.decklist_id !== null ? (
+                        r.decklist_id != null ? (
                             <Link
                                 className="button"
                                 href={`/decklists/${r.decklist_id}`}
                             >
-                                View decklist
+                                View Decklist
                             </Link>
                         ) : (
-                            <span className="muted tiny">—</span>
+                            <span className="muted tiny">No Decklist</span>
                         ),
                 },
             ]}

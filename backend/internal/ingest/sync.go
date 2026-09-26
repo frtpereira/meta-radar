@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/frtpereira/meta-radar/internal/limitless"
+	"github.com/frtpereira/meta-radar/internal/limitlesslabs"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -30,6 +31,11 @@ type SyncerDB interface {
 type Syncer struct {
 	DB     SyncerDB
 	Client *limitless.Client
+	// LabsClient, when set, enables RunLabs -- syncing official
+	// (offline) tournaments from limitlesstcg.com's labs API. Left nil
+	// (the zero value from NewSyncer), RunLabs isn't called at all;
+	// wire it up explicitly (see cmd/ingest) once it's ready to use.
+	LabsClient *limitlesslabs.Client
 }
 
 func NewSyncer(db SyncerDB, client *limitless.Client) *Syncer {
@@ -180,8 +186,8 @@ func (s *Syncer) syncTournament(ctx context.Context, tournamentID string) error 
 	defer tx.Rollback(ctx) // no-op if committed
 
 	_, err = tx.Exec(ctx, `
-		INSERT INTO tournaments (id, name, game, format_code, date, players, is_online, is_public, has_decklists, organizer_name, raw_details, synced_at, last_checked_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), now())
+		INSERT INTO tournaments (id, name, game, format_code, date, players, is_online, is_public, has_decklists, organizer_name, event_id, raw_details, synced_at, last_checked_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $1, $11, now(), now())
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			players = EXCLUDED.players,
@@ -199,33 +205,10 @@ func (s *Syncer) syncTournament(ctx context.Context, tournamentID string) error 
 	}
 
 	// Try to attach this tournament to an existing open *set* meta for
-	// its format -- that's the fine-grained era archetypes/decklists
-	// scope to (see db/migrations/0009_meta_hierarchy.sql). A format can
-	// now also have an open *standard* meta at the same time, so
-	// meta_type is explicit here rather than matching on ends_at alone.
-	// (Meta creation/rotation is a deliberate, human decision -- see
-	// README -- so we only attach, never create one here.)
-	//
-	// Every tournament attached here is, by definition, current Standard
-	// (is_current_standard = true): db/seed/002_open_set_meta.sql
-	// refuses to open a set meta without an open standard parent, and
-	// db/seed/003_rotate_standard.sql closes a standard meta and any set
-	// meta still open under it together, atomically. So whenever *a*
-	// set meta is open for a format, its parent standard meta is
-	// necessarily open too -- there's no "open set meta under a closed
-	// standard" state to check for here. The flag only ever needs to
-	// flip to false for tournaments synced under a *previous* era, which
-	// 003_rotate_standard.sql does directly, in bulk, at the point a
-	// rotation actually happens -- not something ingest needs to
-	// re-derive on every sync.
-	var metaID *string
-	err = tx.QueryRow(ctx, `
-		SELECT id::text FROM metas
-		WHERE format_code = $1 AND meta_type = 'set' AND ends_at IS NULL`,
-		details.Format,
-	).Scan(&metaID)
-	if err != nil && err != pgx.ErrNoRows {
-		return fmt.Errorf("resolving meta: %w", err)
+	// its format -- see resolveMeta's doc comment for why.
+	metaID, err := s.resolveMeta(ctx, tx, details.Format)
+	if err != nil {
+		return err
 	}
 	if metaID != nil {
 		if _, err := tx.Exec(ctx, `UPDATE tournaments SET meta_id = $1, is_current_standard = true WHERE id = $2`, *metaID, details.ID); err != nil {
@@ -255,6 +238,39 @@ func (s *Syncer) syncTournament(ctx context.Context, tournamentID string) error 
 		return fmt.Errorf("committing transaction: %w", err)
 	}
 	return nil
+}
+
+// resolveMeta finds the currently open *set* meta for a format -- that's
+// the fine-grained era archetypes/decklists scope to (see
+// db/migrations/0009_meta_hierarchy.sql). A format can now also have an
+// open *standard* meta at the same time, so meta_type is explicit here
+// rather than matching on ends_at alone. (Meta creation/rotation is a
+// deliberate, human decision -- see README -- so this only attaches,
+// never creates one.)
+//
+// Every tournament attached via the returned id is, by definition,
+// current Standard (is_current_standard = true, set by the caller):
+// db/seed/002_open_set_meta.sql refuses to open a set meta without an
+// open standard parent, and db/seed/003_rotate_standard.sql closes a
+// standard meta and any set meta still open under it together,
+// atomically. So whenever *a* set meta is open for a format, its parent
+// standard meta is necessarily open too -- there's no "open set meta
+// under a closed standard" state to check for here. The flag only ever
+// needs to flip to false for tournaments synced under a *previous* era,
+// which 003_rotate_standard.sql does directly, in bulk, at the point a
+// rotation actually happens -- not something ingest needs to re-derive on
+// every sync.
+func (s *Syncer) resolveMeta(ctx context.Context, tx pgx.Tx, formatCode string) (*string, error) {
+	var metaID *string
+	err := tx.QueryRow(ctx, `
+		SELECT id::text FROM metas
+		WHERE format_code = $1 AND meta_type = 'set' AND ends_at IS NULL`,
+		formatCode,
+	).Scan(&metaID)
+	if err != nil && err != pgx.ErrNoRows {
+		return nil, fmt.Errorf("resolving meta: %w", err)
+	}
+	return metaID, nil
 }
 
 func (s *Syncer) upsertStandingEntry(ctx context.Context, tx pgx.Tx, tournamentID string, metaID *string, entry limitless.StandingEntry) error {
