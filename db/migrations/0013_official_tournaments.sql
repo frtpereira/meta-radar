@@ -17,17 +17,17 @@
 -- event_id regardless of source.
 
 ALTER TABLE tournaments
-    ADD COLUMN ingest_source TEXT NOT NULL DEFAULT 'play_api'
+    ADD COLUMN IF NOT EXISTS ingest_source TEXT NOT NULL DEFAULT 'play_api'
         CHECK (ingest_source IN ('play_api', 'labs')),
-    ADD COLUMN division TEXT
+    ADD COLUMN IF NOT EXISTS division TEXT
         CHECK (division IN ('MA', 'SR', 'JR')),
-    ADD COLUMN event_id TEXT;
+    ADD COLUMN IF NOT EXISTS event_id TEXT;
 
 UPDATE tournaments SET event_id = id WHERE event_id IS NULL;
 
 ALTER TABLE tournaments ALTER COLUMN event_id SET NOT NULL;
 
-CREATE INDEX idx_tournaments_event_id ON tournaments (event_id);
+CREATE INDEX IF NOT EXISTS idx_tournaments_event_id ON tournaments (event_id);
 
 -- Completeness of a labs-sourced tournament's decklists is derived, not
 -- stored: `standings.decklist_id IS NULL` (excluding standing = 0, i.e.
