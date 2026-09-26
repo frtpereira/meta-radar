@@ -81,7 +81,7 @@ export default function PlayerHistoryTable({
                     label: "Decklist",
                     sortable: false,
                     render: (r: PlayerHistoryEntry) =>
-                        r.decklist_id !== null ? (
+                        r.decklist_id != null ? (
                             <Link
                                 className="button"
                                 href={`/decklists/${r.decklist_id}`}
