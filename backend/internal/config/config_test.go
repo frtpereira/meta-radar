@@ -13,6 +13,7 @@ func TestLoadUsesEnvAndFallbacks(t *testing.T) {
 	t.Setenv("LIMITLESS_API_BASE", "https://limitless.test")
 	t.Setenv("LIMITLESS_API_KEY", "api-key")
 	t.Setenv("WEBHOOK_SECRET", "secret")
+	t.Setenv("LABS_API_BASE", "https://labs.test")
 
 	cfg := Load()
 
@@ -21,10 +22,11 @@ func TestLoadUsesEnvAndFallbacks(t *testing.T) {
 	assert.Equal(t, "https://limitless.test", cfg.LimitlessAPIBase)
 	assert.Equal(t, "api-key", cfg.LimitlessAPIKey)
 	assert.Equal(t, "secret", cfg.WebhookSecret)
+	assert.Equal(t, "https://labs.test", cfg.LabsAPIBase)
 }
 
 func TestLoadFallsBackForUnsetOrEmptyValues(t *testing.T) {
-	for _, key := range []string{"PORT", "DATABASE_URL", "LIMITLESS_API_BASE", "LIMITLESS_API_KEY", "WEBHOOK_SECRET"} {
+	for _, key := range []string{"PORT", "DATABASE_URL", "LIMITLESS_API_BASE", "LIMITLESS_API_KEY", "WEBHOOK_SECRET", "LABS_API_BASE"} {
 		_ = os.Unsetenv(key)
 	}
 	t.Setenv("PORT", "")
@@ -35,6 +37,7 @@ func TestLoadFallsBackForUnsetOrEmptyValues(t *testing.T) {
 	assert.Equal(t, "https://play.limitlesstcg.com/api", cfg.LimitlessAPIBase)
 	assert.Equal(t, "", cfg.LimitlessAPIKey)
 	assert.Equal(t, "", cfg.WebhookSecret)
+	assert.Equal(t, "https://mew.limitlesstcg.com/labs/data/tcg", cfg.LabsAPIBase)
 }
 
 func TestGetEnv(t *testing.T) {

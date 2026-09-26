@@ -5,10 +5,20 @@
 // --pairings to inspect a real /pairings response instead, to check
 // against what internal/limitless/client.go's PairingEntry assumes.
 //
+// --labs-tournaments and --labs-decklist inspect the (undocumented) labs
+// API instead. GET /tournaments' shape is confirmed (see
+// limitlesslabs.TournamentListEntry) except for one assumption --
+// --labs-tournaments prints each event's id as used (a plain decimal
+// string) so that can be checked against what the other labs endpoints
+// actually accept. --labs-decklist cross-checks a decklist against a
+// standings row by tp_id (see DecklistEntry's doc comment).
+//
 // Usage:
 //
 //	go run ./cmd/inspect --tournament=<id>
 //	go run ./cmd/inspect --tournament=<id> --pairings
+//	go run ./cmd/inspect --labs-tournaments
+//	go run ./cmd/inspect --labs-decklist=<eventID>:<tpID>
 //
 // or, via the built image:
 //
@@ -22,23 +32,40 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/frtpereira/meta-radar/internal/config"
 	"github.com/frtpereira/meta-radar/internal/limitless"
+	"github.com/frtpereira/meta-radar/internal/limitlesslabs"
 )
 
 func main() {
-	tournamentID := flag.String("tournament", "", "Limitless tournament id to inspect (required)")
+	tournamentID := flag.String("tournament", "", "Limitless tournament id to inspect")
 	inspectPairings := flag.Bool("pairings", false, "inspect /pairings instead of /standings' decklist field")
+	labsTournaments := flag.Bool("labs-tournaments", false, "inspect the labs API's GET /tournaments (event list) response")
+	labsDecklist := flag.String("labs-decklist", "", "inspect the labs API's GET /decklist response for <eventID>:<tpID>")
 	flag.Parse()
+
+	cfg := config.Load()
+
+	if *labsTournaments {
+		inspectLabsTournaments(cfg.LabsAPIBase)
+		return
+	}
+	if *labsDecklist != "" {
+		inspectLabsDecklist(cfg.LabsAPIBase, *labsDecklist)
+		return
+	}
 
 	if *tournamentID == "" {
 		fmt.Fprintln(os.Stderr, "Usage: inspect --tournament=<id> [--pairings]")
+		fmt.Fprintln(os.Stderr, "       inspect --labs-tournaments")
+		fmt.Fprintln(os.Stderr, "       inspect --labs-decklist=<eventID>:<tpID>")
 		fmt.Fprintln(os.Stderr, "Find an id from GET /tournaments, or the ingest service's logs.")
 		os.Exit(1)
 	}
 
-	cfg := config.Load()
 	client := limitless.NewClient(cfg.LimitlessAPIBase, cfg.LimitlessAPIKey)
 
 	if *inspectPairings {
@@ -140,4 +167,82 @@ func inspectPairingsData(client *limitless.Client, tournamentID string) {
 	fmt.Println("Anything else gets logged as unrecognized and stored as \"unknown\" --")
 	fmt.Println("if the real API uses a different sentinel for draws/byes, update")
 	fmt.Println("normalizeWinnerPlayerID accordingly.")
+}
+
+// inspectLabsTournaments prints the raw GET /tournaments response so its
+// real shape can be checked against limitlesslabs.TournamentListEntry's
+// "NOT YET VERIFIED" assumptions -- in particular, what field actually
+// holds each event's id.
+func inspectLabsTournaments(labsAPIBase string) {
+	client := limitlesslabs.NewClient(labsAPIBase)
+	entries, err := client.ListTournaments(context.Background())
+	if err != nil {
+		log.Fatalf("fetching /tournaments: %v", err)
+	}
+
+	fmt.Printf("%d official tournaments returned\n\n", len(entries))
+	for i, e := range entries {
+		marker := ""
+		if i == len(entries)-1 {
+			marker = " <- assumed most recent"
+		}
+		status := "completed"
+		switch {
+		case !e.Started:
+			status = "not yet started"
+		case !e.Completed:
+			status = "in progress"
+		}
+		fmt.Printf("[%d] id=%q season=%d type=%s city=%s country=%s date=%q (%s)%s\n",
+			i, e.ID, e.Season, e.Type, e.City, e.Country, e.Date, status, marker)
+	}
+	if len(entries) > 0 && entries[len(entries)-1].ID == "" {
+		fmt.Println("\nWARNING: the last entry's id came back empty -- check the real")
+		fmt.Println("response body against TournamentListEntry's UnmarshalJSON.")
+	}
+}
+
+// inspectLabsDecklist fetches one decklist and prints it -- useful for
+// spot-checking a specific player/tournament. See limitlesslabs.DecklistEntry's
+// doc comment: playerId expects StandingEntry.TPID, not PlayerID.
+func inspectLabsDecklist(labsAPIBase, arg string) {
+	parts := strings.SplitN(arg, ":", 2)
+	if len(parts) != 2 {
+		log.Fatalf("expected --labs-decklist=<eventID>:<tpID>, got %q", arg)
+	}
+	eventID := parts[0]
+	tpID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		log.Fatalf("tpID %q is not an integer: %v", parts[1], err)
+	}
+
+	client := limitlesslabs.NewClient(labsAPIBase)
+
+	standings, err := client.GetStandings(context.Background(), eventID, "MA")
+	if err != nil {
+		log.Fatalf("fetching standings (for cross-check): %v", err)
+	}
+	fmt.Println("standings row(s) with this tp_id:")
+	found := false
+	for _, s := range standings {
+		if s.TPID == tpID {
+			found = true
+			b, _ := json.MarshalIndent(s, "", "  ")
+			fmt.Println(string(b))
+		}
+	}
+	if !found {
+		fmt.Printf("(no standings row has tp_id=%d in division MA -- try another division, or this id isn't in that space)\n", tpID)
+	}
+	fmt.Println()
+
+	decklist, err := client.GetDecklist(context.Background(), eventID, tpID)
+	if err != nil {
+		log.Fatalf("fetching decklist: %v", err)
+	}
+	fmt.Println("decklist returned for this tpID:")
+	b, _ := json.MarshalIndent(decklist, "", "  ")
+	fmt.Println(string(b))
+	fmt.Println("\nDoes this decklist's archetype match the deck_id/deck_name on the")
+	fmt.Println("standings row above?")
 }

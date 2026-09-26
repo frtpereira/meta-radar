@@ -281,6 +281,39 @@ A "meta" comes in two kinds (`type` field), see
     - Run it once with `make ingest-once`.
     - Keep it running with the `ingest` service in `docker-compose.yml`.
 
+- **Official (offline) tournaments.** Regionals/Worlds have no published
+  API, unlike online tournaments above, so these are synced from the
+  undocumented JSON API backing labs.limitlesstcg.com
+  (`internal/limitlesslabs`, base URL `LABS_API_BASE`, default
+  `https://mew.limitlesstcg.com/labs/data/tcg`). Runs automatically after
+  the pass above on every `cmd/ingest` invocation.
+    - Each pass checks the `--official-sample-size` (default `3`) most
+      recent official events, plus any already-synced official event still
+      missing decklists (`--official-recheck`, default `24h`; `0` disables
+      rechecking).
+    - Every event is ingested as up to 3 separate tournament rows, one per
+      division (Masters/Seniors/Juniors), sharing one `event_id` so a
+      future division switcher can query them together — see
+      `db/migrations/0013_official_tournaments.sql`.
+    - `--official-organizer` (default `Play! Pokémon`) is written as
+      every official tournament's `organizer_name`, so
+      `tournament_organizer` alone distinguishes official from online
+      tournaments elsewhere.
+    - Decklists are fetched one per player, capped at
+      `--official-max-decklists` per division per pass (default `50`); the
+      rest are picked up by the recheck loop above.
+    - `--official-min-date` (default `2026-08-01`) skips any event that
+      started before it — per project scope, only tournaments from PBL
+      onwards are ingested. Skipped events are logged and counted
+      separately from failures, not retried.
+    - Skip this pass entirely with `--skip-official`.
+    - Two open questions in `internal/limitlesslabs`'s package comment
+      aren't settled yet (the real shape of `GET /tournaments`, and which
+      id space `GET /decklist`'s `playerId` expects) — use
+      `go run ./cmd/inspect --labs-tournaments` and
+      `go run ./cmd/inspect --labs-decklist=<eventID>:<playerID>` to check
+      them against a live response before relying on this further.
+
 ### Data model
 
 - Schema tables currently in use: `metas`, `tournaments`, `players`,
