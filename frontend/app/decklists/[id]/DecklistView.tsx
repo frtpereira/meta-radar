@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "@/components/card";
 import { DecklistCategory } from "./DecklistCardsTable";
 import { DecklistImageGrid } from "./DecklistImageGrid";
 import { ExportDecklistButton } from "./ExportDecklistButton";
 import type { Card as CardType } from "@/lib/types";
+import {
+    DEFAULT_DECKLIST_VIEW,
+    readDecklistViewMode,
+    writeDecklistViewMode,
+    type DecklistViewMode,
+} from "@/lib/decklist-view-preference";
 
 const CATEGORIES: { key: string; label: string }[] = [
     { key: "pokemon", label: "Pokémon" },
@@ -16,7 +22,9 @@ const CATEGORIES: { key: string; label: string }[] = [
 // Owns the list/image toggle so both the header button and the body it
 // switches live in the same Client Component -- the page itself stays
 // a Server Component and only hands down the already-resolved cards
-// and image map (see getCardImages in the page).
+// and image map (see getCardImages in the page). The last choice is
+// remembered in localStorage, so every decklist opens the way the user
+// left it.
 export function DecklistView({
     cards,
     images,
@@ -26,7 +34,20 @@ export function DecklistView({
     images: Record<string, string>;
     filename: string;
 }) {
-    const [view, setView] = useState<"image" | "list">("image");
+    // Server render and first client render both use the default so
+    // hydration matches; the stored preference (which only exists in the
+    // browser) is applied right after mount.
+    const [view, setView] = useState<DecklistViewMode>(DEFAULT_DECKLIST_VIEW);
+
+    useEffect(() => {
+        setView(readDecklistViewMode());
+    }, []);
+
+    function toggleView() {
+        const next: DecklistViewMode = view === "image" ? "list" : "image";
+        setView(next);
+        writeDecklistViewMode(next);
+    }
 
     return (
         <Card
@@ -43,9 +64,7 @@ export function DecklistView({
                         type="button"
                         className="button button--active"
                         aria-pressed={view === "list"}
-                        onClick={() =>
-                            setView((v) => (v === "image" ? "list" : "image"))
-                        }
+                        onClick={toggleView}
                     >
                         {view === "image" ? "View as List" : "View as Image"}
                     </button>
