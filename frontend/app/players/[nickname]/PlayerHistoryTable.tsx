@@ -71,29 +71,18 @@ export default function PlayerHistoryTable({
                 {
                     key: "archetype",
                     label: "Archetype",
-                    render: (r: PlayerHistoryEntry) => (
-                        <ArchetypeIcons
-                            icons={r.archetype_icons}
-                            name={r.archetype_name ?? "Unknown"}
-                        />
-                    ),
-                    sortValue: (r: PlayerHistoryEntry) => r.archetype_name,
-                },
-                {
-                    key: "decklist",
-                    label: "Decklist",
-                    sortable: false,
                     render: (r: PlayerHistoryEntry) =>
                         r.decklist_id != null ? (
-                            <Link
-                                className="button"
-                                href={`/decklists/${r.decklist_id}`}
-                            >
-                                View decklist
+                            <Link href={`/decklists/${r.decklist_id}`}>
+                                <ArchetypeIcons
+                                    icons={r.archetype_icons}
+                                    name={r.archetype_name ?? "Unknown"}
+                                />
                             </Link>
                         ) : (
-                            <span className="muted tiny">—</span>
+                            <span className="muted tiny">No Decklist</span>
                         ),
+                    sortValue: (r: PlayerHistoryEntry) => r.archetype_name,
                 },
             ]}
             rows={history}
