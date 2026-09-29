@@ -7,6 +7,9 @@ import "./globals.css";
 export const metadata: Metadata = {
     title: "Meta Radar",
     description: "Track metas, tournaments, and archetype performance.",
+    icons: {
+        icon: { url: "/meta-radar-logo.svg", type: "image/svg+xml" },
+    },
     other: {
         "google-adsense-account": "ca-pub-4019577090696903",
     },
