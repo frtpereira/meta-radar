@@ -144,6 +144,7 @@ export interface PlayerHistoryEntry {
     archetype_id: number | null;
     archetype_name: string | null;
     archetype_slug: string | null;
+    archetype_icons: string[] | null;
 }
 
 export interface PlayerDetail {

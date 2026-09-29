@@ -25,6 +25,10 @@ definitions:
     type: object
   apidocs.ArchetypeRef:
     properties:
+      icons:
+        items:
+          type: string
+        type: array
       id:
         type: integer
       name:
@@ -150,6 +154,10 @@ definitions:
     type: object
   apidocs.PlayerHistoryRow:
     properties:
+      archetype_icons:
+        items:
+          type: string
+        type: array
       archetype_id:
         type: integer
       archetype_name:
@@ -285,7 +293,11 @@ definitions:
         type: string
       name:
         type: string
+      parent_meta_id:
+        type: string
       starts_at:
+        type: string
+      type:
         type: string
     type: object
   models.Tournament:
@@ -300,6 +312,13 @@ definitions:
         type: boolean
       id:
         type: string
+      is_current_standard:
+        description: |-
+          IsCurrentStandard is true when this tournament's meta is still
+          part of the currently open Standard rotation, as opposed to a
+          Standard tournament that's since rotated out -- see
+          db/migrations/0010_tournament_current_standard_flag.sql.
+        type: boolean
       is_online:
         type: boolean
       meta_id:
@@ -323,6 +342,10 @@ definitions:
         items:
           type: string
         type: array
+      winner_decklist_id:
+        type: integer
+      winner_nickname:
+        type: string
     type: object
 info:
   contact: {}
@@ -452,6 +475,28 @@ paths:
       summary: Archetype stats for a meta
       tags:
       - archetypes
+  /api/card-images:
+    get:
+      description: Returns image URLs for the given set:number card identifiers, omitting
+        any not yet resolved.
+      parameters:
+      - description: Comma-separated set:number pairs, e.g. SCR:115,SCR:116
+        in: query
+        name: cards
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Batch card image lookup
+      tags:
+      - cards
   /api/decklists/{id}:
     get:
       description: Returns a single decklist's cards plus its player, tournament,
@@ -551,6 +596,24 @@ paths:
               type: string
             type: object
       summary: List metas
+      tags:
+      - metas
+  /api/metas/current:
+    get:
+      parameters:
+      - default: STANDARD
+        description: Limitless format code
+        in: query
+        name: format
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/models.Meta'
+            type: object
+      summary: Currently open standard + set meta for a format
       tags:
       - metas
   /api/players/{nickname}:

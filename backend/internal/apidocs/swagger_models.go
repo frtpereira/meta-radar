@@ -114,15 +114,16 @@ type CardStat struct {
 }
 
 type PlayerHistoryRow struct {
-	TournamentID  string    `json:"tournament_id"`
-	EventName     string    `json:"event_name"`
-	Date          time.Time `json:"date"`
-	Players       int       `json:"players"`
-	Placement     int       `json:"placement"`
-	DecklistID    *int64    `json:"decklist_id,omitempty"`
-	ArchetypeID   *int64    `json:"archetype_id,omitempty"`
-	ArchetypeName *string   `json:"archetype_name,omitempty"`
-	ArchetypeSlug *string   `json:"archetype_slug,omitempty"`
+	TournamentID   string    `json:"tournament_id"`
+	EventName      string    `json:"event_name"`
+	Date           time.Time `json:"date"`
+	Players        int       `json:"players"`
+	Placement      int       `json:"placement"`
+	DecklistID     *int64    `json:"decklist_id,omitempty"`
+	ArchetypeID    *int64    `json:"archetype_id,omitempty"`
+	ArchetypeName  *string   `json:"archetype_name,omitempty"`
+	ArchetypeSlug  *string   `json:"archetype_slug,omitempty"`
+	ArchetypeIcons []string  `json:"archetype_icons,omitempty"`
 }
 
 type PlayerDetail struct {

@@ -11,7 +11,7 @@ import type { TournamentStanding } from "@/lib/types";
 // here, in a client module, rather than inline in the (Server Component)
 // tournament detail page.
 function formatStanding(value: number) {
-    return value === 0 ? "Dropped" : `#${value}`;
+    return value === 0 ? "Dropped" : `${value}`;
 }
 
 export default function StandingsTable({

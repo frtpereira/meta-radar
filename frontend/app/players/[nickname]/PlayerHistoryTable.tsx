@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Table from "@/components/table";
 import type { PlayerHistoryEntry } from "@/lib/types";
+import ArchetypeIcons from "@/components/archetype-icons";
 
 // Table `columns` entries carry `render`/`sortValue` functions, and Table
 // itself is a Client Component (for sort state). Functions can't cross the
@@ -19,7 +20,7 @@ function formatDate(value: string) {
 }
 
 function formatPlacement(value: number) {
-    return value === 0 ? "Dropped" : `#${value}`;
+    return value === 0 ? "Dropped" : `${value}`;
 }
 
 export default function PlayerHistoryTable({
@@ -70,10 +71,12 @@ export default function PlayerHistoryTable({
                 {
                     key: "archetype",
                     label: "Archetype",
-                    render: (r: PlayerHistoryEntry) =>
-                        r.archetype_name ?? (
-                            <span className="muted tiny">Unknown</span>
-                        ),
+                    render: (r: PlayerHistoryEntry) => (
+                        <ArchetypeIcons
+                            icons={r.archetype_icons}
+                            name={r.archetype_name ?? "Unknown"}
+                        />
+                    ),
                     sortValue: (r: PlayerHistoryEntry) => r.archetype_name,
                 },
                 {

@@ -187,6 +187,38 @@
                 }
             }
         },
+        "/api/card-images": {
+            "get": {
+                "description": "Returns image URLs for the given set:number card identifiers, omitting any not yet resolved.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cards"
+                ],
+                "summary": "Batch card image lookup",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated set:number pairs, e.g. SCR:115,SCR:116",
+                        "name": "cards",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/decklists/{id}": {
             "get": {
                 "description": "Returns a single decklist's cards plus its player, tournament, and archetype context.",
@@ -328,6 +360,34 @@
                             "type": "object",
                             "additionalProperties": {
                                 "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/metas/current": {
+            "get": {
+                "tags": [
+                    "metas"
+                ],
+                "summary": "Currently open standard + set meta for a format",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "STANDARD",
+                        "description": "Limitless format code",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/models.Meta"
                             }
                         }
                     }
@@ -620,6 +680,12 @@
         "apidocs.ArchetypeRef": {
             "type": "object",
             "properties": {
+                "icons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -810,6 +876,12 @@
         "apidocs.PlayerHistoryRow": {
             "type": "object",
             "properties": {
+                "archetype_icons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "archetype_id": {
                     "type": "integer"
                 },
@@ -1015,7 +1087,13 @@
                 "name": {
                     "type": "string"
                 },
+                "parent_meta_id": {
+                    "type": "string"
+                },
                 "starts_at": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -1037,6 +1115,10 @@
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_current_standard": {
+                    "description": "IsCurrentStandard is true when this tournament's meta is still\npart of the currently open Standard rotation, as opposed to a\nStandard tournament that's since rotated out -- see\ndb/migrations/0010_tournament_current_standard_flag.sql.",
+                    "type": "boolean"
                 },
                 "is_online": {
                     "type": "boolean"
@@ -1065,6 +1147,12 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "winner_decklist_id": {
+                    "type": "integer"
+                },
+                "winner_nickname": {
+                    "type": "string"
                 }
             }
         }

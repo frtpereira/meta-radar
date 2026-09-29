@@ -1262,7 +1262,8 @@ func (h *Handler) PlayerDetail(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query(ctx, `
 		SELECT t.id, t.name, t.date, t.players,
 		       s.standing, s.decklist_id,
-		       a.id, a.name, a.slug
+		       a.id, a.name, a.slug,
+		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = a.id) AS archetype_icons
 		FROM standings s
 		JOIN tournaments t ON t.id = s.tournament_id
 		LEFT JOIN decklists d ON d.id = s.decklist_id
@@ -1277,15 +1278,16 @@ func (h *Handler) PlayerDetail(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type historyRow struct {
-		TournamentID  string    `json:"tournament_id"`
-		EventName     string    `json:"event_name"`
-		Date          time.Time `json:"date"`
-		Players       int       `json:"players"`
-		Placement     int       `json:"placement"`
-		DecklistID    *int64    `json:"decklist_id,omitempty"`
-		ArchetypeID   *int64    `json:"archetype_id,omitempty"`
-		ArchetypeName *string   `json:"archetype_name,omitempty"`
-		ArchetypeSlug *string   `json:"archetype_slug,omitempty"`
+		TournamentID   string    `json:"tournament_id"`
+		EventName      string    `json:"event_name"`
+		Date           time.Time `json:"date"`
+		Players        int       `json:"players"`
+		Placement      int       `json:"placement"`
+		DecklistID     *int64    `json:"decklist_id,omitempty"`
+		ArchetypeID    *int64    `json:"archetype_id,omitempty"`
+		ArchetypeName  *string   `json:"archetype_name,omitempty"`
+		ArchetypeSlug  *string   `json:"archetype_slug,omitempty"`
+		ArchetypeIcons []string  `json:"archetype_icons,omitempty"`
 	}
 
 	history := []historyRow{}
@@ -1293,7 +1295,7 @@ func (h *Handler) PlayerDetail(w http.ResponseWriter, r *http.Request) {
 		var hRow historyRow
 		if err := rows.Scan(&hRow.TournamentID, &hRow.EventName, &hRow.Date, &hRow.Players,
 			&hRow.Placement, &hRow.DecklistID,
-			&hRow.ArchetypeID, &hRow.ArchetypeName, &hRow.ArchetypeSlug); err != nil {
+			&hRow.ArchetypeID, &hRow.ArchetypeName, &hRow.ArchetypeSlug, &hRow.ArchetypeIcons); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning history: "+err.Error())
 			return
 		}
