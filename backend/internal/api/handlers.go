@@ -1639,3 +1639,164 @@ func (h *Handler) CardImages(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, result)
 }
+
+// MatchupCardRecommendation is one card's performance for an archetype
+// in a specific head-to-head matchup.
+type MatchupCardRecommendation struct {
+	Name             string  `json:"name"`
+	Category         string  `json:"category"`
+	MatchesWith      int     `json:"matches_with"`
+	ScoreRateWith    float64 `json:"score_rate_with"`
+	MatchesWithout   int     `json:"matches_without"`
+	ScoreRateWithout float64 `json:"score_rate_without"`
+	Delta            float64 `json:"delta"`
+	Recommendation   string  `json:"recommendation"`
+}
+
+// MatchupCardsResponse is the payload of MatchupCards.
+type MatchupCardsResponse struct {
+	ArchetypeID     string                      `json:"archetype_id"`
+	OpponentID      string                      `json:"opponent_id"`
+	Matches         int                         `json:"matches"`
+	ScoreRate       *float64                    `json:"score_rate"`
+	Recommendations []MatchupCardRecommendation `json:"recommendations"`
+}
+
+// MatchupCards recommends cards for an archetype against a specific opposing
+// archetype. For every card name played by the archetype's decklists, it
+// compares the archetype's score rate (win = 1, draw = 0.5) in recorded
+// pairings against the opponent when the card was in the list versus when it
+// was not. Cards whose "with" or "without" sample is smaller than
+// min_matches are omitted. Results are sorted by delta DESC: positive deltas
+// are "include" candidates, negative deltas are "cut" candidates.
+//
+// @Summary Matchup card recommendations
+// @Description Recommends cards for an archetype against a specific opposing archetype, based on score rate with vs. without each card in recorded pairings.
+// @Tags archetypes
+// @Produce json
+// @Param id path string true "Archetype ID"
+// @Param opponent_id query string true "Opposing archetype ID"
+// @Param min_matches query int false "Minimum matches required both with and without a card (default 3)"
+// @Success 200 {object} MatchupCardsResponse
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/archetypes/{id}/matchup-cards [get]
+func (h *Handler) MatchupCards(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	archetypeID := chi.URLParam(r, "id")
+	q := r.URL.Query()
+
+	opponentID := q.Get("opponent_id")
+	if opponentID == "" {
+		writeError(w, http.StatusBadRequest, "opponent_id is required")
+		return
+	}
+	if opponentID == archetypeID {
+		writeError(w, http.StatusBadRequest, "opponent_id must differ from the archetype id")
+		return
+	}
+	minMatches := 3
+	if v := q.Get("min_matches"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			minMatches = n
+		}
+	}
+
+	rows, err := h.DB.Query(ctx, `
+		WITH games AS (
+			SELECT
+				p.id AS game_id,
+				d.cards,
+				CASE WHEN p.winner_player_id = d.player_id THEN 1.0
+				     WHEN p.winner_player_id IS NULL THEN 0.5
+				     ELSE 0.0 END AS score
+			FROM pairings p
+			JOIN decklists d ON d.tournament_id = p.tournament_id
+			                AND d.player_id IN (p.player1_id, p.player2_id)
+			JOIN decklists o ON o.tournament_id = p.tournament_id
+			                AND o.player_id = CASE WHEN d.player_id = p.player1_id
+			                                       THEN p.player2_id ELSE p.player1_id END
+			WHERE p.result IN ('win', 'draw')
+			  AND d.archetype_id = $1
+			  AND o.archetype_id = $2
+		),
+		totals AS (
+			SELECT COUNT(*)::int AS n, COALESCE(SUM(score), 0)::float8 AS s FROM games
+		),
+		card_games AS (
+			SELECT g.game_id, g.score, c->>'name' AS card_name, MIN(COALESCE(c->>'category', '')) AS category
+			FROM games g, jsonb_array_elements(g.cards) AS c
+			WHERE c->>'name' IS NOT NULL
+			GROUP BY g.game_id, g.score, c->>'name'
+		)
+		SELECT
+			cg.card_name,
+			cg.category,
+			COUNT(*)::int AS with_n,
+			SUM(cg.score)::float8 AS with_score,
+			t.n AS total_n,
+			t.s AS total_score
+		FROM card_games cg, totals t
+		GROUP BY cg.card_name, cg.category, t.n, t.s
+	`, archetypeID, opponentID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying matchup cards: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	resp := MatchupCardsResponse{
+		ArchetypeID:     archetypeID,
+		OpponentID:      opponentID,
+		Recommendations: []MatchupCardRecommendation{},
+	}
+	var totalN int
+	var totalScore float64
+	for rows.Next() {
+		var name, category string
+		var withN int
+		var withScore float64
+		if err := rows.Scan(&name, &category, &withN, &withScore, &totalN, &totalScore); err != nil {
+			writeError(w, http.StatusInternalServerError, "scanning matchup card row: "+err.Error())
+			return
+		}
+		withoutN := totalN - withN
+		if withN < minMatches || withoutN < minMatches {
+			continue
+		}
+		rateWith := withScore / float64(withN)
+		rateWithout := (totalScore - withScore) / float64(withoutN)
+		delta := rateWith - rateWithout
+		rec := "neutral"
+		if delta > 0 {
+			rec = "include"
+		} else if delta < 0 {
+			rec = "cut"
+		}
+		resp.Recommendations = append(resp.Recommendations, MatchupCardRecommendation{
+			Name: name, Category: category,
+			MatchesWith: withN, ScoreRateWith: rateWith,
+			MatchesWithout: withoutN, ScoreRateWithout: rateWithout,
+			Delta: delta, Recommendation: rec,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "iterating matchup card rows: "+err.Error())
+		return
+	}
+
+	resp.Matches = totalN
+	if totalN > 0 {
+		rate := totalScore / float64(totalN)
+		resp.ScoreRate = &rate
+	}
+	sort.SliceStable(resp.Recommendations, func(i, j int) bool {
+		a, b := resp.Recommendations[i], resp.Recommendations[j]
+		if a.Delta != b.Delta {
+			return a.Delta > b.Delta
+		}
+		return a.Name < b.Name
+	})
+
+	writeJSON(w, http.StatusOK, resp)
+}

@@ -1228,3 +1228,83 @@ func jsonWebhookArgFor(v any) jsonWebhookArg {
 }
 
 var _ = regexp.MustCompile
+
+func TestMatchupCards(t *testing.T) {
+	query := `(?s)WITH games AS.*FROM card_games cg`
+	cols := []string{"card_name", "category", "with_n", "with_score", "total_n", "total_score"}
+
+	t.Run("requires opponent_id", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/archetypes/7/matchup-cards", nil), "id", "7")
+		rr := httptest.NewRecorder()
+		h.MatchupCards(rr, req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("rejects mirror", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/archetypes/7/matchup-cards?opponent_id=7", nil), "id", "7")
+		rr := httptest.NewRecorder()
+		h.MatchupCards(rr, req)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("ranks cards by delta and applies sample threshold", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(query).WithArgs("7", "9").WillReturnRows(
+			pgxmock.NewRows(cols).
+				AddRow("Boss's Orders", "trainer", 10, 8.0, 10, 8.0). // no "without" sample: omitted
+				AddRow("Good Card", "trainer", 6, 5.0, 10, 6.0).      // with 5/6, without 1/4
+				AddRow("Bad Card", "pokemon", 5, 1.0, 10, 6.0).       // with 1/5, without 5/5
+				AddRow("Tiny Sample", "trainer", 1, 1.0, 10, 6.0),    // with < min
+		)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/archetypes/7/matchup-cards?opponent_id=9&min_matches=3", nil), "id", "7")
+		rr := httptest.NewRecorder()
+		h.MatchupCards(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		resp := decodeBody[MatchupCardsResponse](t, rr)
+		assert.Equal(t, 10, resp.Matches)
+		require.NotNil(t, resp.ScoreRate)
+		assert.InDelta(t, 0.6, *resp.ScoreRate, 0.001)
+		require.Len(t, resp.Recommendations, 2)
+		assert.Equal(t, "Good Card", resp.Recommendations[0].Name)
+		assert.Equal(t, "include", resp.Recommendations[0].Recommendation)
+		assert.InDelta(t, 5.0/6.0-0.25, resp.Recommendations[0].Delta, 0.001)
+		assert.Equal(t, "Bad Card", resp.Recommendations[1].Name)
+		assert.Equal(t, "cut", resp.Recommendations[1].Recommendation)
+	})
+
+	t.Run("no games", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(query).WithArgs("7", "9").WillReturnRows(pgxmock.NewRows(cols))
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/archetypes/7/matchup-cards?opponent_id=9", nil), "id", "7")
+		rr := httptest.NewRecorder()
+		h.MatchupCards(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+		resp := decodeBody[MatchupCardsResponse](t, rr)
+		assert.Equal(t, 0, resp.Matches)
+		assert.Nil(t, resp.ScoreRate)
+		assert.Empty(t, resp.Recommendations)
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(query).WithArgs("7", "9").WillReturnError(assert.AnError)
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/archetypes/7/matchup-cards?opponent_id=9", nil), "id", "7")
+		rr := httptest.NewRecorder()
+		h.MatchupCards(rr, req)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+}

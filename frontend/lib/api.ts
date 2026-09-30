@@ -5,6 +5,7 @@ import type {
     CardStat,
     CurrentMetas,
     DecklistDetail,
+    MatchupCards,
     MatchupStat,
     Meta,
     PairingsDetail,
@@ -150,6 +151,20 @@ export async function getArchetypeVariants(id: string) {
 
 export async function getArchetypeCardStats(id: string) {
     return fetchJson<CardStat[]>(`/archetypes/${id}/card-stats`);
+}
+
+export async function getMatchupCards(
+    archetypeId: string,
+    opponentId: string,
+    minMatches?: number,
+) {
+    const params = new URLSearchParams({ opponent_id: opponentId });
+    if (minMatches) {
+        params.set("min_matches", String(minMatches));
+    }
+    return fetchJson<MatchupCards>(
+        `/archetypes/${encodeURIComponent(archetypeId)}/matchup-cards?${params.toString()}`,
+    );
 }
 
 export async function getPlayer(nickname: string) {

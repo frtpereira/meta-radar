@@ -190,3 +190,22 @@ export interface DecklistDetail {
     archetype_icons: string[] | null;
     cards: Card[];
 }
+
+export interface MatchupCardRecommendation {
+    name: string;
+    category: string;
+    matches_with: number;
+    score_rate_with: number;
+    matches_without: number;
+    score_rate_without: number;
+    delta: number;
+    recommendation: "include" | "cut" | "neutral";
+}
+
+export interface MatchupCards {
+    archetype_id: string;
+    opponent_id: string;
+    matches: number;
+    score_rate: number | null;
+    recommendations: MatchupCardRecommendation[];
+}
