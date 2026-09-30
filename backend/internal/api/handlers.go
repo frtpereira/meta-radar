@@ -1417,6 +1417,8 @@ func (h *Handler) TournamentPairings(w http.ResponseWriter, r *http.Request) {
 			p.Outcome = "bye"
 		case "draw":
 			p.Outcome = "draw"
+		case "double_loss":
+			p.Outcome = "loss"
 		case "win":
 			if winnerPlayerID != nil && *winnerPlayerID == playerID {
 				p.Outcome = "win"
