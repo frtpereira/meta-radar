@@ -237,8 +237,8 @@ func TestTournamentDetail(t *testing.T) {
 		defer mock.Close()
 		when := time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC)
 		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*WHERE t\.id = \$1`).WithArgs("t1").WillReturnRows(
-			pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name"}).
-				AddRow("t1", "Regional", "PTCG", "STANDARD", ptrString("meta-1"), ptrString("Meta"), when, 256, true, true, ptrString("League")),
+			pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "ingest_source", "division", "event_id"}).
+				AddRow("t1", "Regional", "PTCG", "STANDARD", ptrString("meta-1"), ptrString("Meta"), when, 256, true, true, ptrString("League"), "play_api", nil, "t1"),
 		)
 		mock.ExpectQuery(`(?s)SELECT s\.standing, s\.wins, s\.losses, s\.ties.*FROM standings s`).WithArgs("t1").WillReturnRows(
 			pgxmock.NewRows([]string{"standing", "wins", "losses", "ties", "player_id", "player_name", "decklist_id", "archetype_id", "archetype_name", "archetype_slug", "archetype_icons"}).
@@ -281,6 +281,43 @@ func TestTournamentDetail(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	t.Run("official event lists divisions", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*WHERE t\.id = \$1`).WithArgs("labs-e1-SR").WillReturnRows(
+			pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "ingest_source", "division", "event_id"}).
+				AddRow("labs-e1-SR", "Regional (Seniors)", "PTCG", "STANDARD", nil, nil, time.Now(), 64, false, true, nil, "labs", ptrString("SR"), "e1"),
+		)
+		mock.ExpectQuery(`(?s)SELECT s\.standing, s\.wins, s\.losses, s\.ties.*FROM standings s`).WithArgs("labs-e1-SR").WillReturnRows(
+			pgxmock.NewRows([]string{"standing", "wins", "losses", "ties", "player_id", "player_name", "decklist_id", "archetype_id", "archetype_name", "archetype_slug", "archetype_icons"}),
+		)
+		mock.ExpectQuery(`(?s)SELECT id, division\s+FROM tournaments\s+WHERE event_id = \$1`).WithArgs("e1").WillReturnRows(
+			pgxmock.NewRows([]string{"id", "division"}).
+				AddRow("labs-e1-MA", "MA").
+				AddRow("labs-e1-SR", "SR"),
+		)
+
+		h := &Handler{DB: mock}
+		req := withURLParam(httptest.NewRequest(http.MethodGet, "/api/tournaments/labs-e1-SR", nil), "id", "labs-e1-SR")
+		rr := httptest.NewRecorder()
+		h.TournamentDetail(rr, req)
+
+		resp := decodeBody[struct {
+			IsOfficial bool    `json:"is_official"`
+			Division   *string `json:"division"`
+			Divisions  []struct {
+				ID       string `json:"id"`
+				Division string `json:"division"`
+			} `json:"divisions"`
+		}](t, rr)
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.True(t, resp.IsOfficial)
+		assert.Equal(t, "SR", *resp.Division)
+		require.Len(t, resp.Divisions, 2)
+		assert.Equal(t, "labs-e1-MA", resp.Divisions[0].ID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("not found", func(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
@@ -298,8 +335,8 @@ func TestTournamentDetail(t *testing.T) {
 		mock := newMockDB(t)
 		defer mock.Close()
 		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.game.*WHERE t\.id = \$1`).WithArgs("t1").WillReturnRows(
-			pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name"}).
-				AddRow("t1", "Regional", "PTCG", "STANDARD", nil, nil, time.Now(), 64, true, true, nil),
+			pgxmock.NewRows([]string{"id", "name", "game", "format_code", "meta_id", "meta_name", "date", "players", "is_online", "has_decklists", "organizer_name", "ingest_source", "division", "event_id"}).
+				AddRow("t1", "Regional", "PTCG", "STANDARD", nil, nil, time.Now(), 64, true, true, nil, "play_api", nil, "t1"),
 		)
 		mock.ExpectQuery(`(?s)SELECT s\.standing, s\.wins, s\.losses, s\.ties.*FROM standings s`).WithArgs("t1").WillReturnError(assert.AnError)
 
