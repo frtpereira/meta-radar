@@ -1309,6 +1309,136 @@ func (h *Handler) PlayerDetail(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// TournamentPairings looks up a player by nickname (same case-insensitive
+// exact match as PlayerDetail) and returns every pairing they played in one
+// tournament, oldest round first: the opponent, the outcome from this
+// player's perspective, and enough of the opponent's context (archetype,
+// decklist) to link straight to their decklist page. A bye has no
+// opponent -- opponent fields come back null and outcome is "bye" -- and a
+// pairing whose winner value couldn't be classified during ingestion (see
+// ingest.classifyPairingResult) surfaces as outcome "unknown" rather than
+// being guessed at here.
+//
+// @Summary Get a player's pairings for a tournament
+// @Description Looks up a player by nickname and returns their round-by-round pairings for one tournament (opponent, result, opponent's decklist).
+// @Tags tournaments
+// @Produce json
+// @Param id path string true "Tournament ID"
+// @Param nickname path string true "Player nickname"
+// @Success 200 {object} apidocs.PairingsDetail
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/tournaments/{id}/pairings/{nickname} [get]
+func (h *Handler) TournamentPairings(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	tournamentID := chi.URLParam(r, "id")
+	nickname := chi.URLParam(r, "nickname")
+
+	var tournamentName string
+	err := h.DB.QueryRow(ctx,
+		`SELECT name FROM tournaments WHERE id = $1`, tournamentID,
+	).Scan(&tournamentName)
+	if err == pgx.ErrNoRows {
+		writeError(w, http.StatusNotFound, "tournament not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying tournament: "+err.Error())
+		return
+	}
+
+	var playerID, playerName string
+	err = h.DB.QueryRow(ctx,
+		`SELECT id, name FROM players WHERE lower(name) = lower($1)`, nickname,
+	).Scan(&playerID, &playerName)
+	if err == pgx.ErrNoRows {
+		writeError(w, http.StatusNotFound, "player not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying player: "+err.Error())
+		return
+	}
+
+	// The opponent is whichever of player1/player2 isn't this player; a bye
+	// leaves player2_id null, so the CASE below naturally resolves to null
+	// too and every left-joined opponent column (name, decklist, archetype)
+	// comes back null right along with it -- no separate bye branch needed
+	// in the query itself.
+	rows, err := h.DB.Query(ctx, `
+		SELECT p.phase, p.round, p.table_number, p.result, p.winner_player_id,
+		       opp.id, opp.name,
+		       od.id, oa.id, oa.name, oa.slug,
+		       (SELECT ARRAY_AGG(ai.pokemon_slug ORDER BY ai.display_order) FROM archetype_icons ai WHERE ai.archetype_id = oa.id) AS opponent_archetype_icons
+		FROM pairings p
+		LEFT JOIN players opp ON opp.id = CASE WHEN p.player1_id = $2 THEN p.player2_id ELSE p.player1_id END
+		LEFT JOIN standings os ON os.tournament_id = p.tournament_id AND os.player_id = opp.id
+		LEFT JOIN decklists od ON od.id = os.decklist_id
+		LEFT JOIN archetypes oa ON oa.id = od.archetype_id
+		WHERE p.tournament_id = $1 AND (p.player1_id = $2 OR p.player2_id = $2)
+		ORDER BY p.phase, p.round`, tournamentID, playerID,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "querying pairings: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	type pairingRow struct {
+		Phase                 int      `json:"phase"`
+		Round                 int      `json:"round"`
+		TableNumber           int      `json:"table_number"`
+		Outcome               string   `json:"outcome"` // "win" | "loss" | "draw" | "bye" | "unknown"
+		OpponentID            *string  `json:"opponent_id,omitempty"`
+		OpponentName          *string  `json:"opponent_name,omitempty"`
+		OpponentDecklistID    *int64   `json:"opponent_decklist_id,omitempty"`
+		OpponentArchetypeID   *int64   `json:"opponent_archetype_id,omitempty"`
+		OpponentArchetypeName *string  `json:"opponent_archetype_name,omitempty"`
+		OpponentArchetypeSlug *string  `json:"opponent_archetype_slug,omitempty"`
+		OpponentArchetypeIcon []string `json:"opponent_archetype_icons,omitempty"`
+	}
+
+	pairings := []pairingRow{}
+	for rows.Next() {
+		var (
+			p              pairingRow
+			result         string
+			winnerPlayerID *string
+		)
+		if err := rows.Scan(&p.Phase, &p.Round, &p.TableNumber, &result, &winnerPlayerID,
+			&p.OpponentID, &p.OpponentName,
+			&p.OpponentDecklistID, &p.OpponentArchetypeID, &p.OpponentArchetypeName, &p.OpponentArchetypeSlug, &p.OpponentArchetypeIcon); err != nil {
+			writeError(w, http.StatusInternalServerError, "scanning pairing: "+err.Error())
+			return
+		}
+
+		switch result {
+		case "bye":
+			p.Outcome = "bye"
+		case "draw":
+			p.Outcome = "draw"
+		case "win":
+			if winnerPlayerID != nil && *winnerPlayerID == playerID {
+				p.Outcome = "win"
+			} else {
+				p.Outcome = "loss"
+			}
+		default:
+			p.Outcome = "unknown"
+		}
+
+		pairings = append(pairings, p)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"tournament_id":   tournamentID,
+		"tournament_name": tournamentName,
+		"player_id":       playerID,
+		"player_name":     playerName,
+		"pairings":        pairings,
+	})
+}
+
 // DecklistDetail returns a single decklist -- the exact cards a player ran
 // at a specific tournament -- plus enough context (player, tournament,
 // archetype) to render a standalone decklist page.

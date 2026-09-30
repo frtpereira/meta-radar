@@ -900,6 +900,146 @@ func TestPlayerDetail(t *testing.T) {
 	})
 }
 
+func TestTournamentPairings(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`SELECT name FROM tournaments WHERE id = \$1`).
+			WithArgs("t1").
+			WillReturnRows(pgxmock.NewRows([]string{"name"}).AddRow("Regional"))
+		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
+			WithArgs("Ash").
+			WillReturnRows(pgxmock.NewRows([]string{"id", "name"}).AddRow("p1", "Ash Ketchum"))
+		mock.ExpectQuery(`(?s)SELECT p\.phase, p\.round, p\.table_number.*FROM pairings p`).
+			WithArgs("t1", "p1").
+			WillReturnRows(
+				pgxmock.NewRows([]string{
+					"phase", "round", "table_number", "result", "winner_player_id",
+					"id", "name", "id", "id", "name", "slug", "opponent_archetype_icons",
+				}).
+					// Round 1: this player (p1) won.
+					AddRow(1, 1, 4, "win", ptrString("p1"), ptrString("p2"), ptrString("Misty"), ptrInt64(10), ptrInt64(20), ptrString("Dragapult ex"), ptrString("dragapult-ex"), []string{"dragapult"}).
+					// Round 2: this player lost.
+					AddRow(1, 2, 1, "win", ptrString("p3"), ptrString("p3"), ptrString("Brock"), nil, nil, nil, nil, nil).
+					// Round 3: draw.
+					AddRow(1, 3, 2, "draw", nil, ptrString("p4"), ptrString("Gary"), nil, nil, nil, nil, nil).
+					// Round 4: bye -- no opponent at all.
+					AddRow(1, 4, 0, "bye", ptrString("p1"), nil, nil, nil, nil, nil, nil, nil).
+					// Round 5: unrecognized winner value from ingestion.
+					AddRow(1, 5, 3, "unknown", nil, ptrString("p5"), ptrString("Erika"), nil, nil, nil, nil, nil),
+			)
+
+		h := &Handler{DB: mock}
+		req := withURLParams(httptest.NewRequest(http.MethodGet, "/api/tournaments/t1/pairings/Ash", nil), map[string]string{
+			"id":       "t1",
+			"nickname": "Ash",
+		})
+		rr := httptest.NewRecorder()
+		h.TournamentPairings(rr, req)
+
+		type row struct {
+			Round                 int     `json:"round"`
+			Outcome               string  `json:"outcome"`
+			OpponentName          *string `json:"opponent_name"`
+			OpponentDecklistID    *int64  `json:"opponent_decklist_id"`
+			OpponentArchetypeName *string `json:"opponent_archetype_name"`
+		}
+		resp := decodeBody[struct {
+			TournamentID   string `json:"tournament_id"`
+			TournamentName string `json:"tournament_name"`
+			PlayerID       string `json:"player_id"`
+			PlayerName     string `json:"player_name"`
+			Pairings       []row  `json:"pairings"`
+		}](t, rr)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "t1", resp.TournamentID)
+		assert.Equal(t, "Regional", resp.TournamentName)
+		assert.Equal(t, "p1", resp.PlayerID)
+		assert.Equal(t, "Ash Ketchum", resp.PlayerName)
+		require.Len(t, resp.Pairings, 5)
+
+		assert.Equal(t, "win", resp.Pairings[0].Outcome)
+		assert.Equal(t, "Misty", *resp.Pairings[0].OpponentName)
+		assert.Equal(t, "Dragapult ex", *resp.Pairings[0].OpponentArchetypeName)
+		assert.Equal(t, int64(10), *resp.Pairings[0].OpponentDecklistID)
+
+		assert.Equal(t, "loss", resp.Pairings[1].Outcome)
+		assert.Equal(t, "Brock", *resp.Pairings[1].OpponentName)
+
+		assert.Equal(t, "draw", resp.Pairings[2].Outcome)
+		assert.Equal(t, "Gary", *resp.Pairings[2].OpponentName)
+
+		assert.Equal(t, "bye", resp.Pairings[3].Outcome)
+		assert.Nil(t, resp.Pairings[3].OpponentName)
+
+		assert.Equal(t, "unknown", resp.Pairings[4].Outcome)
+		assert.Equal(t, "Erika", *resp.Pairings[4].OpponentName)
+
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("tournament not found", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`SELECT name FROM tournaments WHERE id = \$1`).
+			WithArgs("missing").WillReturnError(pgx.ErrNoRows)
+
+		h := &Handler{DB: mock}
+		req := withURLParams(httptest.NewRequest(http.MethodGet, "/api/tournaments/missing/pairings/Ash", nil), map[string]string{
+			"id":       "missing",
+			"nickname": "Ash",
+		})
+		rr := httptest.NewRecorder()
+		h.TournamentPairings(rr, req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Contains(t, rr.Body.String(), "tournament not found")
+	})
+
+	t.Run("player not found", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`SELECT name FROM tournaments WHERE id = \$1`).
+			WithArgs("t1").
+			WillReturnRows(pgxmock.NewRows([]string{"name"}).AddRow("Regional"))
+		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
+			WithArgs("missing").WillReturnError(pgx.ErrNoRows)
+
+		h := &Handler{DB: mock}
+		req := withURLParams(httptest.NewRequest(http.MethodGet, "/api/tournaments/t1/pairings/missing", nil), map[string]string{
+			"id":       "t1",
+			"nickname": "missing",
+		})
+		rr := httptest.NewRecorder()
+		h.TournamentPairings(rr, req)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Contains(t, rr.Body.String(), "player not found")
+	})
+
+	t.Run("pairings query error", func(t *testing.T) {
+		mock := newMockDB(t)
+		defer mock.Close()
+		mock.ExpectQuery(`SELECT name FROM tournaments WHERE id = \$1`).
+			WithArgs("t1").
+			WillReturnRows(pgxmock.NewRows([]string{"name"}).AddRow("Regional"))
+		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
+			WithArgs("Ash").
+			WillReturnRows(pgxmock.NewRows([]string{"id", "name"}).AddRow("p1", "Ash Ketchum"))
+		mock.ExpectQuery(`(?s)SELECT p\.phase, p\.round, p\.table_number.*FROM pairings p`).
+			WithArgs("t1", "p1").WillReturnError(assert.AnError)
+
+		h := &Handler{DB: mock}
+		req := withURLParams(httptest.NewRequest(http.MethodGet, "/api/tournaments/t1/pairings/Ash", nil), map[string]string{
+			"id":       "t1",
+			"nickname": "Ash",
+		})
+		rr := httptest.NewRecorder()
+		h.TournamentPairings(rr, req)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Contains(t, rr.Body.String(), "querying pairings")
+	})
+}
+
 func TestDecklistDetail(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		mock := newMockDB(t)

@@ -153,6 +153,30 @@ export interface PlayerDetail {
     history: PlayerHistoryEntry[];
 }
 
+export type PairingOutcome = "win" | "loss" | "draw" | "bye" | "unknown";
+
+export interface PairingRow {
+    phase: number;
+    round: number;
+    table_number: number;
+    outcome: PairingOutcome;
+    opponent_id: string | null;
+    opponent_name: string | null;
+    opponent_decklist_id: number | null;
+    opponent_archetype_id: number | null;
+    opponent_archetype_name: string | null;
+    opponent_archetype_slug: string | null;
+    opponent_archetype_icons: string[] | null;
+}
+
+export interface PairingsDetail {
+    tournament_id: string;
+    tournament_name: string;
+    player_id: string;
+    player_name: string;
+    pairings: PairingRow[];
+}
+
 export interface DecklistDetail {
     id: number;
     tournament_id: string;

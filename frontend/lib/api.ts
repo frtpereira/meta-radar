@@ -7,6 +7,7 @@ import type {
     DecklistDetail,
     MatchupStat,
     Meta,
+    PairingsDetail,
     PlayerDetail,
     Tournament,
     TournamentDetail,
@@ -153,6 +154,12 @@ export async function getArchetypeCardStats(id: string) {
 
 export async function getPlayer(nickname: string) {
     return fetchJson<PlayerDetail>(`/players/${encodeURIComponent(nickname)}`);
+}
+
+export async function getPairings(tournamentId: string, nickname: string) {
+    return fetchJson<PairingsDetail>(
+        `/tournaments/${tournamentId}/pairings/${encodeURIComponent(nickname)}`,
+    );
 }
 
 export async function getDecklist(id: string) {
