@@ -84,7 +84,7 @@ export default function StandingsTable({
                     render: (r: TournamentStanding) => (
                         <Link
                             className="button"
-                            href={`/tournaments/${tournamentId}/pairings/${encodeURIComponent(r.player_name)}`}
+                            href={`/tournaments/${tournamentId}/pairings/${encodeURIComponent(r.player_name)}?from=tournament`}
                         >
                             Pairings
                         </Link>
