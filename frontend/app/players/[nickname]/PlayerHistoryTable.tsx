@@ -91,7 +91,7 @@ export default function PlayerHistoryTable({
                     render: (r: PlayerHistoryEntry) => (
                         <Link
                             className="button"
-                            href={`/tournaments/${r.tournament_id}/pairings/${encodeURIComponent(nickname)}`}
+                            href={`/tournaments/${r.tournament_id}/pairings/${encodeURIComponent(nickname)}?from=player`}
                         >
                             Pairings
                         </Link>

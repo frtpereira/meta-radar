@@ -6,6 +6,12 @@ import { getPairings } from "@/lib/api";
 import PairingsTable from "./PairingsTable";
 
 type PageParams = { id: string; nickname: string };
+// "from" records which page linked here -- the tournament's standings table
+// or a player's history table -- so the breadcrumb above can send them back
+// the way they came instead of always landing on the tournament. Any other
+// (or missing) value falls back to the tournament, since that's the direct
+// parent of this route.
+type SearchParams = { from?: "player" | "tournament" };
 
 function EmptyState({ title, copy }: { title: string; copy: string }) {
     return (
@@ -18,11 +24,14 @@ function EmptyState({ title, copy }: { title: string; copy: string }) {
 
 export default async function TournamentPairingsPage({
     params,
+    searchParams,
 }: {
     params: Promise<PageParams>;
+    searchParams: Promise<SearchParams>;
 }) {
     const { id, nickname: rawNickname } = await params;
     const nickname = decodeURIComponent(rawNickname);
+    const { from } = await searchParams;
 
     const pairings = await getPairings(id, nickname).catch((err: unknown) => {
         if (
@@ -34,6 +43,15 @@ export default async function TournamentPairingsPage({
         throw err;
     });
 
+    const backHref =
+        from === "player"
+            ? `/players/${encodeURIComponent(pairings.player_name)}`
+            : `/tournaments/${id}`;
+    const backLabel =
+        from === "player"
+            ? `← Back to ${pairings.player_name}`
+            : `← Back to ${pairings.tournament_name}`;
+
     return (
         <main className="page">
             <div className="ambient ambient--one" />
@@ -42,11 +60,11 @@ export default async function TournamentPairingsPage({
             <div className="shell">
                 <div style={{ marginBottom: 16 }}>
                     <Link
-                        href={`/tournaments/${id}`}
+                        href={backHref}
                         className="button"
                         style={{ display: "inline-flex" }}
                     >
-                        ← Back to {pairings.tournament_name}
+                        {backLabel}
                     </Link>
                 </div>
 
@@ -57,7 +75,7 @@ export default async function TournamentPairingsPage({
                     meta={
                         <>
                             <Link
-                                href={`/players/${pairings.tournament_id}`}
+                                href={`/tournaments/${pairings.tournament_id}`}
                                 className="pill"
                             >
                                 {pairings.tournament_name}
