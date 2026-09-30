@@ -15,8 +15,10 @@ function formatStanding(value: number) {
 }
 
 export default function StandingsTable({
+    tournamentId,
     standings,
 }: {
+    tournamentId: string;
     standings: TournamentStanding[];
 }) {
     return (
@@ -69,11 +71,24 @@ export default function StandingsTable({
                                 className="button"
                                 href={`/decklists/${r.decklist_id}`}
                             >
-                                View Decklist
+                                Decklist
                             </Link>
                         ) : (
                             <span className="muted tiny">No Decklist</span>
                         ),
+                },
+                {
+                    key: "pairings",
+                    label: "",
+                    sortable: false,
+                    render: (r: TournamentStanding) => (
+                        <Link
+                            className="button"
+                            href={`/tournaments/${tournamentId}/pairings/${encodeURIComponent(r.player_name)}`}
+                        >
+                            Pairings
+                        </Link>
+                    ),
                 },
             ]}
             rows={standings}

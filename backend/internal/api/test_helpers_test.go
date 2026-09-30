@@ -33,6 +33,16 @@ func withURLParam(req *http.Request, key, value string) *http.Request {
 	return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 }
 
+// withURLParams is withURLParam for routes with more than one path
+// parameter (e.g. /tournaments/{id}/pairings/{nickname}).
+func withURLParams(req *http.Request, params map[string]string) *http.Request {
+	rctx := chi.NewRouteContext()
+	for key, value := range params {
+		rctx.URLParams.Add(key, value)
+	}
+	return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+}
+
 func decodeBody[T any](t *testing.T, rr *httptest.ResponseRecorder) T {
 	t.Helper()
 	var out T

@@ -132,6 +132,28 @@ type PlayerDetail struct {
 	History []PlayerHistoryRow `json:"history"`
 }
 
+type PairingRow struct {
+	Phase                 int      `json:"phase"`
+	Round                 int      `json:"round"`
+	TableNumber           int      `json:"table_number"`
+	Outcome               string   `json:"outcome"`
+	OpponentID            *string  `json:"opponent_id,omitempty"`
+	OpponentName          *string  `json:"opponent_name,omitempty"`
+	OpponentDecklistID    *int64   `json:"opponent_decklist_id,omitempty"`
+	OpponentArchetypeID   *int64   `json:"opponent_archetype_id,omitempty"`
+	OpponentArchetypeName *string  `json:"opponent_archetype_name,omitempty"`
+	OpponentArchetypeSlug *string  `json:"opponent_archetype_slug,omitempty"`
+	OpponentArchetypeIcon []string `json:"opponent_archetype_icons,omitempty"`
+}
+
+type PairingsDetail struct {
+	TournamentID   string       `json:"tournament_id"`
+	TournamentName string       `json:"tournament_name"`
+	PlayerID       string       `json:"player_id"`
+	PlayerName     string       `json:"player_name"`
+	Pairings       []PairingRow `json:"pairings"`
+}
+
 type DecklistDetail struct {
 	ID             int64         `json:"id"`
 	TournamentID   string        `json:"tournament_id"`

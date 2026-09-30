@@ -84,6 +84,19 @@ export default function PlayerHistoryTable({
                         ),
                     sortValue: (r: PlayerHistoryEntry) => r.archetype_name,
                 },
+                {
+                    key: "pairings",
+                    label: "",
+                    sortable: false,
+                    render: (r: PlayerHistoryEntry) => (
+                        <Link
+                            className="button"
+                            href={`/tournaments/${r.tournament_id}/pairings/${encodeURIComponent(nickname)}`}
+                        >
+                            Pairings
+                        </Link>
+                    ),
+                },
             ]}
             rows={history}
         />

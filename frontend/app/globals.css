@@ -878,6 +878,27 @@ th .info-tooltip:focus {
     background: var(--badge-online-bg);
 }
 
+/* Pairing outcome badges (pairings table) -- fixed colors rather than
+   theme variables, same approach as .card-count-badge below, since they
+   read fine in both the dark and light themes as-is. */
+.badge--win {
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.35);
+    background: rgba(74, 222, 128, 0.12);
+}
+
+.badge--loss {
+    color: #ff8a8a;
+    border-color: rgba(255, 138, 138, 0.35);
+    background: rgba(255, 138, 138, 0.12);
+}
+
+.badge--draw {
+    color: var(--accent-3);
+    border-color: rgba(139, 211, 255, 0.3);
+    background: rgba(139, 211, 255, 0.1);
+}
+
 .card-count-badge {
     display: inline-flex;
     align-items: center;

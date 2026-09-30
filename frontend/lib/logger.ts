@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Paths that should not be logged
  */

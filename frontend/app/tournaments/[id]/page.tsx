@@ -50,7 +50,7 @@ export default async function TournamentPage({
                 {/* breadcrumb */}
                 <div style={{ marginBottom: 16 }}>
                     <Link
-                        href="/archetypes}"
+                        href="/tournaments"
                         className="button"
                         style={{ display: "inline-flex" }}
                     >
@@ -99,7 +99,10 @@ export default async function TournamentPage({
                     }
                 >
                     {tournament.standings.length > 0 ? (
-                        <StandingsTable standings={tournament.standings} />
+                        <StandingsTable
+                            tournamentId={tournament.id}
+                            standings={tournament.standings}
+                        />
                     ) : (
                         <EmptyState
                             title="No standings yet"
