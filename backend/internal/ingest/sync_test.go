@@ -41,6 +41,7 @@ func TestNormalizeWinnerPlayerID(t *testing.T) {
 	}{
 		{name: "empty", raw: json.RawMessage(""), player1: "p1", player2: "p2", recognized: true},
 		{name: "null", raw: json.RawMessage("null"), player1: "p1", player2: "p2", recognized: true},
+		{name: "zero tie", raw: json.RawMessage("0"), player1: "p1", player2: "p2", recognized: true},
 		{name: "minus one", raw: json.RawMessage("-1"), player1: "p1", player2: "p2", recognized: true},
 		{name: "player1", raw: json.RawMessage(`"p1"`), player1: "p1", player2: "p2", winnerID: "p1", recognized: true},
 		{name: "player2", raw: json.RawMessage(`"p2"`), player1: "p1", player2: "p2", winnerID: "p2", recognized: true},
@@ -55,6 +56,12 @@ func TestNormalizeWinnerPlayerID(t *testing.T) {
 			assert.Equal(t, tt.recognized, recognized)
 		})
 	}
+}
+
+func TestIsDoubleLoss(t *testing.T) {
+	assert.True(t, isDoubleLoss(json.RawMessage("-1")))
+	assert.False(t, isDoubleLoss(json.RawMessage("0")))
+	assert.False(t, isDoubleLoss(json.RawMessage("null")))
 }
 
 func TestClassifyPairingResult(t *testing.T) {
