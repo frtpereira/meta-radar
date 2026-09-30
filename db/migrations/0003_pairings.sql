@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS pairings (
     player1_id       TEXT REFERENCES players(id),
     player2_id       TEXT REFERENCES players(id),
     winner_player_id TEXT REFERENCES players(id),
-    result           TEXT NOT NULL, -- 'win' | 'draw' | 'bye' | 'unknown'
+    result           TEXT NOT NULL, -- 'win' | 'draw' | 'double_loss' | 'bye' | 'unknown'
     raw_pairing      JSONB,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );

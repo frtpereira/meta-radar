@@ -397,6 +397,9 @@ func (s *Syncer) replacePairings(ctx context.Context, tx pgx.Tx, tournamentID st
 
 		winnerPlayerID, recognized := normalizeWinnerPlayerID(p.Winner, p.Player1, p.Player2)
 		result := classifyPairingResult(winnerPlayerID, recognized, p.Player1, p.Player2)
+		if p.Player2 != "" && isDoubleLoss(p.Winner) {
+			result = "double_loss"
+		}
 
 		if !recognized && p.Player2 != "" {
 			// The raw `winner` value was non-empty and not a recognized
@@ -426,15 +429,14 @@ func (s *Syncer) replacePairings(ctx context.Context, tx pgx.Tx, tournamentID st
 // normalizeWinnerPlayerID parses the raw `winner` field from a pairing.
 //
 // Returns ("", true) for a confirmed no-winner case (empty, JSON null, or
-// the -1 sentinel observed elsewhere in this API for non-decisive results)
-// -- that's a real draw. Returns (id, true) when the value is a JSON string
+// the 0 tie sentinel, or the -1 double-loss sentinel) -- no player won. Returns (id, true) when the value is a JSON string
 // matching player1 or player2 -- a confirmed win. Returns ("", false) for
 // anything else: a non-empty value that doesn't fit either recognized
 // shape. That last case is NOT a draw -- it's ambiguous/unparseable data,
 // and the caller (classifyPairingResult) must not treat it as one.
 func normalizeWinnerPlayerID(raw json.RawMessage, player1, player2 string) (winnerID string, recognized bool) {
 	v := strings.TrimSpace(string(raw))
-	if v == "" || v == "null" || v == "-1" {
+	if v == "" || v == "null" || v == "0" || v == "-1" {
 		return "", true
 	}
 
@@ -447,6 +449,12 @@ func normalizeWinnerPlayerID(raw json.RawMessage, player1, player2 string) (winn
 	}
 
 	return "", false // not a shape we recognize at all
+}
+
+// isDoubleLoss reports whether the raw `winner` value is the Limitless -1
+// sentinel, meaning both players lost (as opposed to 0, a tie).
+func isDoubleLoss(raw json.RawMessage) bool {
+	return strings.TrimSpace(string(raw)) == "-1"
 }
 
 // classifyPairingResult turns a normalized winner id into a result label.
