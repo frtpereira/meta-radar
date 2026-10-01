@@ -325,12 +325,16 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	var t models.Tournament
+	var ingestSource, eventID string
+	var division *string
 	err := h.DB.QueryRow(ctx, `
-		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name
+		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
+		       t.ingest_source, t.division, t.event_id
 		FROM tournaments t
 		LEFT JOIN metas m ON m.id = t.meta_id
 		WHERE t.id = $1`, id,
-	).Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName)
+	).Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName,
+		&ingestSource, &division, &eventID)
 	if err == pgx.ErrNoRows {
 		writeError(w, http.StatusNotFound, "tournament not found")
 		return
@@ -387,6 +391,34 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 		standings = append(standings, s)
 	}
 
+	// official (labs) events are stored one tournament per division; list
+	// every division of this event so the UI can link between them
+	type divisionRow struct {
+		ID       string `json:"id"`
+		Division string `json:"division"`
+	}
+	divisions := []divisionRow{}
+	if ingestSource == "labs" {
+		divRows, err := h.DB.Query(ctx, `
+			SELECT id, division
+			FROM tournaments
+			WHERE event_id = $1 AND division IS NOT NULL
+			ORDER BY CASE division WHEN 'MA' THEN 0 WHEN 'SR' THEN 1 ELSE 2 END`, eventID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "querying divisions: "+err.Error())
+			return
+		}
+		defer divRows.Close()
+		for divRows.Next() {
+			var d divisionRow
+			if err := divRows.Scan(&d.ID, &d.Division); err != nil {
+				writeError(w, http.StatusInternalServerError, "scanning division: "+err.Error())
+				return
+			}
+			divisions = append(divisions, d)
+		}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"id":             t.ID,
 		"name":           t.Name,
@@ -399,6 +431,9 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 		"is_online":      t.IsOnline,
 		"has_decklists":  t.HasDecklists,
 		"organizer_name": t.OrganizerName,
+		"is_official":    ingestSource == "labs",
+		"division":       division,
+		"divisions":      divisions,
 		"standings":      standings,
 	})
 }

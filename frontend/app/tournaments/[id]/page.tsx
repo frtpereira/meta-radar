@@ -15,6 +15,12 @@ function formatDate(value: string) {
     }).format(new Date(value));
 }
 
+const DIVISION_LABELS: Record<string, string> = {
+    MA: "Masters",
+    SR: "Seniors",
+    JR: "Juniors",
+};
+
 function EmptyState({ title, copy }: { title: string; copy: string }) {
     return (
         <div className="empty-state">
@@ -81,6 +87,36 @@ export default async function TournamentPage({
                         </>
                     }
                 />
+
+                {tournament.is_official && tournament.divisions.length > 1 && (
+                    <nav
+                        aria-label="Divisions"
+                        style={{
+                            display: "flex",
+                            gap: 8,
+                            marginBottom: 16,
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        {tournament.divisions.map((d) => (
+                            <Link
+                                key={d.id}
+                                href={`/tournaments/${encodeURIComponent(d.id)}`}
+                                className="button"
+                                aria-current={
+                                    d.id === tournament.id ? "page" : undefined
+                                }
+                                style={
+                                    d.id === tournament.id
+                                        ? { fontWeight: 700, opacity: 1 }
+                                        : { opacity: 0.7 }
+                                }
+                            >
+                                {DIVISION_LABELS[d.division] ?? d.division}
+                            </Link>
+                        ))}
+                    </nav>
+                )}
 
                 <Card
                     heading={

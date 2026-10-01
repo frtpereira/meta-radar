@@ -67,7 +67,15 @@ type TournamentDetail struct {
 	IsOnline      bool          `json:"is_online"`
 	HasDecklists  bool          `json:"has_decklists"`
 	OrganizerName string        `json:"organizer_name"`
+	IsOfficial    bool          `json:"is_official"`
+	Division      *string       `json:"division"`
+	Divisions     []DivisionRef `json:"divisions"`
 	Standings     []StandingRow `json:"standings"`
+}
+
+type DivisionRef struct {
+	ID       string `json:"id"`
+	Division string `json:"division"`
 }
 
 type ArchetypeRef struct {

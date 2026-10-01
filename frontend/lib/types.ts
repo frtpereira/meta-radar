@@ -72,7 +72,15 @@ export interface TournamentStanding {
     archetype_icons: string[] | null;
 }
 
+export interface TournamentDivision {
+    id: string;
+    division: "MA" | "SR" | "JR";
+}
+
 export interface TournamentDetail extends Tournament {
+    is_official: boolean;
+    division: "MA" | "SR" | "JR" | null;
+    divisions: TournamentDivision[];
     standings: TournamentStanding[];
 }
 
