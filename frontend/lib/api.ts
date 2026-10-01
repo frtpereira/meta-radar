@@ -87,7 +87,7 @@ export interface TournamentPage {
 export async function getTournaments(options: {
     metaId?: string;
     minPlayers?: number;
-    source?: "online" | "offline";
+    source?: "limitless" | "pokemon";
     dateFrom?: string;
     dateTo?: string;
     winnerArchetype?: string;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Table, { type SortState } from "@/components/table";
 import ArchetypeIcons from "@/components/archetype-icons";
+import SourceBadges from "@/components/source-badges";
 import type { Tournament } from "@/lib/types";
 
 // Table `columns` entries carry `render`/`sortValue` functions, and Table
@@ -97,14 +98,16 @@ export default function TournamentsTable({
         {
             key: "source",
             label: "Source",
-            // Online/in-person isn't in the server-side sort whitelist, but
+            // Source isn't in the server-side sort whitelist, but
             // it can still be sorted client-side on a single page.
             sortable: isSinglePage,
-            sortValue: (t: Tournament) => (t.is_online ? 1 : 0),
+            sortValue: (t: Tournament) =>
+                t.ingest_source === "labs" ? 1 : 0,
             render: (t: Tournament) => (
-                <span className={`badge ${t.is_online ? "badge--online" : ""}`}>
-                    {t.is_online ? "Online" : "In person"}
-                </span>
+                <SourceBadges
+                    ingestSource={t.ingest_source}
+                    isOnline={t.is_online}
+                />
             ),
         },
         {

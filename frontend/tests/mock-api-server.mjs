@@ -99,6 +99,7 @@ const tournaments = Array.from({ length: 25 }, (_, index) => ({
     date: `2026-05-${String((index % 28) + 1).padStart(2, "0")}`,
     players: 32 + index * 4,
     is_online: index % 2 === 1,
+    ingest_source: "play_api",
     has_decklists: true,
     organizer_name: index === 0 ? "Celadon League" : `Organizer ${index + 1}`,
     winner_archetype: archetypeNames[index % 6],
@@ -122,6 +123,7 @@ tournaments.push({
     date: "2026-06-01",
     players: 16,
     is_online: false,
+    ingest_source: "play_api",
     has_decklists: true,
     organizer_name: "Doom",
     winner_archetype: archetypeNames[0],
@@ -360,10 +362,10 @@ const server = http.createServer((req, res) => {
 
         let items = tournaments.filter((tournament) => tournament.meta_id === metaId);
         const source = searchParams.get("source");
-        if (source === "online") {
-            items = items.filter((tournament) => tournament.is_online);
-        } else if (source === "offline") {
-            items = items.filter((tournament) => !tournament.is_online);
+        if (source === "limitless") {
+            items = items.filter((tournament) => tournament.ingest_source === "play_api");
+        } else if (source === "pokemon") {
+            items = items.filter((tournament) => tournament.ingest_source === "labs");
         }
 
         const minPlayers = Number(searchParams.get("min_players") ?? "0");

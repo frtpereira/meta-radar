@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Hero from "@/components/hero";
 import Card from "@/components/card";
+import SourceBadges from "@/components/source-badges";
 
 import { getTournament } from "@/lib/api";
 import StandingsTable from "./StandingsTable";
@@ -79,11 +80,10 @@ export default async function TournamentPage({
                     meta={
                         <>
                             <span className="pill">{tournament.meta_name}</span>
-                            <span
-                                className={`badge ${tournament.is_online ? "badge--online" : ""}`}
-                            >
-                                {tournament.is_online ? "Online" : "In person"}
-                            </span>
+                            <SourceBadges
+                                ingestSource={tournament.ingest_source}
+                                isOnline={tournament.is_online}
+                            />
                         </>
                     }
                 />

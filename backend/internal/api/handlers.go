@@ -76,7 +76,7 @@ var tournamentSortColumns = map[string]string{
 	"winner_archetype": "w.archetype_name",
 }
 
-// ListTournaments supports ?min_players=32&format=STANDARD&meta_id=...&source=online|offline
+// ListTournaments supports ?min_players=32&format=STANDARD&meta_id=...&source=limitless|pokemon
 // &date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&winner_archetype=<slug>&event_name=<substring>
 // &organizer_name=<substring>&sort_by=date|players|winner_archetype&sort_dir=asc|desc
 // &page=1&page_size=20
@@ -128,14 +128,14 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	format := q.Get("format")
 	metaID := q.Get("meta_id")
 
-	var isOnline *bool
+	var ingestSource *string
 	switch q.Get("source") {
-	case "online":
-		v := true
-		isOnline = &v
-	case "offline":
-		v := false
-		isOnline = &v
+	case "limitless":
+		v := "play_api"
+		ingestSource = &v
+	case "pokemon":
+		v := "labs"
+		ingestSource = &v
 	}
 
 	var dateFrom, dateTo *time.Time
@@ -204,7 +204,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		  AND t.players >= $1
 		  AND ($2 = '' OR t.format_code = $2)
 		  AND ($3 = '' OR t.meta_id::text = $3 OR m.parent_meta_id::text = $3)
-		  AND ($4::boolean IS NULL OR t.is_online = $4)
+		  AND ($4::text IS NULL OR t.ingest_source = $4)
 		  AND ($5::timestamptz IS NULL OR t.date >= $5)
 		  AND ($6::timestamptz IS NULL OR t.date <= $6)
 		  AND ($7 = '' OR w.archetype_slug = $7)
@@ -212,13 +212,13 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		  AND ($9 = '' OR t.organizer_name ILIKE '%' || $9 || '%')`
 
 	var total int
-	if err := h.DB.QueryRow(ctx, countQuery, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, eventName, organizerName).Scan(&total); err != nil {
+	if err := h.DB.QueryRow(ctx, countQuery, minPlayers, format, metaID, ingestSource, dateFrom, dateTo, winnerArchetypeSlug, eventName, organizerName).Scan(&total); err != nil {
 		writeError(w, http.StatusInternalServerError, "counting tournaments: "+err.Error())
 		return
 	}
 
 	query := fmt.Sprintf(`
-		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name,
+		SELECT t.id, t.name, t.game, t.format_code, t.meta_id, m.name, t.date, t.players, t.is_online, t.has_decklists, t.organizer_name, t.ingest_source,
 		       w.archetype_name, w.archetype_icons, w.player_id, w.decklist_id, t.is_current_standard
 		FROM tournaments t
 		LEFT JOIN metas m ON m.id = t.meta_id
@@ -237,7 +237,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		  AND t.players >= $1
 		  AND ($2 = '' OR t.format_code = $2)
 		  AND ($3 = '' OR t.meta_id::text = $3 OR m.parent_meta_id::text = $3)
-		  AND ($4::boolean IS NULL OR t.is_online = $4)
+		  AND ($4::text IS NULL OR t.ingest_source = $4)
 		  AND ($5::timestamptz IS NULL OR t.date >= $5)
 		  AND ($6::timestamptz IS NULL OR t.date <= $6)
 		  AND ($7 = '' OR w.archetype_slug = $7)
@@ -246,7 +246,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 		ORDER BY %s
 		LIMIT $10 OFFSET $11`, orderClause)
 
-	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID, isOnline, dateFrom, dateTo, winnerArchetypeSlug, eventName, organizerName, pageSize, offset)
+	rows, err := h.DB.Query(ctx, query, minPlayers, format, metaID, ingestSource, dateFrom, dateTo, winnerArchetypeSlug, eventName, organizerName, pageSize, offset)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying tournaments: "+err.Error())
 		return
@@ -256,7 +256,7 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	tournaments := []models.Tournament{}
 	for rows.Next() {
 		var t models.Tournament
-		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.WinnerArchetype, &t.WinnerArchetypeIcons, &t.WinnerNickname, &t.WinnerDecklistID, &t.IsCurrentStandard); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.Game, &t.FormatCode, &t.MetaID, &t.MetaName, &t.Date, &t.Players, &t.IsOnline, &t.HasDecklists, &t.OrganizerName, &t.IngestSource, &t.WinnerArchetype, &t.WinnerArchetypeIcons, &t.WinnerNickname, &t.WinnerDecklistID, &t.IsCurrentStandard); err != nil {
 			writeError(w, http.StatusInternalServerError, "scanning tournament: "+err.Error())
 			return
 		}
@@ -431,6 +431,7 @@ func (h *Handler) TournamentDetail(w http.ResponseWriter, r *http.Request) {
 		"is_online":      t.IsOnline,
 		"has_decklists":  t.HasDecklists,
 		"organizer_name": t.OrganizerName,
+		"ingest_source":  ingestSource,
 		"is_official":    ingestSource == "labs",
 		"division":       division,
 		"divisions":      divisions,

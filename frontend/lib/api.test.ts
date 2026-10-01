@@ -71,6 +71,7 @@ const successCases = [
                     date: "2026-02-03",
                     players: 64,
                     is_online: false,
+                    ingest_source: "play_api",
                     has_decklists: true,
                     organizer_name: "TO",
                     winner_archetype: "Charizard",
@@ -92,6 +93,7 @@ const successCases = [
             date: "2026-02-03",
             players: 64,
             is_online: false,
+                    ingest_source: "play_api",
             has_decklists: true,
             organizer_name: "TO",
             winner_archetype: "Charizard",
@@ -373,7 +375,7 @@ describe("api fetch helpers", () => {
         await getTournaments({
             metaId: "meta-1",
             minPlayers: 64,
-            source: "online",
+            source: "limitless",
             dateFrom: "2026-03-01",
             dateTo: "2026-03-31",
             winnerArchetype: "charizard",
@@ -383,7 +385,7 @@ describe("api fetch helpers", () => {
         });
 
         expect(fetchMock).toHaveBeenCalledWith(
-            `${API_BASE}/tournaments?min_players=64&meta_id=meta-1&source=online&date_from=2026-03-01&date_to=2026-03-31&winner_archetype=charizard&organizer_name=DOOM&page=3&page_size=50`,
+            `${API_BASE}/tournaments?min_players=64&meta_id=meta-1&source=limitless&date_from=2026-03-01&date_to=2026-03-31&winner_archetype=charizard&organizer_name=DOOM&page=3&page_size=50`,
             { cache: "no-store" },
         );
     });

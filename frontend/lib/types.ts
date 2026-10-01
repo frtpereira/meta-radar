@@ -33,6 +33,7 @@ export interface Tournament {
     date: string;
     players: number;
     is_online: boolean;
+    ingest_source: "play_api" | "labs";
     has_decklists: boolean;
     organizer_name: string | null;
     winner_archetype: string | null;
