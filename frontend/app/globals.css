@@ -192,6 +192,16 @@ body {
     color: var(--accent-3);
     flex-shrink: 0;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.site-nav__logo {
+    display: block;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
 }
 
 .site-nav__right {

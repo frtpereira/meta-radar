@@ -45,7 +45,15 @@ export function NavigationBar() {
         <header className="site-nav">
             <div className="site-nav__inner">
                 <Link className="site-nav__brand" href="/">
-                    META Radar
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        className="site-nav__logo"
+                        src="/meta-radar-logo.svg"
+                        width={32}
+                        height={32}
+                        alt=""
+                    />
+                    <span>META Radar</span>
                 </Link>
                 <button
                     className="site-nav__menu-button"

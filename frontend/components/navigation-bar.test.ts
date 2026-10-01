@@ -74,6 +74,20 @@ describe("NavigationBar", () => {
         ).toBeInTheDocument();
     });
 
+    it("renders the logo inside the brand link pointing home", () => {
+        mockedUsePathname.mockReturnValue("/");
+        const { container } = render(React.createElement(NavigationBar));
+
+        const brand = screen.getByRole("link", { name: "META Radar" });
+        expect(brand).toHaveAttribute("href", "/");
+
+        const logo = container.querySelector(".site-nav__logo");
+        expect(logo).toBeInTheDocument();
+        expect(logo).toHaveAttribute("src", "/meta-radar-logo.svg");
+        expect(logo).toHaveAttribute("alt", "");
+        expect(brand).toContainElement(logo as HTMLElement);
+    });
+
     it("renders a menu button for mobile navigation", () => {
         mockedUsePathname.mockReturnValue("/");
         render(React.createElement(NavigationBar));
