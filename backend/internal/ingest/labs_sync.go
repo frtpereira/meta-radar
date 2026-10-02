@@ -314,7 +314,7 @@ func (s *Syncer) upsertLabsStandingEntry(ctx context.Context, tx pgx.Tx, tournam
 	// that PairingEntry.Player1/Player2/Winner actually reference (see
 	// StandingEntry.TPID's doc comment) -- using PlayerID here would leave
 	// pairings referencing player rows that were never inserted.
-	playerID := labsPlayerID(entry.TPID)
+	playerID := labsPlayerID(tournamentID, entry.TPID)
 
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO players (id, name) VALUES ($1, $2)
@@ -379,11 +379,11 @@ func (s *Syncer) replaceLabsPairings(ctx context.Context, tx pgx.Tx, tournamentI
 
 			var player1ID, player2ID *string
 			if p.Player1 != 0 {
-				id := labsPlayerID(p.Player1)
+				id := labsPlayerID(tournamentID, p.Player1)
 				player1ID = &id
 			}
 			if p.Player2 != 0 {
-				id := labsPlayerID(p.Player2)
+				id := labsPlayerID(tournamentID, p.Player2)
 				player2ID = &id
 			}
 
@@ -455,7 +455,7 @@ func (s *Syncer) backfillLabsDecklists(ctx context.Context, tournamentID, eventI
 		if entry.Decklist == 0 {
 			continue
 		}
-		playerID := labsPlayerID(entry.TPID)
+		playerID := labsPlayerID(tournamentID, entry.TPID)
 		if have[playerID] {
 			continue
 		}
@@ -517,7 +517,7 @@ func (s *Syncer) fetchAndStoreLabsDecklist(ctx context.Context, tournamentID, ev
 		archetypeID = &id
 	}
 
-	playerIDStr := labsPlayerID(tpID)
+	playerIDStr := labsPlayerID(tournamentID, tpID)
 	decklistID, err := s.upsertDecklist(ctx, tx, tournamentID, playerIDStr, archetypeID, cards, raw)
 	if err != nil {
 		return fmt.Errorf("upserting decklist: %w", err)
@@ -572,8 +572,11 @@ func selectRecentEventIDs(entries []limitlesslabs.TournamentListEntry, sampleSiz
 	return ids, skippedUnfinished
 }
 
-func labsPlayerID(playerID int) string {
-	return fmt.Sprintf("labs-%d", playerID)
+// labsPlayerID is scoped to the tournament because the per-tournament TPID
+// restarts at 1 for every event/division: a bare "labs-<tpid>" would make
+// unrelated players in different tournaments share (and overwrite) a row.
+func labsPlayerID(tournamentID string, tpID int) string {
+	return fmt.Sprintf("%s-%d", tournamentID, tpID)
 }
 
 func labsEventGroupID(eventID string) string {

@@ -1284,7 +1284,7 @@ func (h *Handler) PlayerDetail(w http.ResponseWriter, r *http.Request) {
 
 	var playerID, playerName string
 	err := h.DB.QueryRow(ctx,
-		`SELECT id, name FROM players WHERE lower(name) = lower($1)`, nickname,
+		`SELECT id, name FROM players WHERE lower(name) = lower($1) ORDER BY id LIMIT 1`, nickname,
 	).Scan(&playerID, &playerName)
 	if err == pgx.ErrNoRows {
 		writeError(w, http.StatusNotFound, "player not found")
@@ -1304,8 +1304,8 @@ func (h *Handler) PlayerDetail(w http.ResponseWriter, r *http.Request) {
 		JOIN tournaments t ON t.id = s.tournament_id
 		LEFT JOIN decklists d ON d.id = s.decklist_id
 		LEFT JOIN archetypes a ON a.id = d.archetype_id
-		WHERE s.player_id = $1
-		ORDER BY t.date DESC`, playerID,
+		WHERE s.player_id IN (SELECT id FROM players WHERE lower(name) = lower($1))
+		ORDER BY t.date DESC`, nickname,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "querying player history: "+err.Error())
@@ -1385,7 +1385,10 @@ func (h *Handler) TournamentPairings(w http.ResponseWriter, r *http.Request) {
 
 	var playerID, playerName string
 	err = h.DB.QueryRow(ctx,
-		`SELECT id, name FROM players WHERE lower(name) = lower($1)`, nickname,
+		`SELECT p.id, p.name FROM players p
+		 JOIN standings s ON s.player_id = p.id AND s.tournament_id = $2
+		 WHERE lower(p.name) = lower($1)
+		 ORDER BY p.id LIMIT 1`, nickname, tournamentID,
 	).Scan(&playerID, &playerName)
 	if err == pgx.ErrNoRows {
 		writeError(w, http.StatusNotFound, "player not found")
