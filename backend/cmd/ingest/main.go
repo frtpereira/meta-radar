@@ -23,7 +23,7 @@ func main() {
 	refresh := flag.Duration("refresh", 0, "re-sync tournaments already stored if they were last checked longer ago than this (0 = never re-sync a seen tournament). Use a small value like 1s to force a full re-sync -- e.g. after seeding a new meta, so already-synced tournaments get their archetype_id backfilled.")
 
 	skipOfficial := flag.Bool("skip-official", false, "skip syncing official (offline) Regionals/Worlds tournaments from the labs API")
-	officialSampleSize := flag.Int("official-sample-size", 3, "how many of the most recent official events to check per pass")
+	officialSampleSize := flag.Int("official-sample-size", 5, "how many of the most recent official events to check per pass")
 	officialFormat := flag.String("official-format", "STANDARD", "meta/format code official tournaments attach to")
 	officialOrganizer := flag.String("official-organizer", "Play! Pokémon", "organizer_name written for every official tournament")
 	officialRequestDelay := flag.Duration("official-request-delay", 500*time.Millisecond, "pause between requests to the (undocumented, unrated-limited) labs API")

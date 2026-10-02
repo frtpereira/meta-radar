@@ -81,7 +81,7 @@ func TestSyncLabsDivisionSkipsBeforeCutoff(t *testing.T) {
 
 func TestLabsIDHelpers(t *testing.T) {
 	assert.Equal(t, "labs-0071-MA", labsTournamentID("0071", "MA"))
-	assert.Equal(t, "labs-1010", labsPlayerID(1010))
+	assert.Equal(t, "labs-0071-MA-1010", labsPlayerID("labs-0071-MA", 1010))
 	assert.Equal(t, "labs-0071", labsEventGroupID("0071"))
 }
 
@@ -130,8 +130,8 @@ func TestUpsertLabsStandingEntry(t *testing.T) {
 
 		entry := limitlesslabs.StandingEntry{PlayerID: 999, TPID: 1, Name: "Alice", Placement: 1, Wins: 10, Losses: 0, Ties: 0}
 
-		mock.ExpectExec(`INSERT INTO players`).WithArgs("labs-1", "Alice").WillReturnResult(pgxmock.NewResult("INSERT", 1))
-		mock.ExpectExec(`INSERT INTO standings`).WithArgs("t1", "labs-1", 1, 10, 0, 0).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		mock.ExpectExec(`INSERT INTO players`).WithArgs("t1-1", "Alice").WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		mock.ExpectExec(`INSERT INTO standings`).WithArgs("t1", "t1-1", 1, 10, 0, 0).WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 		s := &Syncer{DB: mock}
 		require.NoError(t, s.upsertLabsStandingEntry(context.Background(), tx, "t1", entry))
@@ -145,8 +145,8 @@ func TestUpsertLabsStandingEntry(t *testing.T) {
 
 		entry := limitlesslabs.StandingEntry{PlayerID: 998, TPID: 1419, Name: "Arjun Khadse", Placement: 797, Dropped: 1, Wins: 0, Losses: 4, Ties: 0}
 
-		mock.ExpectExec(`INSERT INTO players`).WithArgs("labs-1419", "Arjun Khadse").WillReturnResult(pgxmock.NewResult("INSERT", 1))
-		mock.ExpectExec(`INSERT INTO standings`).WithArgs("t1", "labs-1419", 0, 0, 4, 0).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		mock.ExpectExec(`INSERT INTO players`).WithArgs("t1-1419", "Arjun Khadse").WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		mock.ExpectExec(`INSERT INTO standings`).WithArgs("t1", "t1-1419", 0, 0, 4, 0).WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 		s := &Syncer{DB: mock}
 		require.NoError(t, s.upsertLabsStandingEntry(context.Background(), tx, "t1", entry))
@@ -160,8 +160,8 @@ func TestUpsertLabsStandingEntry(t *testing.T) {
 
 		entry := limitlesslabs.StandingEntry{PlayerID: 997, TPID: 2, Name: "Bob", Placement: 50, DQed: 1}
 
-		mock.ExpectExec(`INSERT INTO players`).WithArgs("labs-2", "Bob").WillReturnResult(pgxmock.NewResult("INSERT", 1))
-		mock.ExpectExec(`INSERT INTO standings`).WithArgs("t1", "labs-2", 0, 0, 0, 0).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		mock.ExpectExec(`INSERT INTO players`).WithArgs("t1-2", "Bob").WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		mock.ExpectExec(`INSERT INTO standings`).WithArgs("t1", "t1-2", 0, 0, 0, 0).WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 		s := &Syncer{DB: mock}
 		require.NoError(t, s.upsertLabsStandingEntry(context.Background(), tx, "t1", entry))
@@ -185,10 +185,10 @@ func TestReplaceLabsPairings(t *testing.T) {
 	}
 
 	mock.ExpectExec(`DELETE FROM pairings WHERE tournament_id = \$1`).WithArgs("t1").WillReturnResult(pgxmock.NewResult("DELETE", 0))
-	mock.ExpectExec(`INSERT INTO pairings`).WithArgs("t1", 1, 1, 1, ptrString("labs-1"), ptrString("labs-2"), ptrString("labs-1"), "win", pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
-	mock.ExpectExec(`INSERT INTO pairings`).WithArgs("t1", 1, 1, 2, ptrString("labs-3"), ptrString("labs-4"), (*string)(nil), "draw", pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
-	mock.ExpectExec(`INSERT INTO pairings`).WithArgs("t1", 1, 1, 3, ptrString("labs-5"), (*string)(nil), ptrString("labs-5"), "bye", pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
-	mock.ExpectExec(`INSERT INTO pairings`).WithArgs("t1", 1, 1, 4, ptrString("labs-6"), ptrString("labs-7"), (*string)(nil), "unknown", pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectExec(`INSERT INTO pairings`).WithArgs("t1", 1, 1, 1, ptrString("t1-1"), ptrString("t1-2"), ptrString("t1-1"), "win", pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectExec(`INSERT INTO pairings`).WithArgs("t1", 1, 1, 2, ptrString("t1-3"), ptrString("t1-4"), (*string)(nil), "draw", pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectExec(`INSERT INTO pairings`).WithArgs("t1", 1, 1, 3, ptrString("t1-5"), (*string)(nil), ptrString("t1-5"), "bye", pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectExec(`INSERT INTO pairings`).WithArgs("t1", 1, 1, 4, ptrString("t1-6"), ptrString("t1-7"), (*string)(nil), "unknown", pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	s := &Syncer{DB: mock}
 	require.NoError(t, s.replaceLabsPairings(context.Background(), tx, "t1", rounds))

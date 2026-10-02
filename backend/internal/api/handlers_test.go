@@ -853,11 +853,11 @@ func TestPlayerDetail(t *testing.T) {
 			WithArgs("Ash").
 			WillReturnRows(pgxmock.NewRows([]string{"id", "name"}).AddRow("p1", "Ash Ketchum"))
 		mock.ExpectQuery(`(?s)SELECT t\.id, t\.name, t\.date, t\.players.*FROM standings s`).
-			WithArgs("p1").
+			WithArgs("Ash").
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "name", "date", "players", "standing", "decklist_id", "archetype_id", "archetype_name", "archetype_slug"}).
-					AddRow("t1", "Regional", when, 256, 1, ptrInt64(10), ptrInt64(20), ptrString("Dragapult ex"), ptrString("dragapult-ex")).
-					AddRow("t2", "League Cup", when, 32, 0, nil, nil, nil, nil),
+				pgxmock.NewRows([]string{"id", "name", "date", "players", "standing", "decklist_id", "archetype_id", "archetype_name", "archetype_slug", "archetype_icons"}).
+					AddRow("t1", "Regional", when, 256, 1, ptrInt64(10), ptrInt64(20), ptrString("Dragapult ex"), ptrString("dragapult-ex"), []string{"dragapult"}).
+					AddRow("t2", "League Cup", when, 32, 0, nil, nil, nil, nil, nil),
 			)
 
 		h := &Handler{DB: mock}
@@ -944,8 +944,8 @@ func TestTournamentPairings(t *testing.T) {
 		mock.ExpectQuery(`SELECT name FROM tournaments WHERE id = \$1`).
 			WithArgs("t1").
 			WillReturnRows(pgxmock.NewRows([]string{"name"}).AddRow("Regional"))
-		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
-			WithArgs("Ash").
+		mock.ExpectQuery(`(?s)SELECT p\.id, p\.name FROM players p.*lower\(p\.name\)`).
+			WithArgs("Ash", "t1").
 			WillReturnRows(pgxmock.NewRows([]string{"id", "name"}).AddRow("p1", "Ash Ketchum"))
 		mock.ExpectQuery(`(?s)SELECT p\.phase, p\.round, p\.table_number.*FROM pairings p`).
 			WithArgs("t1", "p1").
@@ -1039,8 +1039,8 @@ func TestTournamentPairings(t *testing.T) {
 		mock.ExpectQuery(`SELECT name FROM tournaments WHERE id = \$1`).
 			WithArgs("t1").
 			WillReturnRows(pgxmock.NewRows([]string{"name"}).AddRow("Regional"))
-		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
-			WithArgs("missing").WillReturnError(pgx.ErrNoRows)
+		mock.ExpectQuery(`(?s)SELECT p\.id, p\.name FROM players p.*lower\(p\.name\)`).
+			WithArgs("missing", "t1").WillReturnError(pgx.ErrNoRows)
 
 		h := &Handler{DB: mock}
 		req := withURLParams(httptest.NewRequest(http.MethodGet, "/api/tournaments/t1/pairings/missing", nil), map[string]string{
@@ -1059,8 +1059,8 @@ func TestTournamentPairings(t *testing.T) {
 		mock.ExpectQuery(`SELECT name FROM tournaments WHERE id = \$1`).
 			WithArgs("t1").
 			WillReturnRows(pgxmock.NewRows([]string{"name"}).AddRow("Regional"))
-		mock.ExpectQuery(`SELECT id, name FROM players WHERE lower\(name\) = lower\(\$1\)`).
-			WithArgs("Ash").
+		mock.ExpectQuery(`(?s)SELECT p\.id, p\.name FROM players p.*lower\(p\.name\)`).
+			WithArgs("Ash", "t1").
 			WillReturnRows(pgxmock.NewRows([]string{"id", "name"}).AddRow("p1", "Ash Ketchum"))
 		mock.ExpectQuery(`(?s)SELECT p\.phase, p\.round, p\.table_number.*FROM pairings p`).
 			WithArgs("t1", "p1").WillReturnError(assert.AnError)
