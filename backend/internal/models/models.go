@@ -34,6 +34,7 @@ type Tournament struct {
 	IsOnline        bool      `json:"is_online"`
 	HasDecklists    bool      `json:"has_decklists"`
 	OrganizerName   *string   `json:"organizer_name,omitempty"`
+	IngestSource    string    `json:"ingest_source"`
 	WinnerArchetype *string   `json:"winner_archetype,omitempty"`
 	// WinnerArchetypeIcons holds the ordered pokemon-icon slugs for the
 	// winner's archetype (see archetype_icons table), so the frontend can
@@ -131,17 +132,17 @@ type MetaSnapshot struct {
 
 // MetaSnapshotArchetype is one archetype's row within a MetaSnapshot.
 type MetaSnapshotArchetype struct {
-	ID           int64    `json:"id"`
-	SnapshotID   int64    `json:"snapshot_id"`
-	ArchetypeID  int64    `json:"archetype_id"`
-	DeckCount    int      `json:"deck_count"`
-	SharePct     *float64 `json:"share_pct,omitempty"`
-	Matches      int      `json:"matches"`
-	Wins         int      `json:"wins"`
-	Losses       int      `json:"losses"`
-	Ties         int      `json:"ties"`
-	WinRate      *float64 `json:"win_rate,omitempty"`
-	AvgStanding  *float64 `json:"avg_standing,omitempty"`
+	ID          int64    `json:"id"`
+	SnapshotID  int64    `json:"snapshot_id"`
+	ArchetypeID int64    `json:"archetype_id"`
+	DeckCount   int      `json:"deck_count"`
+	SharePct    *float64 `json:"share_pct,omitempty"`
+	Matches     int      `json:"matches"`
+	Wins        int      `json:"wins"`
+	Losses      int      `json:"losses"`
+	Ties        int      `json:"ties"`
+	WinRate     *float64 `json:"win_rate,omitempty"`
+	AvgStanding *float64 `json:"avg_standing,omitempty"`
 }
 
 // CardImage is a resolved card-art URL for one print, keyed by its

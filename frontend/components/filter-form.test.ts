@@ -34,7 +34,7 @@ describe("FilterForm", () => {
                     "select",
                     { name: "source", defaultValue: "" },
                     React.createElement("option", { value: "" }, "All sources"),
-                    React.createElement("option", { value: "online" }, "Online"),
+                    React.createElement("option", { value: "limitless" }, "Limitless"),
                 ),
                 React.createElement("input", {
                     name: "min_players",

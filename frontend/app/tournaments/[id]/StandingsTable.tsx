@@ -79,7 +79,7 @@ export default function StandingsTable({
                 },
                 {
                     key: "pairings",
-                    label: "",
+                    label: "Pairings",
                     sortable: false,
                     render: (r: TournamentStanding) => (
                         <Link

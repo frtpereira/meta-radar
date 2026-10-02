@@ -120,8 +120,8 @@ function TournamentFilters({
                     </label>
                     <select id="source" name="source" defaultValue={source}>
                         <option value="">All sources</option>
-                        <option value="online">Online</option>
-                        <option value="offline">In person</option>
+                        <option value="limitless">Limitless</option>
+                        <option value="pokemon">Pokémon</option>
                     </select>
                 </div>
 
@@ -212,7 +212,7 @@ export default async function TournamentsPage({
     const activeMeta = pickDefaultMeta(metas, params.meta_id);
 
     const source =
-        params.source === "online" || params.source === "offline"
+        params.source === "limitless" || params.source === "pokemon"
             ? params.source
             : "";
     const parsedMinPlayers = Number.parseInt(params.min_players ?? "32", 10);

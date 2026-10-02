@@ -70,6 +70,13 @@ func nilArg() argMatcher {
 	}
 }
 
+func stringPtrArg(want string) argMatcher {
+	return func(v any) bool {
+		got, ok := v.(*string)
+		return ok && got != nil && *got == want
+	}
+}
+
 func boolPtrArg(want bool) argMatcher {
 	return func(v any) bool {
 		got, ok := v.(*bool)

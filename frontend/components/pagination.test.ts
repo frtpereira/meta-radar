@@ -22,7 +22,7 @@ describe("Pagination", () => {
         mockedUseRouter.mockReturnValue({ replace } as never);
         mockedUsePathname.mockReturnValue("/tournaments");
         mockedUseSearchParams.mockReturnValue(
-            new URLSearchParams("source=online&sort=date") as never,
+            new URLSearchParams("source=limitless&sort=date") as never,
         );
         vi.mocked(window.scrollTo).mockClear();
     });
@@ -66,7 +66,7 @@ describe("Pagination", () => {
         fireEvent.click(screen.getByRole("button", { name: "4" }));
 
         expect(replace).toHaveBeenCalledWith(
-            "/tournaments?source=online&sort=date&page=4",
+            "/tournaments?source=limitless&sort=date&page=4",
         );
         expect(window.scrollTo).toHaveBeenCalledWith({
             top: 0,
