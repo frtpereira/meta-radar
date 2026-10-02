@@ -62,32 +62,34 @@ export default function StandingsTable({
                     sortValue: (r: TournamentStanding) => r.wins - r.losses,
                 },
                 {
-                    key: "decklist",
-                    label: "Decklist",
-                    sortable: false,
-                    render: (r: TournamentStanding) =>
-                        r.decklist_id != null ? (
-                            <Link
-                                className="button"
-                                href={`/decklists/${r.decklist_id}`}
-                            >
-                                Decklist
-                            </Link>
-                        ) : (
-                            <span className="muted tiny">No Decklist</span>
-                        ),
-                },
-                {
-                    key: "pairings",
-                    label: "Pairings",
+                    key: "links",
+                    label: "Links",
                     sortable: false,
                     render: (r: TournamentStanding) => (
-                        <Link
-                            className="button"
-                            href={`/tournaments/${tournamentId}/pairings/${encodeURIComponent(r.player_name)}?from=tournament`}
+                        <span
+                            style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                            }}
                         >
-                            Pairings
-                        </Link>
+                            {r.decklist_id != null ? (
+                                <Link
+                                    className="button"
+                                    href={`/decklists/${r.decklist_id}`}
+                                >
+                                    Decklist
+                                </Link>
+                            ) : (
+                                <span className="muted tiny">No Decklist</span>
+                            )}
+                            <Link
+                                className="button"
+                                href={`/tournaments/${tournamentId}/pairings/${encodeURIComponent(r.player_name)}?from=tournament`}
+                            >
+                                Pairings
+                            </Link>
+                        </span>
                     ),
                 },
             ]}
