@@ -167,7 +167,14 @@ func (h *Handler) ListTournaments(w http.ResponseWriter, r *http.Request) {
 	orderClause := orderColumn + " " + orderDir
 	if orderColumn == "w.archetype_name" {
 		orderClause += " NULLS LAST, t.date DESC"
+	} else if orderColumn == "t.players" {
+		orderClause += ", t.date DESC"
 	}
+	// Tiebreakers keep same-date events (and the divisions of one official
+	// event) in a stable order; the name key drops the "(Division)" suffix so
+	// divisions of an event sort together.
+	orderClause += `, regexp_replace(t.name, '\s*\((Masters|Seniors|Juniors)\)\s*$', '') ASC` +
+		`, CASE t.division WHEN 'MA' THEN 0 WHEN 'SR' THEN 1 WHEN 'JR' THEN 2 ELSE 3 END, t.id`
 
 	// pagination -- same page/page_size convention as MatchupStats
 	page := 1
