@@ -16,17 +16,17 @@ export default function ContactPage() {
                     <h1>Contact</h1>
 
                     <p>
-                        We&apos;d rather hear from you than have you sit on a bug or
-                        a bad take about a matchup number.
+                        We&apos;d rather hear from you than have you sit on a
+                        bug or a bad take about a matchup number.
                     </p>
 
                     <h2>Bug reports & data issues</h2>
 
                     <p>
                         If something looks wrong — a mislabeled archetype, a
-                        missing tournament, a stat that doesn&apos;t add up — the
-                        fastest way to get it fixed is to open an issue on our
-                        GitHub repository:
+                        missing tournament, a stat that doesn&apos;t add up —
+                        the fastest way to get it fixed is to open an issue on
+                        our GitHub repository:
                     </p>
 
                     <ul>
@@ -51,22 +51,22 @@ export default function ContactPage() {
 
                     <p>
                         Same place — open an issue and tag it as a feature
-                        request. We read all of them, even if we can&apos;t reply to
-                        each one individually.
+                        request. We read all of them, even if we can&apos;t
+                        reply to each one individually.
                     </p>
 
                     <h2>Everything else</h2>
 
                     <p>
                         For privacy questions, takedown requests, legal notices,
-                        or anything that doesn&apos;t fit a GitHub issue, email us
-                        at:
+                        or anything that doesn&apos;t fit a GitHub issue, email
+                        us at:
                     </p>
 
                     <p>
                         <strong>
                             <a href="mailto:contact@metaradar-tcg.com">
-                                contact@metaradar.example
+                                contact@metaradar-tcg.com
                             </a>
                         </strong>
                     </p>
